@@ -142,7 +142,7 @@ class ProformaSchedule(BaseModel):
     etd_day_time = models.CharField(max_length=4, verbose_name="ETD Day Time")
     etd_day_number = models.IntegerField(verbose_name="ETD Day Number")
     link_distance = models.IntegerField(verbose_name="Link Distance")
-    link_speed = models.DecimalField(max_digits=7, decimal_places=3, verbose_name="Link Speed")
+    link_speed = models.DecimalField(max_digits=5, decimal_places=3, verbose_name="Link Speed")
 
     class Meta:
         verbose_name = "Proforma Schedule"
@@ -220,7 +220,7 @@ class CharterCost(BaseModel):
     currency_code = models.CharField(max_length=3, verbose_name="Currency Code")
     hire_from_date = models.DateTimeField(verbose_name="Hire From Date")
     hire_to_date = models.DateTimeField(verbose_name="Hire To Date")
-    hire_rate = models.DecimalField(max_digits=15, decimal_places=2, verbose_name="Hire Rate")
+    hire_rate = models.IntegerField(verbose_name="Hire Rate")
 
     class Meta:
         verbose_name = "Charter Cost"
@@ -291,7 +291,7 @@ class CanalFee(BaseModel):
     vessel_code = models.CharField(max_length=10, verbose_name="Vessel Code")
     direction = models.CharField(max_length=2, choices=DIRECTION_CHOICES, verbose_name="Direction")
     port_code = models.CharField(max_length=10, verbose_name="Port Code")
-    canal_fee = models.DecimalField(max_digits=25, decimal_places=13, verbose_name="Canal Fee")
+    canal_fee = models.DecimalField(max_digits=15, decimal_places=6, verbose_name="Canal Fee")
 
     class Meta:
         verbose_name = "Canal Fee"
@@ -305,8 +305,8 @@ class Distance(BaseModel):
     distance_id = models.AutoField(primary_key=True)
     from_port_code = models.CharField(max_length=10, verbose_name="From Port Code")
     to_port_code = models.CharField(max_length=10, verbose_name="To Port Code")
-    distance = models.DecimalField(max_digits=25, decimal_places=10, verbose_name="Distance")
-    eca_distance = models.DecimalField(max_digits=25, decimal_places=10, verbose_name="ECA Distance")
+    distance = models.IntegerField(verbose_name="Distance")
+    eca_distance = models.IntegerField(verbose_name="ECA Distance")
 
     class Meta:
         verbose_name = "Distance"
@@ -319,7 +319,7 @@ class Distance(BaseModel):
 class OwnVesselCost(BaseModel):
     own_vessel_cost_id = models.AutoField(primary_key=True)
     base_year_month = models.CharField(max_length=6, verbose_name="Base Year Month")
-    slot_price = models.DecimalField(max_digits=15, decimal_places=6, verbose_name="Slot Price")
+    slot_price = models.DecimalField(max_digits=5, decimal_places=3, verbose_name="Slot Price")
 
     class Meta:
         verbose_name = "Own Vessel Cost"
@@ -355,7 +355,7 @@ class BunkerConsumptionSea(BaseModel):
     bunker_consumption_sea_id = models.AutoField(primary_key=True)
     base_year_month = models.CharField(max_length=6, verbose_name="Base Year Month")
     nominal_capacity = models.IntegerField(verbose_name="Nominal Capacity")
-    sea_speed = models.DecimalField(max_digits=20, decimal_places=15, verbose_name="Sea Speed")
+    sea_speed = models.DecimalField(max_digits=5, decimal_places=1, verbose_name="Sea Speed")
     bunker_consumption = models.DecimalField(max_digits=25, decimal_places=13, verbose_name="Bunker Consumption")
 
     class Meta:
@@ -370,11 +370,11 @@ class BunkerConsumptionPort(BaseModel):
     bunker_consumption_port_id = models.AutoField(primary_key=True)
     base_year_month = models.CharField(max_length=6, verbose_name="Base Year Month")
     nominal_capacity = models.IntegerField(verbose_name="Nominal Capacity")
-    port_stay_bunker_consumption = models.DecimalField(max_digits=25, decimal_places=13,
+    port_stay_bunker_consumption = models.DecimalField(max_digits=5, decimal_places=3,
                                                        verbose_name="Port Stay Bunker Consumption")
-    idling_bunker_consumption = models.DecimalField(max_digits=25, decimal_places=13,
+    idling_bunker_consumption = models.DecimalField(ax_digits=5, decimal_places=3,
                                                     verbose_name="Idling Bunker Consumption")
-    pilot_inout_bunker_consumption = models.DecimalField(max_digits=25, decimal_places=13,
+    pilot_inout_bunker_consumption = models.DecimalField(ax_digits=5, decimal_places=3,
                                                          verbose_name="Pilot In/Out Bunker Consumption")
 
     class Meta:
@@ -391,7 +391,7 @@ class BunkeringPort(BaseModel):
     lane_code = models.CharField(max_length=10, verbose_name="Lane Code")
     bunker_type = models.CharField(max_length=4, choices=BUNKER_TYPE_CHOICES, verbose_name="Bunker Type")
     bunkering_port = models.CharField(max_length=10, verbose_name="Bunkering Port")
-    bunkering_port_ratio = models.DecimalField(max_digits=15, decimal_places=6, verbose_name="Bunkering Port Ratio")
+    bunkering_port_ratio = models.IntegerField(verbose_name="Bunkering Port Ratio")
 
     class Meta:
         verbose_name = "Bunkering Port"
@@ -407,7 +407,7 @@ class BunkerPrice(BaseModel):
     bunker_type = models.CharField(max_length=4, choices=BUNKER_TYPE_CHOICES, verbose_name="Bunker Type")
     trade_code = models.CharField(max_length=10, verbose_name="Trade Code")
     lane_code = models.CharField(max_length=10, verbose_name="Lane Code")
-    bunker_price = models.DecimalField(max_digits=15, decimal_places=6, verbose_name="Bunker Price")
+    bunker_price = models.DecimalField(max_digits=5, decimal_places=3, verbose_name="Bunker Price")
 
     class Meta:
         verbose_name = "Bunker Price"
@@ -451,7 +451,7 @@ class ETSCountry(BaseModel):
 class ETSBunkerConsumption(BaseModel):
     ets_bunker_consumption_id = models.AutoField(primary_key=True)
     bunker_type = models.CharField(max_length=4, choices=BUNKER_TYPE_CHOICES, verbose_name="Bunker Type")
-    bunker_consumption = models.DecimalField(max_digits=25, decimal_places=13, verbose_name="Bunker Consumption")
+    bunker_consumption = models.DecimalField(max_digits=5, decimal_places=3, verbose_name="Bunker Consumption")
 
     class Meta:
         verbose_name = "ETS Bunker Consumption"
@@ -486,8 +486,8 @@ class FuelEU(BaseModel):
     trade_code = models.CharField(max_length=10, verbose_name="Trade Code")
     lane_code = models.CharField(max_length=10, verbose_name="Lane Code")
     base_year_week = models.CharField(max_length=6, verbose_name="Base Year Week")
-    fuel_energy_content = models.DecimalField(max_digits=15, decimal_places=4, verbose_name="Fuel Energy Content")
-    ghg_penalty_rate = models.DecimalField(max_digits=15, decimal_places=4, verbose_name="GHG Penalty Rate")
+    fuel_energy_content = models.IntegerField(verbose_name="Fuel Energy Content")
+    ghg_penalty_rate = models.IntegerField(verbose_name="GHG Penalty Rate")
 
     class Meta:
         verbose_name = "FUEL EU"
@@ -500,7 +500,7 @@ class FuelEU(BaseModel):
 class FuelEUBunker(BaseModel):
     fuel_eu_bunker_id = models.AutoField(primary_key=True)
     bunker_type = models.CharField(max_length=4, verbose_name="Bunker Type")
-    ghg_intensity = models.DecimalField(max_digits=15, decimal_places=4, verbose_name="GHG Intensity")
+    ghg_intensity = models.DecimalField(max_digits=5, decimal_places=3, verbose_name="GHG Intensity")
     lower_calorific_value = models.DecimalField(max_digits=15, decimal_places=6, verbose_name="Lower Calorific Value")
 
     class Meta:
@@ -515,7 +515,7 @@ class GreenhouseGasTarget(BaseModel):
     greenhouse_gas_target_id = models.AutoField(primary_key=True)
     ghg_target_effective_from_year = models.CharField(max_length=4, verbose_name="GHG Target Effective From Year")
     ghg_target_effective_to_year = models.CharField(max_length=4, verbose_name="GHG Target Effective To Year")
-    ghg_target_gco2emj = models.DecimalField(max_digits=15, decimal_places=4, verbose_name="GHG Target (gCO2e/MJ)")
+    ghg_target_gco2emj = models.DecimalField(max_digits=5, decimal_places=3, verbose_name="GHG Target (gCO2e/MJ)")
 
     class Meta:
         verbose_name = "Greenhouse Gas Target"
