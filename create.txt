@@ -1,0 +1,343 @@
+1. 가상 환경 생성 python -m venv venv
+2. Django 및 패키지 설치
+    2.1. Django와 PostgreSQL 데이터베이스 드라이버인 psycopg2-binary, 엑셀 파일 처리를 위한 pandas와 openpyxl을 설치
+        - pip install django psycopg2-binary pandas openpyxl
+        - pip freeze > requirements.txt는 현재 가상 환경에 설치된 패키지 목록을 requirements.txt 파일로 저장
+        - pip install -r requirements.txt는 requirements.txt 파일에 명시된 패키지들을 한 번에 설치
+3. Django 프로젝트 생성
+    3.1. Django 프로젝트를 생성하고 현재 디렉토리에 설정 파일을 생성
+        - django-admin startproject config .
+    3.2. 최적화 데모 기능 앱을 생성
+        - python manage.py startapp input_data
+        - python manage.py startapp common
+        - python manage.py startapp external_api
+4. PostgreSQL 데이터베이스 연결 설정
+    4.1 .env.local에 DATABASES 설정
+    4.2 config/settings.py에 Installed apps에 생성 앱 추가
+5. 모델 생성
+    5.1 demo/models.py 파일을 열고 모델 정의
+    5.2 모델을 마이그레이션
+        - python manage.py makemigrations
+        - default.migration 0001_initial.py 최하단에 ] 앞에 "migrations.RunPython(load_initial_data)," 코드를 추가
+        - python manage.py migrate
+        - 일부만 마이그레이션이 필요한 경우 특정 앱만 마이그레이션
+            - python manage.py makemigrations result
+            - python manage.py migrate result zero
+
+    5.3 db initialize
+        - SELECT  'DROP TABLE IF EXISTS public."' || tablename || '" CASCADE;' AS drop_sql
+            FROM pg_tables
+            WHERE schemaname = 'public'
+        - 테스트 시 db 초기화 pytest result/tests/test_result_crud.py --create-db -s
+6. 관리자 계정 생성
+    6.1 관리자 계정을 생성하여 Django 관리자 페이지에 접근할 수 있도록 설정
+        - python manage.py createsuperuser cascading/qwer123$ yukaris@cyberlogitec.com
+7. 서버 실행
+    7.1 개발 서버를 실행하여 웹 애플리케이션을 확인
+        - python manage.py runserver
+    7.2 테스트 실행
+        - pytest run/tests/ -vv -rw
+        - pytest run/tests/test_run_views.py
+        - pytest run/tests/test_run_models.py::RunExecutionModelTest            // 특정 클래스의 모든 테스트 실행
+        - pytest run/tests/test_run_views.py::test_post_creates_full_snapshot   //특정 함수(테스트 케이스)만 실행
+        - pytest -m snapshot //마커가 "snapshot"인 테스트만 실행 (@pytest.mark.snapshot, 유형별 테스트 그룹 관리에 유용)
+    7.3 pytest 옵션
+        -v: verbose
+        -vv: very verbose, 어떤 부분에서 경고가 발생했는지 줄번호까지 표시
+        -x: 실패 시 즉시 중단
+        --maxfail=N: N회 실패 시 중단
+        --lf: 마지막 실패한 테스트들만 다시 실행
+        -k "run": "run"이란 단어가 포함된 테스트만 실행
+        -m MARKEXPR: 특정 마커가 있는 테스트만 실행
+        --ignore: 특정 파일/디렉토리무시
+        --W ignore::DeprecationWarning: DeprecationWarning 무시
+        -rw: 요약 정보 출력 (통과, 실패, 건너뜀 등)
+        -rw > warnings.log: 경고 요약 정보를 warnings.log 파일로 리다이렉트
+        --tb=short: 짧은 트레이스백 출력
+        --log-cli-level: 출력 로그 레벨 설정 (예: DEBUG, INFO)
+        --cache-clear: pytest 캐시 초기화, 테스트를 반복 실행하면서 이상한 문제가 생겼을 때 유용
+8. 추가 도구
+    8.1. black: 코드 포매터(정리)
+        - pip install black
+        - 설정 파일: pyproject.toml
+        - black .  //현재 디렉토리의 모든 파이썬 파일 포맷팅
+        - black --check . //포맷팅이 필요한 파일이 있는지 검사
+        - pycharm에서 Settings → Tools → Actions on Save → Run Black 체크
+    8.2. isort: import 정리 도구(정리)
+        - pip install isort
+        - 설정 파일: .isort.cfg
+        - isort .  //현재 디렉토리의 모든 파이썬 파일의 import 정리
+        - isort . --profile black   // black 스타일에 맞게 import 정리
+        - isort --check-only .  // 포맷팅이 필요한 파일이 있는지 검사
+        - pycharm에서 isort 사용 시 설정
+            - Settings > Tools > External Tools > + 클릭
+            - Name: isort
+            - Program: isort 설치 경로 (예: venv/Scripts/isort.exe)
+            - Arguments: $FilePath$
+            - Working directory: $ProjectFileDir$
+    8.3. flake8: 코드 스타일 검사 도구(검사)
+        - pip install flake8
+        - 설정 파일: .flake8
+        - flake8 .  //현재 디렉토리의 모든 파이썬 파일 검사
+        - pycharm에서 flake8 사용 시 설정
+            - Settings > Tools > External Tools > + 클릭
+            - Name: flake8
+            - Program: flake8 설치 경로 (예: venv/Scripts/flake8.exe)
+            - Arguments: $FilePath$
+            - Working directory: $ProjectFileDir$
+    8.4 pre-commit: Git 커밋 전에 자동으로 코드 포맷팅 및 검사 도구 실행
+        - pip install pre-commit
+        - 설정 파일: .pre-commit-config.yaml
+        - pre-commit install
+        - pre-commit run --all-files  //모든 파일에 대해 pre-commit 훅 수동 실행
+    8.5 vscode 자동화 testing
+        - black + isort를 파일 저장 시 자동 실행
+        - .vscode/settings.json 생성
+        {
+            "python.formatting.provider": "black",
+            "editor.formatOnSave": true,
+            "python.sortImports.args": ["--profile", "black"],
+            "[python]": {
+                "editor.codeActionsOnSave": {
+                    "source.organizeImports": true
+                }
+            }
+        }
+    8.6 ruff: 통합 코드 검사 및 포맷팅 도구
+        - pip install ruff
+        - 설정 파일: pyproject.toml
+        - isort + black + flake8 + 기타 검사 도구 기능 통합
+        - ruff check .  //현재 디렉토리의 모든 파이썬 파일 검사
+        - ruff check . --fix  //자동으로 수정 가능한 문제 수정
+        - pycharm에서 ruff 사용 시 설정
+            - Settings > Tools > External Tools > + 클릭
+            - Name: ruff
+            - Program: ruff 설치 경로 (예: venv/Scripts/ruff.exe)
+            - Arguments: check $FilePath$ --fix
+            - Working directory: $ProjectFileDir$
+
+9. git
+    9.1 tag
+        - 태그 목적
+            - 특정 버전 스냅샷을 표시
+            - 배포 시점 표시
+            - 롤백을 쉽게 하기 위해
+            - Release를 만들기 위한 기반
+        - tag 생성: git tag -a v0.1 -m "Initial release"
+        - tag 푸시: git push origin v0.1
+        - tag 삭제: git tag -d v0.1
+        - 원격 저장소에서 tag 삭제: git push origin --delete v0.1
+        - Lightweight Tag: git tag v0.2
+        - tag 목록 보기: git tag
+        - 특정 tag 정보 보기: git show v0.1
+    9.2 stash
+        - 작업 도중에 변경 사항을 임시로 저장하고 나중에 다시 적용할 때 사용
+        - Git이 추적(tracked) 중인 파일만 저장
+        - 변경 사항 임시 저장: git stash
+        - 특정 파일만 임시 저장: git stash push <파일명>
+        - 임시 저장된 변경 사항 목록 보기: git stash list
+        - 가장 최근에 임시 저장된 변경 사항 적용: git stash apply
+        - 특정 stash 적용: git stash apply stash@{1}
+        - 임시 저장된 변경 사항 적용 후 삭제: git stash pop
+        - 특정 stash 삭제: git stash drop stash@{1}
+        - 모든 stash 삭제: git stash clear
+    9.3 rebase
+        - 브랜치의 커밋 히스토리를 재정렬하거나 변경할 때 사용
+        - 현재 브랜치를 다른 브랜치 위로 이동: git checkout feature-branch && git rebase main
+        - 충돌 해결 후 계속 진행: git add <충돌해결된파일> && git rebase --continue
+        - rebase 중단: git rebase --abort
+        - 대화형 rebase: git rebase -i HEAD~3  //최근 3개의 커밋을 편집 모드로 열기
+    9.4 cherry-pick
+        - 다른 브랜치의 특정 커밋을 현재 브랜치에 적용할 때 사용
+        - 커밋 해시 확인: git log --oneline
+        - cherry-pick 적용: git cherry-pick <커밋해시>
+        - 충돌 해결 후 계속 진행: git add <충돌해결된파일> && git cherry-pick --continue
+        - cherry-pick 중단: git cherry-pick --abort
+
+10. Release 작성
+    10.1 GitHub에서 제공하는 버전 패키지 + 문서화된 배포 페이지입니다.
+        - 릴리스 = 태그 + 설명 페이지 + 첨부파일(binary 등)
+        - 릴리스를 만들려면 태그가 반드시 필요함.
+    10.2 Release가 제공하는 것
+        - 특정 버전의 소스 코드 스냅샷 다운로드 (zip, tar.gz)
+        - 릴리스 노트 작성(변경된 사항 정리)
+        - 실행 파일/배포 파일 업로드 가능 (예: *.whl, *.exe, *.zip)
+    10.3 GitHub에서 Release 작성
+        - GitHub 저장소 페이지로 이동
+        - "Releases" 탭 클릭
+        - "Draft a new release" 버튼 클릭
+        - Tag version 선택 (예: v0.1)
+        - Release title 및 설명 작성
+        - "Publish release" 버튼 클릭
+
+11. 배포
+    11.1 static 개발 서버 vs 배포 서버 동작 차이
+        - DEBUG = True (runserver 사용)일 때는 django.contrib.staticfiles가 정적 파일을 자동으로 서빙
+        - DEBUG = False (실서버)면 Django가 직접 서빙하지 않으므로:
+            - python manage.py collectstatic로 모든 static 파일을 STATIC_ROOT로 모으고(예: staticfiles/),
+            - 웹서버(nginx, Apache)나 WhiteNoise로 정적 파일을 제공
+            - 개발 환경에서 DEBUG=False이면 파일이 안 보일 수 있으니 DEBUG 값을 확인
+        - collectstatic 테스트
+
+12. code coverage
+    - 추가 시 테스트 디버그 불가
+    - pytest.ini 파일에 추가하면 htmlcov 폴더 index.html에서 확인 가능
+        addopts = --reuse-db -v
+            --cov=.
+            --cov=config
+            --cov-report=term-missing
+            --cov-report=html
+    - 예외 항목은 pyproject.toml 파일에 추가
+        [tool.coverage.run]
+        omit = [
+            "*/migrations/*",
+            "*/tests/*",
+            "*/__init__.py",
+            "config/asgi.py",
+            "config/wsgi.py",
+            "manage.py",
+        ]
+    - PyCharm 자체 Coverage 실행 활용
+        1) Run → Edit Configurations
+        2) "+" → pytest 선택
+        3) 아래 설정 입력:
+            Working directory: Django 프로젝트 루트
+            Additional Arguments:
+                --cov=. --cov-report=html
+            Environment variables →
+                DJANGO_SETTINGS_MODULE=config.settings
+        4) Run 대신 "Run with Coverage" 클릭
+
+        그러면 PyCharm의 Coverage UI가 정상 작동하며 htmlcov도 생성됩니다.
+
+13. podman
+    # podman-compose up -d --build: 컨테이너 빌드 및 실행 (백그라운드)
+    # podman ps: 실행 중인 컨테이너 목록 확인
+    # podman logs -f berthdemo_web_1: berthdemo_web_1 컨테이너의 로그 실시간 확인
+    # podman logs -f berthdemo_worker_1: berthdemo_worker_1 컨테이너의 로그 실시간 확인
+    # podman logs -f berthdemo_redis_1: berthdemo_redis_1 컨테이너의 로그 실시간 확인
+    # podman-compose exec web python manage.py migrate: web 컨테이너에서 마이그레이션 명령 실행
+    # podman-compose restart  berthdemo_worker_1 Celery코드 수정 시 worker 재시작 필요
+
+    주의: Podman Desktop과 Podman CLI(podman.exe)는 별개의 구성 요소
+    13.1 설치
+        1) 데트스탑: https://podman-desktop.io/
+        2) Podman Engine 설치
+            - 데트스탑 화면 좌측 메뉴에서 Dashboard(대시보드)를 클릭
+            - 화면 중앙에 "Podman is not installed" 보이면 미설치 상태
+            - "Install Podman" 버튼 클릭하여 설치 진행
+            - Windows: WSL2 필요
+            - 환경 변수 확인: Path에 C:\Program Files\RedHat\Podman 여부 확인
+            - podman.exe는 보통 C:\Program Files\RedHat\Podman에 설치
+        3) 확인
+            - 터미널(PowerShell)을 반드시 껐다가 다시 켜야 합니다 (환경 변수 적용 때문)
+            - 명령창에서 podman --version 입력하여 버전 정보 확인
+        4) 머신 초기화 및 시작 (처음 한 번만 필요)
+            - podman machine init
+            - podman machine start
+    13.2 Dockerfile 생성
+        1) 프로젝트 루트에 Dockerfile 생성
+        2) 내용 예시
+            FROM python:3.9-slim
+
+            WORKDIR /app
+
+            COPY . /app
+
+            RUN pip install --no-cache-dir -r requirements.txt
+
+            EXPOSE 8000
+    13.3 podman-compose 사용
+        1) 설치
+            - pip install podman-compose
+        2) 사용법
+            - docker-compose.yml 사용
+            - 백그라운드 실행: podman-compose up -d --build
+        3) 로그
+            - 로그 확인 (제대로 떴는지 확인): podman-compose logs -f
+            - 윈도우에서 Podman 원격 클라이언트를 사용할 때 발생하는 일시적인 제약 됨
+            - 데스트탑: Containers -> 목록에서 실행 중 확인
+            - 터미널:
+                - 컨테이너 이름 확인: podman ps
+                - 개별 로그 확인: podman logs -f berthdemo_web_1
+            - 성공 확인:
+                - Web: Starting development server at http://0.0.0.0:8000/
+                - Worker: [config] .> app: config:0x... (Celery가 준비되었다는 메시지)
+                - Redis: Ready to accept connections
+        4) 처음 실행 시 db 생성을 위한 migrate 수동 실행 필요
+            - podman-compose exec web python manage.py migrate
+        5) 관리자 계정 생성
+            - podman-compose exec web python manage.py createsuperuser
+            - 명령어 입력 후 ID, 이메일, 비밀번호를 설정
+    13.4 dbeaver에서 컨테이너 db 연결
+        1) 연결 설정
+            - 호스트: localhost
+                - .env.docker에 적힌 DB_HOST=db는 도커 내 Django(Web 컨테이너)가 DB를 찾을 때 쓰는 주소
+                - 도커 밖(내 컴퓨터, DBeaver)에서는 db라는 이름을 알 수 없으므로 localhost
+            - 포트: 5433 (docker-compose.yml에서 ports 왼쪽 값)
+            - 데이터베이스: berth_demo (.env.docker의 DB_NAME)
+            - 사용자 이름: berth_user (.env.docker의 DB_USER)
+            - 비밀번호: berth_password (.env.docker의 DB_PASSWORD)
+
+14. 서버 배포
+    gunicorn + nginx
+        - gunicorn: 파이썬 WSGI HTTP 서버, Django 애플리케이션을 서비스하는 역할
+        - nginx: 정적 파일 서빙 및 리버스 프록시 역할
+    14.1 gunicorn 설치
+        - pip install gunicorn
+    14.2 Nginx 설정 파일 생성(./nginx/nginx.conf)
+    14.3 시작 스크립트 생성(./scripts/entrypoint.sh)이나 정적 파일 수집
+        - 컨테이너가 실행될 때 1) DB 마이그레이션, 2) 정적 파일 모으기(collectstatic), 3) Gunicorn 실행을 순서대로 처리하기 위한 스크립트
+        - 스크립트 없다면 정적 파일 수집
+            - python manage.py collectstatic
+    14.4 dock-compose.yml 수정
+    14.5 config/settings.py
+        - DEBUG, ALLOWED_HOSTS를 env에서 가져오도록 수정
+            - DEBUG = os.getenv("DEBUG", "False").lower() == "true"
+            - ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(",")
+            - Nginx를 통해 들어오면 Host 헤더가 유지되므로, .env.docker 파일에 배포할 서버의 IP나 도메인을 추가
+        - 정적 파일이 모일 경로 (Nginx가 이곳을 참조함)
+            - STATIC_URL = '/static/'
+            - STATIC_ROOT = os.path.join(BASE_DIR, 'staticfiles')
+    14.6 배포
+        - 기존 컨테이너 중지 및 삭제: podman-compose down (또는 docker-compose down)
+        - 새로 빌드 및 실행: podman-compose up -d --build
+    14.7 domain 설정(로컬)
+        1) C:\Windows\System32\drivers\etc\hosts 파일 수정 (관리자 권한 필요)
+            - 127.0.0.1 opusopt-demo.com
+        2) Django 설정 수정 (.env.docker)
+            - ALLOWED_HOSTS=localhost,127.0.0.1,opusopt-demo.com
+            - CSRF_TRUSTED_ORIGINS=http://opusopt-demo.com # CSRF 보안 설정 (https가 아닌 http로 접속 시 필요)
+        3) Nginx 설정 수정 (./nginx/nginx.conf)
+            - server_name opusopt-demo.com;
+        4) 배포 재실행
+            - podman-compose down
+            - podman-compose up -d --build
+            - 빌드 시 rootlessport cannot expose privileged port 80 오류 발생 시:
+                - docker-compose.yml의 nginx: 의 ports:를 "80:80" -> "8080:80" 등으로 변경
+            - 포트 없이 접속하려면 80 포트로 접속해야 하므로 관리자 권한으로 rootlessport 설정 필요
+                - cmd에서 wsl 쳐서 리눅스 접속
+                - sudo sysctl -w net.ipv4.ip_unprivileged_port_start=80 # 1. 80번 포트부터 사용 가능하도록 설정
+                - echo "net.ipv4.ip_unprivileged_port_start=80" | sudo tee -a /etc/sysctl.conf # 2. 재부팅 후에도 유지되도록 설정 추가
+15. https 설정 (배포 서버)
+    15.1 인증서 발급
+        - Windows Git Bash에서 베이직 폴더로 이동
+        - mkdir certs
+        - openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout certs/selfsigned.key -out certs/selfsigned.crt -subj "//C=KR/ST=Seoul/L=Seoul/O=OpusOpt/CN=opusopt-demo.com"
+    15.2 docker-compose.yml 수정
+        - nginx: 서비스에 볼륨 추가
+            - - ./certs:/etc/nginx/certs:ro
+    15.3 Nginx 설정 수정 (./nginx/nginx.conf)
+        - SSL 인증서, 보안 옵션 추가
+    15.4 settings.py 보안 설정
+        - SESSION_COOKIE_SECURE = True
+        - CSRF_COOKIE_SECURE = True
+        - SECURE_SSL_REDIRECT = False  # Nginx가 이미 301 리다이렉트를 하므로 False 권장
+        - CSRF_TRUSTED_ORIGINS = [
+            "https://localhost",
+            "https://127.0.0.1",
+            "https://opusopt-demo.com",
+            "https://192.168.0.15",
+        ]
+    15.5 처음 접속 시 고급 설정으로 이동
+

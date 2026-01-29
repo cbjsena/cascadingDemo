@@ -1,0 +1,143 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard - Cascading Opt{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
+        <h1 class="h2">Input Data Dashboard</h1>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <div class="btn-group me-2">
+                <button type="button" class="btn btn-sm btn-outline-secondary">Share</button>
+                <button type="button" class="btn btn-sm btn-outline-secondary">Export</button>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-secondary dropdown-toggle">
+                <span data-feather="calendar"></span>
+                This week
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-3">
+            <div class="card text-white bg-primary shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Total Snapshots</h5>
+                    <p class="card-text display-6 fw-bold">{{ total_snapshots }}</p>
+                    <small>Active Scenarios</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-success shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Recent Update</h5>
+                    <p class="card-text fs-4 fw-bold">
+                        {{ last_update|date:"Y-m-d"|default:"-" }}
+                    </p>
+                    <small>Latest data uploaded</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-dark bg-warning shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Data Missing</h5>
+                    <p class="card-text fs-4 fw-bold">0 Items</p>
+                    <small>Requires attention</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-white bg-dark shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Engine Status</h5>
+                    <p class="card-text fs-4 fw-bold">Ready</p>
+                    <small>v1.0.0</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-white py-3">
+            <h5 class="mb-0 fw-bold">Recent Data Snapshots</h5>
+        </div>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th scope="col" class="ps-4">Data ID</th>
+                        <th scope="col">Description</th>
+                        <th scope="col">Base YM</th>
+                        <th scope="col">Created At</th>
+                        <th scope="col">Updated At</th>
+                        <th scope="col" class="text-end pe-4">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for snapshot in recent_snapshots %}
+                    <tr>
+                        <td class="ps-4 fw-bold text-primary">{{ snapshot.data_id }}</td>
+                        <td>{{ snapshot.description|default:"-"|truncatechars:30 }}</td>
+                        <td>
+                            {% if snapshot.base_year_month %}
+                                <span class="badge bg-secondary">{{ snapshot.base_year_month }}</span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if snapshot.created_by %}
+                                <span class="badge bg-light text-dark border">
+                                    <i class="bi bi-person-fill"></i> {{ snapshot.created_by.username }}
+                                </span>
+                            {% else %}
+                                -
+                            {% endif %}
+                        </td>
+                        <td>{{ snapshot.created_at|date:"Y-m-d H:i" }}</td>
+                        <td class="text-end pe-4">
+                            <a href="#" class="btn btn-sm btn-outline-primary">View</a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="6" class="text-center py-4 text-muted">
+                            No snapshots yet.
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        <div class="card-footer bg-white text-end">
+            <button class="btn btn-primary">
+                <i class="bi bi-plus-lg"></i> Create New Snapshot
+            </button>
+        </div>
+    </div>
+
+    <div class="row g-4">
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Quick Upload</h5>
+                    <p class="card-text text-muted">Upload Excel files directly to update schedules or costs.</p>
+                    <button class="btn btn-outline-dark">Go to Upload</button>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card shadow-sm h-100">
+                <div class="card-body">
+                    <h5 class="card-title">Documentation</h5>
+                    <p class="card-text text-muted">Learn how to prepare input data and run optimization.</p>
+                    <a href="#" class="btn btn-link text-decoration-none">View Docs &rarr;</a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+</div>
+{% endblock %}

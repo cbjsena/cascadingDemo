@@ -1,0 +1,97 @@
+[tool.pytest.ini_options]
+DJANGO_SETTINGS_MODULE = "config.settings"
+python_files = ["tests.py", "test_*.py", "*_tests.py"]
+python_functions = ["test_*"]
+python_classes = ["Test*", "*Test"]
+addopts = "--reuse-db -v"
+#addopts = "--reuse-db -v --cov=default --cov-report=term-missing --cov-report=html"
+#    --cov=default
+#    --cov-report=term-missing
+#    --cov-report=html
+# addopts 이하 주석 해제하면 corverage 측정 가능
+# --- pytest 명령어 옵션 예시:
+#pytest -v                # 상세 로그
+#pytest -s                # print() 출력 허용
+#pytest --reuse-db        # DB 재사용
+#pytest --create-db      # 테스트 시 db 초기화 / db 변경 후 사용
+#pytest --maxfail=1 -v    # 첫 실패 시 중단
+#pytest --cov=run         # 커버리지 측정
+#pytest -rw                -r 요약 리포트(report) 표시 옵션, w는 warnings(경고)
+# --- coverage 관련 옵션 예시:
+#--cov=appname	            coverage 측정할 Django 앱, --cov=. 는 프로젝트 전체
+#--cov-report=term-missing  터미널에 미커버 라인 표시
+#--cov-report=html          htmlcov 디렉토리 생성하여 브라우저로 확인 가능
+
+[tool.black]
+line-length = 88
+target-version = ["py310", "py311"]
+skip-string-normalization = false
+include = '\.pyi?$'
+extend-exclude = '''
+(
+  /migrations
+  | /static
+  | /templates
+  | /venv
+  | /env
+)
+'''
+
+[tool.ruff]
+# Black과 동일한 줄 길이 설정
+line-length = 88
+# 제외할 디렉토리 (기존 .flake8 설정 반영)
+# skip_gitignore = true는 Ruff가 기본적으로 .gitignore를 읽으므로 생략 가능
+exclude = [
+    ".git",
+    "__pycache__",
+    "old",
+    "build",
+    "dist",
+    "migrations",
+    ".venv",
+    "venv",
+    "env",
+]
+
+[tool.ruff.lint]
+# 사용할 규칙: E, W (Pycodestyle/Flake8), F (Pyflakes), I (isort)
+select = ["E", "W", "F", "I"]
+# 무시할 규칙 (기존 .flake8의 extend-ignore 반영 + Black 호환)
+ignore = ["E203", "E501", "W391"]
+
+
+[tool.ruff.lint.isort]
+# isort 설정 통합 (기존 .isort.cfg 대체)
+combine-as-imports = true
+known-first-party = ["config", "default", "result", "run"]
+section-order = ["future", "standard-library", "third-party", "django", "first-party", "local-folder"]
+
+[tool.ruff.lint.isort.sections]
+# Django 섹션 구분
+"django" = ["django"]
+
+
+[tool.coverage.run]
+branch = true
+omit = [
+    "*/migrations/*",
+    "*/tests/*",
+    "*/__init__.py",
+    "config/asgi.py",
+    "config/wsgi.py",
+    "manage.py",
+]
+
+[tool.coverage.report]
+exclude_lines =[
+    "pragma: no cover",
+    "def __str__",
+    "if self.debug",
+    "if settings.DEBUG",
+    "raise NotImplementedError"
+]
+ignore_errors = true
+
+[tool.coverage.html]
+directory = "coverage_html_report"
