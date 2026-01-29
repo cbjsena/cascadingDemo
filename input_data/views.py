@@ -218,7 +218,7 @@ def _clone_snapshot_data(source_id, target_snapshot):
 def _generate_default_data_id():
     """
     오늘 날짜 기준 YYYYMMDD + 2자리 시퀀스(00~99) ID 생성
-    예: 2025012900, 2025012901 ...
+    예: 2025012901, 2025012902 ...
     """
     today_str = timezone.now().strftime('%Y%m%d')
     # 오늘 날짜로 시작하는 ID 중 가장 큰 것 검색
@@ -233,9 +233,9 @@ def _generate_default_data_id():
             new_seq = last_seq + 1
         except (ValueError, IndexError):
             # 형식이 다르면 00부터 다시 시작
-            new_seq = 0
+            new_seq = 1
     else:
-        new_seq = 0
+        new_seq = 1
 
     return f"{today_str}{new_seq:02d}"
 

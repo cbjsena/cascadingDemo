@@ -15,6 +15,11 @@
     4.1 .env.local에 DATABASES 설정
     4.2 config/settings.py에 Installed apps에 생성 앱 추가
 5. 모델 생성
+    5.0 pgamin 이용해서 db(cascading_db), role(cascading_user) 생성
+        - Definition에서 encoding=UTF8, template=template0 선택;
+        - Parameter에서 tiemezone=UTC 선택;
+        - settings.py의 TIME_ZONE = "UTC"와 일치
+        - dbeaver에서 utc로 보려면 created_at at time zone 'UTC'
     5.1 demo/models.py 파일을 열고 모델 정의
     5.2 모델을 마이그레이션
         - python manage.py makemigrations
