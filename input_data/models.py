@@ -372,7 +372,7 @@ class BunkerConsumptionPort(BaseModel):
     nominal_capacity = models.IntegerField(verbose_name="Nominal Capacity")
     port_stay_bunker_consumption = models.DecimalField(max_digits=5, decimal_places=3,
                                                        verbose_name="Port Stay Bunker Consumption")
-    idling_bunker_consumption = models.DecimalField(max_digits=5, decimal_places=3,
+    idling_bunker_consumption = models.DecimalField(max_digits=25, decimal_places=13,
                                                     verbose_name="Idling Bunker Consumption")
     pilot_inout_bunker_consumption = models.DecimalField(max_digits=5, decimal_places=3,
                                                          verbose_name="Pilot In/Out Bunker Consumption")
