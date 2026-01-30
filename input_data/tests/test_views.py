@@ -1,6 +1,6 @@
 import pytest
 from django.urls import reverse
-from input_data.models import InputDataSnapshot, ProformaSchedule
+from input_data.models import InputDataSnapshot, ProformaSchedule, Distance
 from common import messages as msg
 
 
@@ -182,3 +182,258 @@ class TestSnapshotScenarios:
             response = client.get(url)
             assert response.status_code == 302
             assert "/accounts/login/" in response.url
+
+
+@pytest.mark.django_db
+class TestProformaScenarios:
+    """
+    [Proforma Schedule] 기능별 상세 테스트 시나리오 구현
+    Target: input_data.views.proforma.proforma_create
+    """
+
+    def test_proforma_view_get_001(self, auth_client, base_snapshot):
+        """[PROFORMA_VIEW_001] 화면 진입 및 기본 컨텍스트 확인"""
+        # Given
+        url = reverse("input_data:proforma_create")
+
+        # When
+        response = auth_client.get(url)
+
+        # Then
+        assert response.status_code == 200
+        assert "snapshots" in response.context
+        assert "rows" in response.context
+        assert "header" in response.context
+        # 기본 스냅샷이 목록에 있는지 확인
+        assert base_snapshot in response.context["snapshots"]
+
+    def test_proforma_action_add_row(self, auth_client):
+        """[PROFORMA_ACTION_ADD] 최하단 행 추가 확인"""
+        # Given
+        url = reverse("input_data:proforma_create")
+
+        # When
+        data = {
+            "action": "add_row",
+            "port_code[]": [],  # 초기엔 아무것도 없음
+        }
+        response = auth_client.post(url, data)
+
+        # Then
+        assert response.status_code == 200
+        rows = response.context["rows"]
+
+        # 행이 1개 생성되고 번호가 1번인지 확인
+        assert len(rows) == 1
+        assert rows[0]['no'] == 1
+
+    def test_proforma_action_insert_row(self, auth_client):
+        """[PROFORMA_ACTION_INSERT] 중간 행 삽입 및 재정렬 확인"""
+        # Given: 2개의 행(A, B)이 있는 상태 가정
+        url = reverse("input_data:proforma_create")
+
+        data = {
+            "action": "insert_row",
+            "selected_index": "0",  # 첫 번째 행(A) 선택 -> 그 뒤에 삽입
+
+            # 현재 화면 데이터 상태 (A, B)
+            "port_code[]": ["PORT_A", "PORT_B"],
+            # 필수 필드 더미 데이터 채우기 (IndexError 방지)
+            "direction[]": ["E", "E"], "turn_info[]": ["N", "N"], "pilot_in[]": ["0", "0"],
+            "etb_no[]": ["0", "0"], "etb_day[]": ["", ""], "etb_time[]": ["", ""],
+            "work_hours[]": ["0", "0"], "etd_no[]": ["0", "0"], "etd_day[]": ["", ""], "etd_time[]": ["", ""],
+            "pilot_out[]": ["0", "0"], "dist[]": ["0", "0"], "eca_dist[]": ["0", "0"],
+            "spd[]": ["0", "0"], "sea_time[]": ["0", "0"], "terminal[]": ["", ""]
+        }
+
+        # When
+        response = auth_client.post(url, data)
+
+        # Then
+        rows = response.context["rows"]
+
+        # 총 3개 행 확인 (A, New, B)
+        assert len(rows) == 3
+        assert rows[0]['port_code'] == "PORT_A"
+        assert rows[1]['port_code'] == ""  # 중간에 삽입된 빈 행
+        assert rows[2]['port_code'] == "PORT_B"  # 뒤로 밀린 행
+
+        # 번호 재정렬 확인 (1, 2, 3)
+        assert rows[1]['no'] == 2
+        assert rows[2]['no'] == 3
+
+    def test_proforma_action_delete_row(self, auth_client):
+        """[PROFORMA_ACTION_DELETE] 선택 행 삭제 및 재정렬 확인"""
+        # Given: 3개의 행(A, B, C) 가정
+        url = reverse("input_data:proforma_create")
+
+        data = {
+            "action": "delete_row",
+            "row_check": ["1"],  # Index 1 (B) 행 삭제 요청
+
+            "port_code[]": ["A", "B", "C"],
+            # 더미 데이터 (3개씩)
+            "direction[]": ["E"] * 3, "turn_info[]": ["N"] * 3, "pilot_in[]": ["0"] * 3,
+            "etb_no[]": ["0"] * 3, "etb_day[]": [""] * 3, "etb_time[]": [""] * 3,
+            "work_hours[]": ["0"] * 3, "etd_no[]": ["0"] * 3, "etd_day[]": [""] * 3, "etd_time[]": [""] * 3,
+            "pilot_out[]": ["0"] * 3, "dist[]": ["0"] * 3, "eca_dist[]": ["0"] * 3,
+            "spd[]": ["0"] * 3, "sea_time[]": ["0"] * 3, "terminal[]": [""] * 3
+        }
+
+        # When
+        response = auth_client.post(url, data)
+
+        # Then
+        rows = response.context["rows"]
+
+        # 1개 삭제되어 2개 남음
+        assert len(rows) == 2
+        # B가 삭제되고 A, C만 남음
+        assert rows[0]['port_code'] == "A"
+        assert rows[1]['port_code'] == "C"
+        # 번호 재정렬 확인 (1, 2)
+        assert rows[1]['no'] == 2
+
+    def test_proforma_action_new(self, auth_client):
+        """[PROFORMA_ACTION_NEW] 화면 초기화 확인"""
+        # Given
+        url = reverse("input_data:proforma_create")
+        data = {
+            "action": "new",
+            "port_code[]": ["EXISTING_DATA"],  # 기존 데이터가 있어도
+        }
+
+        # When
+        response = auth_client.post(url, data)
+
+        # Then
+        rows = response.context["rows"]
+        # 모든 행이 삭제되어야 함
+        assert len(rows) == 0
+        # 메시지 확인
+        messages_list = list(response.context['messages'])
+        assert any(msg.SCHEDULE_NEW_STARTED in m.message for m in messages_list)
+
+    def test_proforma_data_dist_integration(self, auth_client, base_snapshot):
+        """[PROFORMA_DATA_DIST] 거리 데이터 자동 연동 확인"""
+        # Given: DB에 거리 정보 생성 (A -> B : 100 miles, ECA : 20)
+        Distance.objects.create(
+            data_id=base_snapshot,
+            from_port_code="PORT_A",
+            to_port_code="PORT_B",
+            distance=100,
+            eca_distance=20
+        )
+
+        url = reverse("input_data:proforma_create")
+
+        # When: 화면에서 포트만 입력하고 'calculate' 요청 (거리는 0으로 보냄)
+        data = {
+            "action": "calculate",
+            "data_id": base_snapshot.data_id,
+            "port_code[]": ["PORT_A", "PORT_B"],
+            "dist[]": ["0", "0"],
+            "eca_dist[]": ["0", "0"],
+
+            # 필수 더미
+            "direction[]": ["E"] * 2, "turn_info[]": ["N"] * 2, "pilot_in[]": ["0"] * 2,
+            "etb_no[]": ["0"] * 2, "etb_day[]": [""] * 2, "etb_time[]": [""] * 2,
+            "work_hours[]": ["0"] * 2, "etd_no[]": ["0"] * 2, "etd_day[]": [""] * 2, "etd_time[]": [""] * 2,
+            "pilot_out[]": ["0"] * 2, "spd[]": ["0"] * 2, "sea_time[]": ["0"] * 2, "terminal[]": [""] * 2
+        }
+        response = auth_client.post(url, data)
+
+        # Then
+        rows = response.context["rows"]
+        # 두 번째 행(B)의 거리가 DB값으로 업데이트 되었는지 확인
+        assert rows[1]['port_code'] == "PORT_B"
+        assert int(rows[0]['dist']) == 100
+        assert int(rows[0]['eca_dist']) == 20
+
+    def test_proforma_calc_only(self, auth_client, base_snapshot):
+        """[PROFORMA_CALC_ONLY] 저장 없이 계산만 수행 (DB 저장 X)"""
+        url = reverse("input_data:proforma_create")
+
+        # Given: 계산 가능한 데이터 (A->B, 100km, 5시간 소요)
+        data = {
+            "action": "calculate",
+            "data_id": base_snapshot.data_id,
+            "lane_code": "CALC_TEST",
+            "proforma_name": "CALC_ONLY_PF",
+
+            # Row 1 (A) 출발 12:00 -> Row 2 (B) 도착 17:00 (5시간)
+            # Distance 100 -> Speed 20
+            "port_code[]": ["PORT_A", "PORT_B"],
+
+            "etd_no[]": ["0", "0"], "etd_time[]": ["1200", "0000"],  # A 출발
+            "etb_no[]": ["0", "0"], "etb_time[]": ["0000", "1700"],  # B 도착
+
+            "dist[]": ["0", "100"],
+
+            # 더미
+            "direction[]": ["E"] * 2, "turn_info[]": ["N"] * 2, "pilot_in[]": ["0"] * 2,
+            "etb_day[]": [""] * 2, "work_hours[]": ["0"] * 2, "etd_day[]": [""] * 2,
+            "pilot_out[]": ["0"] * 2, "eca_dist[]": ["0"] * 2, "spd[]": ["0"] * 2, "sea_time[]": ["0"] * 2,
+            "terminal[]": [""] * 2
+        }
+
+        # When
+        response = auth_client.post(url, data)
+
+        # Then 1: 화면 계산 결과 확인
+        rows = response.context["rows"]
+        # Row 0 (A)에서 B까지 가는 속도/시간
+        assert float(rows[0]['sea_time']) == 5.0
+        assert float(rows[0]['spd']) == 20.0
+
+        # Then 2: DB 저장 안됨 확인
+        assert ProformaSchedule.objects.filter(proforma_name="CALC_ONLY_PF").count() == 0
+
+        # Then 3: 성공 메시지가 아닌 일반 Info 메시지 확인
+        messages_list = list(response.context['messages'])
+        assert any(msg.SCHEDULE_CALCULATED in m.message for m in messages_list)
+
+    def test_proforma_save_full(self, auth_client, base_snapshot):
+        """[PROFORMA_SAVE_FULL] 계산 수행 및 DB 저장 확인"""
+        url = reverse("input_data:proforma_create")
+
+        # Given: 동일한 데이터로 Save 요청
+        data = {
+            "action": "save",
+            "data_id": base_snapshot.data_id,
+            "lane_code": "SAVE_TEST",
+            "proforma_name": "SAVE_FULL_PF",
+
+            "port_code[]": ["PORT_A", "PORT_B"],
+            "dist[]": ["0", "100"],
+
+            # 필수 더미
+            "etd_no[]": ["0", "0"], "etd_time[]": ["1200", "0000"], "etb_no[]": ["0", "0"],
+            "etb_time[]": ["0000", "1700"],
+            "direction[]": ["E"] * 2, "turn_info[]": ["N"] * 2, "pilot_in[]": ["0"] * 2,
+            "etb_day[]": [""] * 2, "work_hours[]": ["0"] * 2, "etd_day[]": [""] * 2,
+            "pilot_out[]": ["0"] * 2, "eca_dist[]": ["0"] * 2, "spd[]": ["0"] * 2, "sea_time[]": ["0"] * 2,
+            "terminal[]": [""] * 2
+        }
+
+        # When
+        response = auth_client.post(url, data)
+
+        # Then
+        assert response.status_code == 200
+
+        # 1. 화면에 계산 결과 유지
+        rows = response.context["rows"]
+        assert float(rows[0]['sea_time']) == 5.0  # 계산도 수행됨을 확인
+
+        # 2. DB에 저장됨 확인
+        saved_qs = ProformaSchedule.objects.filter(
+            data_id=base_snapshot,
+            proforma_name="SAVE_FULL_PF"
+        )
+        assert saved_qs.count() == 2
+        assert saved_qs.first().vessel_service_lane_code == "SAVE_TEST"
+
+        # 3. 저장 성공 메시지 확인
+        messages_list = list(response.context['messages'])
+        assert any(msg.SCHEDULE_SAVE_SUCCESS in m.message for m in messages_list)

@@ -60,7 +60,7 @@ def snapshot_with_data(db, base_snapshot, test_user):
         proforma_name="NE2_PF_V1",
         duration=70.0,
         standard_service_speed=18.5,
-        declared_capacity_class_code="14000",
+        declared_capacity="14000",
         declared_count=10,
         direction="W",
         port_code="KRPUS",
@@ -74,6 +74,7 @@ def snapshot_with_data(db, base_snapshot, test_user):
         etd_day_number=2,
         link_distance=500,
         link_speed=15.0,
+        sea_hours=33.5,
         created_by=test_user,
         updated_by=test_user
     )

@@ -1,0 +1,361 @@
+{% extends "base.html" %}
+
+{% block title %}Create Proforma - Cascading Opt{% endblock %}
+
+{% block content %}
+<style>
+    .cell-readonly {
+        background-color: #e2e3e5 !important; /* 진한 회색 배경 */
+        color: #495057; /* 진한 회색 글자 */
+    }
+    .cell-readonly input, .cell-readonly select {
+        font-weight: 600; /* 글자 두껍게 */
+        color: #495057 !important;
+    }
+    /* Select 박스 화살표 숨기기 (Readonly 느낌 강화) */
+    .cell-readonly select {
+        -webkit-appearance: none;
+        -moz-appearance: none;
+        appearance: none;
+        text-align: center;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h4">Create Proforma Schedule</h2>
+
+        <div class="btn-group" role="group">
+            <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#uploadModal">
+                <i class="bi bi-upload"></i> Upload Excel
+            </button>
+            <a href="{% url 'input_data:proforma_template' %}" class="btn btn-outline-secondary">
+                <i class="bi bi-download"></i> Template
+            </a>
+            <button type="submit" form="proformaForm" name="action" value="export" class="btn btn-outline-success">
+                <i class="bi bi-file-earmark-excel"></i> Export
+            </button>
+        </div>
+    </div>
+
+    <form method="post" id="proformaForm" action="{% url 'input_data:proforma_create' %}">
+        {% csrf_token %}
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light fw-bold">Basic Information</div>
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted">Snapshot ID</label>
+                        <select class="form-select" name="data_id">
+                            {% for snap in snapshots %}
+                            <option value="{{ snap.data_id }}" {% if header.data_id == snap.data_id %}selected{% endif %}>
+                                {{ snap.data_id }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted">Vessel Lane Code</label>
+                        <input type="text" class="form-control" name="lane_code" value="{{ header.lane_code|default:'' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted">Proforma Name</label>
+                        <input type="text" class="form-control" name="proforma_name" value="{{ header.proforma_name|default:'' }}">
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label small text-muted">Duration</label>
+                        <input type="number" step="0.1" class="form-control" name="duration" value="{{ header.duration|default:'' }}">
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label small text-muted">Std. Speed</label>
+                        <input type="number" step="0.1" class="form-control" name="std_speed" value="{{ header.std_speed|default:'' }}">
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted">Declared Capa.</label>
+                        <input type="text" class="form-control" name="capacity" value="{{ header.capacity|default:'' }}">
+                    </div>
+                     <div class="col-md-1">
+                        <label class="form-label small text-muted">Count</label>
+                        <input type="number" class="form-control" name="count" value="{{ header.count|default:'' }}">
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light d-flex justify-content-between align-items-center py-2">
+                <span class="fw-bold"><i class="bi bi-table"></i> Port Schedule</span>
+                <div class="btn-group btn-group-sm">
+                    <button type="submit" name="action" value="add_row" class="btn btn-primary">
+                        <i class="bi bi-plus-lg"></i> Add Row
+                    </button>
+                    <button type="submit" name="action" value="insert_row" class="btn btn-info text-white">
+                        <i class="bi bi-box-arrow-in-down"></i> Insert Row
+                    </button>
+                    <button type="submit" name="action" value="delete_row" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Delete Row
+                    </button>
+                </div>
+            </div>
+
+            <div class="card-body p-0">
+                <div class="table-responsive" style="max-height: 600px; overflow-y: auto;">
+                    <table id="scheduleTable" class="table table-bordered table-sm align-middle text-center mb-0 table-hover text-nowrap">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th class="bg-light" style="width: 30px;"><input type="checkbox" id="checkAll"></th>
+                                <th style="width: 40px;">No.</th>
+                                <th>Port Code</th>
+                                <th style="width: 60px;">Dir</th>
+                                <th style="width: 60px;">Turn<br>Port</th> <th>Pilot<br>In</th>
+                                <th>ETB<br>No.</th>
+                                <th style="width: 80px;">ETB<br>Day</th>
+                                <th>ETB<br>Time</th>
+                                <th>Work<br>Hours</th>
+
+                                <th class="cell-readonly" style="width: 60px;">ETD<br>No.</th>
+                                <th class="cell-readonly" style="width: 100px;">ETD<br>Day</th>
+                                <th class="cell-readonly" style="width: 70px;">ETD<br>Time</th>
+
+                                <th style="width: 60px;">Pilot<br>Out</th>
+
+                                <th class="cell-readonly" style="width: 70px;">Dist.</th>
+                                <th class="cell-readonly" style="width: 70px;">ECA<br>Dist.</th>
+                                <th class="cell-readonly" style="width: 60px;">Spd.</th>
+                                <th class="cell-readonly" style="width: 70px;">Sea<br>Time</th>
+                                <th>Terminal</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in rows %}
+                            <tr>
+                                <td>
+                                    <input type="checkbox" name="row_check" value="{{ forloop.counter0 }}">
+                                </td>
+                                <td>{{ forloop.counter }}</td>
+                                <td><input type="text" class="form-control form-control-sm border-0 bg-transparent text-center p-0"
+                                           name="port_code[]"
+                                           value="{{ row.port_code }}">
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm border-0 bg-transparent p-0"
+                                            name="direction[]">
+                                        <option value="E" {% if row.direction == 'E' %}selected{% endif %}>E</option>
+                                        <option value="W" {% if row.direction == 'W' %}selected{% endif %}>W</option>
+                                        <option value="N" {% if row.direction == 'N' %}selected{% endif %}>N</option>
+                                        <option value="S" {% if row.direction == 'S' %}selected{% endif %}>S</option>
+                                    </select>
+                                </td>
+
+                                <td>
+                                     <select class="form-select form-select-sm border-0 bg-transparent p-0"
+                                             name="turn_info[]">
+                                        <option value="Y" {% if row.turn_info == 'Y' %}selected{% endif %}>Y</option>
+                                        <option value="N" {% if row.turn_info == 'N' %}selected{% endif %}>N</option>
+                                    </select>
+                                </td>
+
+                                <td><input type="number" step="0.5" class="form-control form-control-sm border-0 bg-transparent text-center p-0"
+                                           name="pilot_in[]" value="{{ row.pilot_in }}">
+                                </td>
+
+                                <td><input type="number" class="form-control form-control-sm border-0 bg-transparent text-center p-0"
+                                           name="etb_no[]" value="{{ row.etb_no }}">
+                                </td>
+                                <td>
+                                    <select class="form-select form-select-sm border-0 bg-transparent p-0 fw-bold text-primary"
+                                            name="etb_day[]">
+                                        {% for day in days %}
+                                        <option value="{{ day }}" {% if row.etb_day == day %}selected{% endif %}>{{ day }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td><input type="text" class="form-control form-control-sm border-0 bg-transparent text-center p-0"
+                                           name="etb_time[]" value="{{ row.etb_time }}">
+                                </td>
+
+                                <td>
+                                    <input type="number" step="0.5" class="form-control form-control-sm border-0 bg-transparent text-center p-0"
+                                           name="work_hours[]" value="{{ row.work_hours }}">
+                                </td>
+
+                                <td class="cell-readonly">
+                                    <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center p-0 text-muted"
+                                           name="etd_no[]" value="{{ row.etd_no }}" readonly tabindex="-1">
+                                </td>
+                                <td class="cell-readonly">
+                                    <select class="form-select form-select-sm border-0 bg-transparent p-0 text-muted"
+                                            name="etd_day[]" style="pointer-events: none;" tabindex="-1">
+                                        {% for day in days %}
+                                        <option value="{{ day }}" {% if row.etd_day == day %}selected{% endif %}>{{ day }}</option>
+                                        {% endfor %}
+                                    </select>
+                                </td>
+                                <td class="cell-readonly">
+                                    <input type="text" class="form-control form-control-sm border-0 bg-transparent text-center p-0 text-muted"
+                                           name="etd_time[]" value="{{ row.etd_time }}" readonly tabindex="-1">
+                                </td>
+
+                                <td>
+                                    <input type="number" step="0.5" class="form-control form-control-sm border-0 bg-transparent text-center p-0"
+                                           name="pilot_out[]" value="{{ row.pilot_out }}">
+                                </td>
+
+                                <td class="cell-readonly">
+                                    <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center p-0 text-muted"
+                                           name="dist[]" value="{{ row.dist }}" readonly tabindex="-1">
+                                </td>
+                                <td class="cell-readonly">
+                                    <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center p-0 text-muted"
+                                           name="eca_dist[]" value="{{ row.eca_dist }}" readonly tabindex="-1">
+                                </td>
+                                <td class="cell-readonly">
+                                    <input type="number" step="0.1" class="form-control form-control-sm border-0 bg-transparent text-center p-0 text-muted"
+                                           name="spd[]" value="{{ row.spd }}" readonly tabindex="-1">
+                                </td>
+                                <td class="cell-readonly">
+                                    <input type="number" step="0.1" class="form-control form-control-sm border-0 bg-transparent text-center p-0 text-muted"
+                                           name="sea_time[]" value="{{ row.sea_time }}" readonly tabindex="-1">
+                                </td>
+
+                                <td>
+                                    <input type="text" class="form-control form-control-sm border-0 bg-transparent text-center p-0"
+                                           name="terminal[]" value="{{ row.terminal }}">
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="19" class="text-center py-5 text-muted">
+                                    <i class="bi bi-info-circle mb-2 d-block fs-4"></i>
+                                    Click <b>"Add Row"</b> or <b>"Upload Excel"</b> to start.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <div class="d-flex justify-content-end gap-2 pb-5">
+            <button type="submit" name="action" value="new" class="btn btn-warning px-4" onclick="return confirm('Clear all data?')">
+                <i class="bi bi-arrow-counterclockwise"></i> New
+            </button>
+            <button type="submit" name="action" value="close" class="btn btn-secondary">
+                Close
+            </button>
+            <button type="submit" name="action" value="calculate" class="btn btn-info text-white px-4">
+                <i class="bi bi-calculator"></i> Calculate
+            </button>
+
+            <button type="submit" name="action" value="save" class="btn btn-success px-4">
+                <i class="bi bi-save"></i> Save
+            </button>
+        </div>
+
+        <input type="hidden" name="selected_index" id="selectedIndex" value="-1">
+    </form>
+</div>
+
+<div class="modal fade" id="uploadModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form action="{% url 'input_data:proforma_upload' %}" method="post" enctype="multipart/form-data">
+                {% csrf_token %}
+                <div class="modal-header">
+                    <h5 class="modal-title">Upload Proforma Excel</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <input type="file" name="excel_file" class="form-control" accept=".xlsx, .xls">
+                    <div class="form-text mt-2">Please use the downloaded template format.</div>
+                </div>
+                <div class="modal-footer">
+                    <button type="submit" class="btn btn-primary">Upload</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 1. 체크박스 전체 선택/해제
+    document.getElementById('checkAll').addEventListener('change', function() {
+        var checkboxes = document.querySelectorAll('input[name="row_check"]');
+        for (var checkbox of checkboxes) {
+            checkbox.checked = this.checked;
+        }
+    });
+
+    // 2. 행 클릭 시 선택 인덱스 저장 (Insert Row용)
+    var rows = document.querySelectorAll('#scheduleTable tbody tr');
+    rows.forEach((row, index) => {
+        row.addEventListener('click', function(e) {
+            // 체크박스나 인풋 클릭시는 제외 (행 선택 UX)
+            if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
+                // 기존 선택 제거 및 신규 선택
+                rows.forEach(r => r.classList.remove('table-active'));
+                this.classList.add('table-active');
+                document.getElementById('selectedIndex').value = index;
+            }
+        });
+    });
+
+    // 3. Close 버튼 클릭 시 Confirm
+    document.querySelector('button[value="close"]').addEventListener('click', function(e) {
+        if (!confirm("Have you saved your changes? Unsaved data will be lost.")) {
+            e.preventDefault();
+        }
+    });
+
+    /**
+     * ETB No 유효성 검사
+     * 현재 행의 ETB No가 직전 행의 ETD No보다 작을 수 없도록 방지
+     */
+    document.addEventListener('DOMContentLoaded', function() {
+        const tableBody = document.querySelector('#scheduleTable tbody');
+
+        // 이벤트 위임 (동적으로 행이 추가되어도 작동하도록)
+        tableBody.addEventListener('change', function(e) {
+            // 변경된 요소가 'etb_no[]' 인풋인지 확인
+            if (e.target.name === 'etb_no[]') {
+                validateEtbNo(e.target);
+            }
+        });
+
+        function validateEtbNo(currentInput) {
+            // 현재 행(tr) 찾기
+            const currentRow = currentInput.closest('tr');
+            const currentRowIndex = currentRow.rowIndex; // 헤더 포함 인덱스
+
+            // 첫 번째 데이터 행(No.1)은 비교 대상(이전 행)이 없으므로 패스
+            // (헤더가 1줄이므로 rowIndex 1부터 데이터 시작. rowIndex 1은 첫 행)
+            if (currentRowIndex <= 1) return;
+
+            // 이전 행 찾기
+            const prevRow = currentRow.previousElementSibling;
+            if (!prevRow) return;
+
+            // 이전 행의 ETD No 값 가져오기
+            const prevEtdInput = prevRow.querySelector('input[name="etd_no[]"]');
+            const prevEtdNo = parseInt(prevEtdInput.value) || 0;
+            const currentEtbNo = parseInt(currentInput.value) || 0;
+
+            // 유효성 검사: 현재 ETB No < 이전 ETD No 이면 경고
+            if (currentEtbNo < prevEtdNo) {
+                alert(`ETB No (${currentEtbNo}) cannot be less than previous ETD No (${prevEtdNo}).`);
+
+                // 값을 이전 ETD No로 강제 리셋 (최소값 보정)
+                currentInput.value = prevEtdNo;
+
+                // 시각적 강조 (잠깐 빨간색 깜빡임)
+                currentInput.classList.add('bg-danger', 'text-white');
+                setTimeout(() => {
+                    currentInput.classList.remove('bg-danger', 'text-white');
+                }, 500);
+            }
+        }
+    });
+</script>
+{% endblock %}

@@ -59,7 +59,7 @@ class BaseModel(TimeStampedMixin):
     data_id = models.ForeignKey(
         InputDataSnapshot,
         on_delete=models.CASCADE,
-        db_column='DATA_ID',
+        db_column='data_id',
         verbose_name="Data ID",
         related_name="%(class)s_set"  # 역참조 이름 충돌 방지
     )
@@ -116,7 +116,15 @@ BUNKER_TYPE_CHOICES = (
     ("MGO", "Marine Gas Oil"),
 )
 
-
+TURN_PORT_PAR_CD= (
+    ("Y", "Y"),
+    ("N", "N"),
+)
+TURN_PORT_SYS_CD= (
+    ("Y", "Turning Port "),
+    ("N", "First Call or Normal Port "),
+    ("F", "Final port"),
+)
 # ==========================================
 # Group 1: Schedule
 # ==========================================
@@ -129,21 +137,27 @@ class ProformaSchedule(BaseModel):
     service_lane_standard = models.BooleanField(null=True, blank=True, verbose_name="Service Lane Standard")
     duration = models.DecimalField(max_digits=5, decimal_places=1, verbose_name="Duration")
     standard_service_speed = models.DecimalField(max_digits=5, decimal_places=3, verbose_name="Standard Service Speed")
-    declared_capacity_class_code = models.CharField(max_length=5, verbose_name="Declared Capacity (Class Code)")
+    declared_capacity = models.CharField(max_length=5, verbose_name="Declared Capacity (Class Code)")
     declared_count = models.IntegerField(verbose_name="Declared Count")
     direction = models.CharField(max_length=2, choices=DIRECTION_CHOICES, verbose_name="Direction")
     port_code = models.CharField(max_length=10, verbose_name="Port Code")
     calling_port_indicator_seq = models.CharField(max_length=2, verbose_name="Calling Port Indicator Seq.")
     calling_port_seq = models.IntegerField(verbose_name="Calling Port Seq.")
+    turn_port_pair_code= models.CharField(max_length=3, choices=TURN_PORT_PAR_CD, verbose_name="ETB Day Code")
+    turn_port_system_code= models.CharField(max_length=3, choices=TURN_PORT_SYS_CD, verbose_name="ETB Day Code")
+    pilot_in_hours = models.DecimalField(max_digits=5, decimal_places=3, verbose_name="Pilot In Hours", default=3)
     etb_day_code = models.CharField(max_length=3, verbose_name="ETB Day Code")
     etb_day_time = models.CharField(max_length=4, verbose_name="ETB Day Time")
     etb_day_number = models.IntegerField(verbose_name="ETB Day Number")
     etd_day_code = models.CharField(max_length=3, verbose_name="ETD Day Code")
     etd_day_time = models.CharField(max_length=4, verbose_name="ETD Day Time")
     etd_day_number = models.IntegerField(verbose_name="ETD Day Number")
-    link_distance = models.IntegerField(verbose_name="Link Distance")
-    link_speed = models.DecimalField(max_digits=5, decimal_places=3, verbose_name="Link Speed")
-
+    actual_work_hours = models.DecimalField(max_digits=5, decimal_places=3, verbose_name="Actual Work Hours(ETD - ETB)", default=30)
+    pilot_out_hours = models.DecimalField(max_digits=5, decimal_places=3, verbose_name="Pilot Out Hours", default=3)
+    link_distance = models.IntegerField(verbose_name="Link Distance", default=0)
+    link_eca_distance = models.IntegerField(null=True, verbose_name="Link ECA Distance", default=0)
+    link_speed = models.DecimalField(null=True, max_digits=5, decimal_places=3, verbose_name="Link Speed")
+    sea_hours = models.DecimalField(null=True, max_digits=5, decimal_places=3, verbose_name="Sea Hours")
     class Meta:
         verbose_name = "Proforma Schedule"
         verbose_name_plural = "Proforma Schedules"

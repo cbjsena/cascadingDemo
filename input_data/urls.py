@@ -1,17 +1,30 @@
 from django.urls import path
-from . import views
+# views 패키지(폴더)를 임포트합니다. __init__.py 덕분에 함수들을 바로 쓸 수 있습니다.
+from input_data import views
 
 app_name = 'input_data'
 
 urlpatterns = [
-    # 데이터 홈 (대시보드 형태)
+    #  데이터 홈 (대시보드 형태)
     path('', views.input_home, name='input_home'),
 
-    # [추가] 스냅샷 목록 전용 URL (반드시 동적 URL보다 위에 위치)
+    # Snapshot 목록 전용 URL (반드시 동적 URL보다 위에 위치)
     path('snapshots/', views.snapshot_list, name='snapshot_list'),
     path('snapshots/create/', views.snapshot_create, name='snapshot_create'),
     path('snapshots/delete/<str:data_id>/', views.snapshot_delete, name='snapshot_delete'),
 
-    # 동적 데이터 조회: /input/schedule/proforma/ 등
+    # Proforma Schedule  - views/proforma.py 에 정의된 함수들
+    path('proforma/create/', views.proforma_create, name='proforma_create'),
+    path('proforma/export/', views.proforma_export, name='proforma_export'),
+    path('proforma/upload/', views.proforma_upload, name='proforma_upload'),
+    path('proforma/template/', views.proforma_template_download, name='proforma_template'),
+
+    # API
+    path('api/distance/', views.get_port_distance, name='api_get_distance'),
+
+    # Input List (Common)
+    # 동적 데이터 조회: /input/schedule/proforma/ 등 형태
+    # 상단에 위치하면 안됨(다른 URL과 충돌 가능성)
     path('<str:group_name>/<str:model_name>/', views.input_list, name='input_list'),
+
 ]
