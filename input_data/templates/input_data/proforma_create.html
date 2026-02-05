@@ -35,6 +35,9 @@
             <button type="submit" form="proformaForm" name="action" value="export" class="btn btn-outline-success">
                 <i class="bi bi-file-earmark-excel"></i> Export
             </button>
+            <button type="submit" form="proformaForm" name="action" value="csv" class="btn btn-outline-primary">
+                <i class="bi bi-filetype-csv"></i> CSV
+            </button>
         </div>
     </div>
 
@@ -55,29 +58,29 @@
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-2">
-                        <label class="form-label small text-muted">Vessel Lane Code</label>
+                    <div class="col-md-1">
+                        <label class="form-label small text-muted">Lane Code</label>
                         <input type="text" class="form-control" name="lane_code" value="{{ header.lane_code|default:'' }}">
                     </div>
                     <div class="col-md-2">
                         <label class="form-label small text-muted">Proforma Name</label>
                         <input type="text" class="form-control" name="proforma_name" value="{{ header.proforma_name|default:'' }}">
                     </div>
-                    <div class="col-md-1">
-                        <label class="form-label small text-muted">Duration</label>
-                        <input type="number" step="0.1" class="form-control" name="duration" value="{{ header.duration|default:'' }}">
-                    </div>
-                    <div class="col-md-1">
-                        <label class="form-label small text-muted">Std. Speed</label>
-                        <input type="number" step="0.1" class="form-control" name="std_speed" value="{{ header.std_speed|default:'' }}">
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted">Effective Date</label>
+                        <input type="date" class="form-control" name="effective_date" value="{{ header.effective_date|default:'' }}">
                     </div>
                     <div class="col-md-2">
                         <label class="form-label small text-muted">Declared Capa.</label>
                         <input type="text" class="form-control" name="capacity" value="{{ header.capacity|default:'' }}">
                     </div>
-                     <div class="col-md-1">
-                        <label class="form-label small text-muted">Count</label>
+                     <div class="col-md-2">
+                        <label class="form-label small text-muted">Declared Count</label>
                         <input type="number" class="form-control" name="count" value="{{ header.count|default:'' }}">
+                    </div>
+                    <div class="col-md-1">
+                        <label class="form-label small text-muted">Duration</label>
+                        <input type="number" step="0.1" class="form-control" name="duration" value="{{ header.duration|default:'' }}">
                     </div>
                 </div>
             </div>
@@ -108,20 +111,21 @@
                                 <th style="width: 40px;">No.</th>
                                 <th>Port Code</th>
                                 <th style="width: 60px;">Dir</th>
-                                <th style="width: 60px;">Turn<br>Port</th> <th>Pilot<br>In</th>
-                                <th>ETB<br>No.</th>
+                                <th style="width: 60px;">Turn<br>Port</th>
+                                <th style="width: 70px;">Pilot<br>In</th>
+                                <th style="width: 60px;">ETB<br>No.</th>
                                 <th style="width: 80px;">ETB<br>Day</th>
                                 <th>ETB<br>Time</th>
-                                <th>Work<br>Hours</th>
+                                <th style="width: 80px;">Work<br>Hours</th>
 
                                 <th class="cell-readonly" style="width: 60px;">ETD<br>No.</th>
                                 <th class="cell-readonly" style="width: 100px;">ETD<br>Day</th>
                                 <th class="cell-readonly" style="width: 70px;">ETD<br>Time</th>
 
-                                <th style="width: 60px;">Pilot<br>Out</th>
+                                <th style="width: 70px;">Pilot<br>Out</th>
 
-                                <th class="cell-readonly" style="width: 70px;">Dist.</th>
-                                <th class="cell-readonly" style="width: 70px;">ECA<br>Dist.</th>
+                                <th class="cell-readonly" style="width: 90px;">Dist.</th>
+                                <th class="cell-readonly" style="width: 80px;">ECA<br>Dist.</th>
                                 <th class="cell-readonly" style="width: 60px;">Spd.</th>
                                 <th class="cell-readonly" style="width: 70px;">Sea<br>Time</th>
                                 <th>Terminal</th>
@@ -233,6 +237,55 @@
                             </tr>
                             {% endfor %}
                         </tbody>
+                        {% comment %}
+                        <tfoot class="fw-bold" style="border-top: 2px solid #dee2e6;">
+                            <tr class="bg-warning bg-opacity-25">
+                                <td colspan="5" class="text-end pe-3">Summary</td>
+
+                                <td>
+                                    <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center fw-bold"
+                                           value="{{ summary.pilot_in|default:0 }}" readonly>
+                                </td>
+
+                                <td></td>
+                                <td></td>
+                                <td></td>
+
+                                <td>
+                                    <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center fw-bold"
+                                           value="{{ summary.work_hours|default:0 }}" readonly>
+                                </td>
+
+                                <td></td>
+                                <td></td>
+                                <td></td>
+
+                                <td>
+                                    <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center fw-bold"
+                                           value="{{ summary.pilot_out|default:0 }}" readonly>
+                                </td>
+
+                                <td>
+                                    <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center fw-bold"
+                                           value="{{ summary.dist }}" readonly>
+                                </td>
+
+                                <td></td>
+
+                                <td>
+                                    <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center fw-bold"
+                                           value="{{ summary.spd|default:0 }}" readonly>
+                                </td>
+
+                                <td>
+                                    <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center fw-bold"
+                                           value="{{ summary.sea_time|default:0 }}" readonly>
+                                </td>
+
+                                <td></td>
+                            </tr>
+                        </tfoot>
+                        {% endcomment %}
                     </table>
                 </div>
             </div>

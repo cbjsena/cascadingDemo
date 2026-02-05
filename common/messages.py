@@ -18,10 +18,20 @@ SNAPSHOT_DELETE_ERROR = "Error deleting snapshot: {error}"
 SNAPSHOT_CLONE_ERROR = "Failed to clone data: {error}"
 SNAPSHOT_NOT_FOUND = "Snapshot '{data_id}' not found."
 PERMISSION_DENIED = "You do not have permission to perform this action."
-SCHEDULE_SAVE_ERROR = "Failed to save: {error}"
+SAVE_ERROR = "Failed to save: {error}"
 
 # ==========================================
 # 경고/정보 (Warning/Info)
 # ==========================================
 LOGIN_REQUIRED = "Please login to access this page."
 FUNC_NOT_IMPLEMENTED = "{func_name} function not implemented yet."
+
+
+# ==========================================
+# 파일 관련 메세지
+# ==========================================
+UPLOAD_SUCCESS = "Excel file uploaded and parsed successfully."
+UPLOAD_FAIL = "Failed to upload excel: {error}"
+UPLOAD_FILE_REQUIRED = "Please select a file to upload."
+TEMPLATE_MISMATCH = "The uploaded file format does not match the template."
+INVALID_EXCEL_FILE = "Invalid Excel file: {error}"

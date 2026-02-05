@@ -16,6 +16,7 @@ urlpatterns = [
     # Proforma Schedule  - views/proforma.py 에 정의된 함수들
     path('proforma/create/', views.proforma_create, name='proforma_create'),
     path('proforma/export/', views.proforma_export, name='proforma_export'),
+    path('proforma/csv/', views.proforma_csv, name='proforma_csv'),
     path('proforma/upload/', views.proforma_upload, name='proforma_upload'),
     path('proforma/template/', views.proforma_template_download, name='proforma_template'),
 

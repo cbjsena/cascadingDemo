@@ -1,8 +1,15 @@
+import io
 import math
 from decimal import Decimal
 from django.db import transaction
+import openpyxl  # [필수] openpyxl 설치 필요 (pip install openpyxl)
+from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
+from openpyxl.utils import get_column_letter
+
 from input_data.models import Distance, InputDataSnapshot, ProformaSchedule
 from common import messages as msg
+from common import excel_configs as ex_cfg
+from common.utils.excel_manager import ExcelManager
 from common import constants as const
 
 
@@ -12,61 +19,54 @@ class ProformaService:
     Time Line 계산 방식: 첫 번째 포트 ETB를 기준으로 누적 시간(Elapsed Time) 관리
     """
 
+    def __init__(self):
+        # ExcelManager 인스턴스 초기화
+        self.excel_manager = ExcelManager()
+
     def parse_header(self, request):
-        """POST 요청에서 Header 정보 추출"""
-        return {
-            'data_id': request.POST.get('data_id'),
-            'lane_code': request.POST.get('lane_code'),
-            'proforma_name': request.POST.get('proforma_name'),
-            'capacity': request.POST.get('capacity'),
-            'count': request.POST.get('count'),
-            'duration': request.POST.get('duration'),
-            'std_speed': request.POST.get('std_speed'),
-        }
+        """
+        [Config 기반 동적 파싱]
+        Basic Information 영역의 데이터를 HTML name(Key)을 기준으로 추출합니다.
+        항목이 변경되어도 Config만 수정하면 됩니다.
+        """
+        header_data = {}
+        # Config의 basic_headers: [('A2', 'Label', 'key_name'), ...]
+        for _, _, key in ex_cfg.PROFORMA_CONFIG['basic_headers']:
+            header_data[key] = request.POST.get(key)
+        return header_data
 
     def parse_rows(self, request):
-        """POST 요청에서 Grid 행 데이터 추출"""
-        # HTML name 속성과 매핑
-        port_codes = request.POST.getlist('port_code[]')
-        directions = request.POST.getlist('direction[]')
-        turn_infos = request.POST.getlist('turn_info[]')
-        pilot_ins = request.POST.getlist('pilot_in[]')
-        etb_nos = request.POST.getlist('etb_no[]')
-        etb_days = request.POST.getlist('etb_day[]')
-        etb_times = request.POST.getlist('etb_time[]')
-        work_hours = request.POST.getlist('work_hours[]')
-        etd_nos = request.POST.getlist('etd_no[]')
-        etd_days = request.POST.getlist('etd_day[]')
-        etd_times = request.POST.getlist('etd_time[]')
-        pilot_outs = request.POST.getlist('pilot_out[]')
-        dists = request.POST.getlist('dist[]')
-        eca_dists = request.POST.getlist('eca_dist[]')
-        spds = request.POST.getlist('spd[]')
-        sea_times = request.POST.getlist('sea_time[]')
-        terminals = request.POST.getlist('terminal[]')
+        """
+        [리팩토링] Grid 역시 Config를 기반으로 동적 파싱 가능
+        """
+        # HTML name은 보통 name="key[]" 형태이므로 Config 키에 '[]'를 붙여서 가져옴
+        grid_data = {}
+        row_count = 0
 
+        # 1. 모든 컬럼 데이터 리스트 추출
+        for _, key, _ in ex_cfg.PROFORMA_CONFIG['grid_headers']:
+            values = request.POST.getlist(f"{key}[]")
+            grid_data[key] = values
+            if values:
+                row_count = len(values)
+
+        # 2. Row 단위로 변환
         rows = []
-        for i in range(len(port_codes)):
-            rows.append({
-                'no': i + 1,
-                'port_code': port_codes[i],
-                'direction': directions[i] if i < len(directions) else const.DEFAULT_DIRECTION,
-                'turn_info': turn_infos[i] if i < len(turn_infos) else const.DEFAULT_TURN_INO,
-                'pilot_in': pilot_ins[i] if i < len(pilot_ins) else const.DEFAULT_PILOT_IN,
-                'etb_no': etb_nos[i] if i < len(etb_nos) else 0,
-                'etb_day': etb_days[i] if i < len(etb_days) else const.DEFAULT_ETB_DAY,
-                'etb_time': etb_times[i] if i < len(etb_times) else const.DEFAULT_TIME,
-                'work_hours': work_hours[i] if i < len(work_hours) else const.DEFAULT_WORK_HOURS,
-                'etd_no': etd_nos[i] if i < len(etd_nos) else 1,
-                'etd_day': etd_days[i] if i < len(etd_days) else const.DEFAULT_ETD_DAY,
-                'etd_time': etd_times[i] if i < len(etd_times) else const.DEFAULT_TIME,
-                'pilot_out': pilot_outs[i] if i < len(pilot_outs) else const.DEFAULT_PILOT_OUT,
-                'dist': dists[i] if i < len(dists) else 0,
-                'eca_dist': eca_dists[i] if i < len(eca_dists) else 0,
-                'spd': spds[i] if i < len(spds) else 0,
-                'sea_time': sea_times[i] if i < len(sea_times) else 0,
-                'terminal': terminals[i] if i < len(terminals) else '',
-            })
+        for i in range(row_count):
+            row = {}
+            for _, key, _ in ex_cfg.PROFORMA_CONFIG['grid_headers']:
+                # 리스트 범위 체크
+                val = grid_data[key][i] if i < len(grid_data[key]) else ''
+
+                # 숫자형 필드 안전 변환 (필요시)
+                if key in ['pilot_in', 'work_hours', 'pilot_out', 'dist', 'eca_dist', 'spd', 'sea_time']:
+                    row[key] = self._to_float(val)
+                elif key in ['no', 'etb_no', 'etd_no']:
+                    row[key] = int(val) if str(val).isdigit() else 0
+                else:
+                    row[key] = val
+            rows.append(row)
+
         return rows
 
     def add_row(self, rows, data_id):
@@ -553,3 +553,93 @@ class ProformaService:
         # 5. 기본 Sea Time 표시
         # (calculate_schedule에서 역산될 수도 있지만 초기값으로 넣어둠)
         prev_row['sea_time'] = const.DEFAULT_SEA_TIME
+
+    def calculate_summary(self, rows):
+        """
+        [신규] 화면 표시용 Summary 데이터 계산
+        """
+        if not rows:
+            return {}
+
+        # self._to_float()를 사용하여 안전하게 합계 계산
+        total_pilot_in = sum(self._to_float(row.get('pilot_in')) for row in rows)
+        total_work_hours = sum(self._to_float(row.get('work_hours')) for row in rows)
+        total_pilot_out = sum(self._to_float(row.get('pilot_out')) for row in rows)
+        total_dist = sum(self._to_float(row.get('dist')) for row in rows)
+        total_sea_time = sum(self._to_float(row.get('sea_time')) for row in rows)
+
+        # 평균 속도 = 총 거리 / 총 항해 시간
+        avg_speed = 0
+        if total_sea_time > 0:
+            avg_speed = round(total_dist / total_sea_time, 2)
+
+        return {
+            'pilot_in': total_pilot_in,
+            'work_hours': total_work_hours,
+            'pilot_out': total_pilot_out,
+            'dist': total_dist,
+            'sea_time': total_sea_time,
+            'spd': avg_speed
+        }
+
+    def generate_template(self):
+        """
+        Proforma 템플릿 엑셀 생성 (ExcelManager 위임)
+        """
+        # Config만 넘기면 됨
+        return self.excel_manager.create_template(ex_cfg.PROFORMA_CONFIG)
+
+    def upload_excel(self, file_obj):
+        """엑셀 업로드 및 날짜 포맷팅"""
+        # 1. ExcelManager를 통해 파싱 (Config 사용)
+        header, rows = self.excel_manager.parse_excel(file_obj, ex_cfg.PROFORMA_CONFIG)
+
+        # 2. 날짜 필드 후처리 (Excel datetime -> HTML input date string)
+        # Config에 'effective_date' 키가 있는지 확인하고 처리
+        if 'effective_date' in header:
+            header['effective_date'] = self._format_date_for_input(header['effective_date'])
+
+        # 3. 데이터 후처리 (Default Value)
+        for row in rows:
+            if not row.get('direction'): row['direction'] = const.DEFAULT_DIRECTION
+            if not row.get('turn_info'): row['turn_info'] = const.DEFAULT_TURN_INO
+
+            for key in ['pilot_in', 'work_hours', 'pilot_out', 'dist', 'eca_dist', 'spd', 'sea_time']:
+                row[key] = self._to_float(row.get(key, 0))
+
+                # float 변환
+                for key in ['pilot_in', 'work_hours', 'pilot_out', 'dist', 'eca_dist', 'spd', 'sea_time']:
+                    row[key] = self._to_float(row.get(key, 0))
+
+                # int 변환
+                for key in ['no', 'etb_no', 'etd_no']:
+                    val = row.get(key, 0)
+                    row[key] = int(val) if str(val).isdigit() else 0
+
+        # 4. 계산
+        calc_header = {'data_id': header.get('data_id')}
+        calculated_rows = self.calculate_schedule(rows, calc_header)
+
+        return header, calculated_rows
+
+    def _format_date_for_input(self, val):
+        """YYYY-MM-DD 문자열로 변환 (HTML input type='date' 호환용)"""
+        if not val: return ''
+
+        # datetime 객체인 경우
+        if hasattr(val, 'strftime'):
+            return val.strftime('%Y-%m-%d')
+
+        # 문자열인 경우 (2026/02/06 등) -> 2026-02-06
+        s_val = str(val).strip().replace('/', '-').replace('.', '-')
+
+        # YYYY-MM-DD (10자리) 추출
+        if len(s_val) >= 10:
+            return s_val[:10]
+        return s_val
+
+    def _to_float(self, val):
+        try:
+            return float(val)
+        except:
+            return 0.0
