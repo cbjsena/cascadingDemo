@@ -19,27 +19,39 @@ class ExcelManager:
         self.header_fill = PatternFill(start_color="E2E3E5", end_color="E2E3E5", fill_type="solid")
         self.summary_fill = PatternFill(start_color="FFF2CC", end_color="FFF2CC", fill_type="solid")
 
-    def create_template(self, config, row_count=10):
+    def create_template(self, config, header_data=None, rows_data=None):
+        """
+        엑셀 생성 (템플릿 or 데이터 익스포트)
+        :param header_data: (Optional) Basic Info에 채울 실제 데이터
+        :param rows_data: (Optional) Grid에 채울 실제 데이터 리스트
+        """
         wb = openpyxl.Workbook()
         ws = wb.active
         ws.title = config.get('sheet_title', 'Sheet1')
 
-        # 1. Basic Info
+        # -------------------------------------------------------
+        # 1. Basic Info 작성
+        # -------------------------------------------------------
         self._write_section_title(ws, 'A1', "Basic Information")
-        basic_examples = config.get('basic_examples', {})
+
+        # 데이터 소스 결정 (파라미터 > Config 예시 > 빈 값)
+        basic_source = header_data if header_data else config.get('basic_examples', {})
 
         for item in config['basic_headers']:
-            # [수정] 튜플 길이에 따라 너비(Width) 처리
+            # 튜플 언패킹 (4개 or 3개)
             if len(item) == 4:
                 h_loc, text, key, width = item
             else:
                 h_loc, text, key = item
-                width = 3  # 기본값 3 (너비 미지정 시)
+                width = 3
 
-            example_val = basic_examples.get(key, '')
-            self._write_merged_header_value(ws, h_loc, text, example_val, width)
+            # 값 가져오기
+            val = basic_source.get(key, '')
+            self._write_merged_header_value(ws, h_loc, text, val, width)
 
-        # 2. Grid Headers
+        # -------------------------------------------------------
+        # 2. Grid Headers 작성
+        # -------------------------------------------------------
         grid_start_row = config.get('start_row_grid', 6)
         self._write_section_title(ws, f'A{grid_start_row - 1}', "Port Schedule")
 
@@ -47,39 +59,59 @@ class ExcelManager:
             cell = ws.cell(row=grid_start_row, column=idx, value=text)
             self._apply_header_style(cell)
 
-        # 3. Empty Rows (With Example for First Row)
+        # -------------------------------------------------------
+        # 3. Grid Data (Rows) 작성
+        # -------------------------------------------------------
         data_start_row = config.get('start_row_data', 7)
 
-        # [수정] Grid 예시 값 가져오기
-        grid_examples = config.get('grid_examples', {})
+        # 실제 데이터가 있으면 그것을 사용, 없으면 빈 행(10줄) 생성
+        target_rows = rows_data if rows_data else range(10)
 
-        for i in range(row_count):
+        # Grid 예시 데이터 (rows_data가 없을 때 첫 줄에만 사용)
+        grid_examples = config.get('grid_examples', {}) if not rows_data else {}
+
+        for i, row_item in enumerate(target_rows):
             curr_row = data_start_row + i
 
-            # No. 컬럼 (자동 증가)
+            # No. 컬럼 (A열) - 데이터가 있어도 순번은 i+1로 재부여하거나 데이터의 no 사용
+            # 여기서는 편의상 자동 증가값 사용
             cell_no = ws.cell(row=curr_row, column=1, value=i + 1)
             self._apply_body_style(cell_no)
 
             # 나머지 컬럼 채우기
             for idx, (_, key, col_idx) in enumerate(config['grid_headers']):
-                if col_idx == 1: continue  # No 컬럼은 위에서 처리함
+                if col_idx == 1: continue  # No 컬럼 스킵
 
                 cell = ws.cell(row=curr_row, column=col_idx)
 
-                # [신규] 첫 번째 행(i==0)이고, 예시 데이터가 설정되어 있다면 값 입력
-                if i == 0 and grid_examples:
-                    val = grid_examples.get(key, '')
-                    cell.value = val
+                # 값 결정 로직
+                val = ''
+                if rows_data:
+                    # Case A: 실제 데이터 Export
+                    # 딕셔너리에서 키로 값 조회 (없으면 '')
+                    raw_val = row_item.get(key, '')
 
+                    # 시간 포맷 등 필요한 변환이 있다면 여기서 처리 가능
+                    # (현재는 raw_val 그대로 씀)
+                    val = raw_val
+
+                elif i == 0 and grid_examples:
+                    # Case B: 템플릿의 첫 줄 예시
+                    val = grid_examples.get(key, '')
+
+                cell.value = val
                 self._apply_body_style(cell)
 
-        # 4. Summary Row (설정 없으면 자동 스킵됨)
+        # -------------------------------------------------------
+        # 4. Summary Row & Styles
+        # -------------------------------------------------------
+        row_count = len(target_rows)
         end_row = data_start_row + row_count - 1
-        if 'summary_cols' in config:
+
+        if 'summary_cols' in config and row_count > 0:
             self._write_summary(ws, end_row + 1, data_start_row, end_row, config['summary_cols'],
                                 len(config['grid_headers']))
 
-        # 5. Width Adjustment
         col_widths = config.get('col_widths', [])
         self._adjust_widths(ws, col_widths)
 

@@ -66,8 +66,28 @@ def proforma_create(request):
                 messages.error(request, msg.SAVE_ERROR.format(error=str(e)))
 
         elif action == "export":
-            # TODO export
-            return redirect('input_data:proforma_export')
+            # 엑셀 Export 기능 연결
+
+            # Export 전에 최신 계산을 반영하고 싶다면:
+            rows = service.calculate_schedule(rows, header)
+
+            # 엑셀 파일 생성
+            excel_file = service.export_proforma(header, rows)
+
+            # 응답 생성
+            response = HttpResponse(
+                excel_file,
+                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+            )
+
+            # 파일명: Lane_ProformaName_Schedule.xlsx
+            lane = header.get('lane_code', 'Lane')
+            pf_name = header.get('proforma_name', 'Schedule')
+            filename = f"{lane}_{pf_name}_Proforma.xlsx"
+
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
+
         elif action == "csv":
             # TODO csv 공통 CSV 개발 후 proforma CSV 개발
             return redirect('input_data:proforma_csv')

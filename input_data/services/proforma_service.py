@@ -26,12 +26,12 @@ class ProformaService:
     def parse_header(self, request):
         """
         [Config 기반 동적 파싱]
-        Basic Information 영역의 데이터를 HTML name(Key)을 기준으로 추출합니다.
-        항목이 변경되어도 Config만 수정하면 됩니다.
+        Basic Information 영역의 데이터를 HTML name(Key)을 기준으로 추출
+        항목이 변경되어도 Config만 수정
         """
         header_data = {}
-        # Config의 basic_headers: [('A2', 'Label', 'key_name'), ...]
-        for _, _, key in ex_cfg.PROFORMA_CONFIG['basic_headers']:
+        for item in ex_cfg.PROFORMA_CONFIG['basic_headers']:
+            key = item[2]
             header_data[key] = request.POST.get(key)
         return header_data
 
@@ -588,6 +588,19 @@ class ProformaService:
         """
         # Config만 넘기면 됨
         return self.excel_manager.create_template(ex_cfg.PROFORMA_CONFIG)
+
+    def export_proforma(self, header, rows):
+        """
+        [신규] 화면의 데이터를 엑셀로 Export
+        """
+        # 1. ExcelManager에 데이터 주입
+        # header와 rows는 이미 parse_header/parse_rows를 통해 딕셔너리 리스트 형태임
+        output = self.excel_manager.create_template(
+            config=ex_cfg.PROFORMA_CONFIG,
+            header_data=header,
+            rows_data=rows
+        )
+        return output
 
     def upload_excel(self, file_obj):
         """엑셀 업로드 및 날짜 포맷팅"""
