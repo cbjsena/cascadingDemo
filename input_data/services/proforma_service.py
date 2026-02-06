@@ -1,15 +1,15 @@
-import io
 import math
 from decimal import Decimal
 from django.db import transaction
-import openpyxl  # [필수] openpyxl 설치 필요 (pip install openpyxl)
-from openpyxl.styles import Font, Alignment, Border, Side, PatternFill
-from openpyxl.utils import get_column_letter
-
+import csv
+import io
+from datetime import datetime
+from common import csv_configs as csv_cfg
 from input_data.models import Distance, InputDataSnapshot, ProformaSchedule
 from common import messages as msg
 from common import excel_configs as ex_cfg
 from common.utils.excel_manager import ExcelManager
+from common.utils.csv_manager import CsvManager
 from common import constants as const
 
 
@@ -22,6 +22,7 @@ class ProformaService:
     def __init__(self):
         # ExcelManager 인스턴스 초기화
         self.excel_manager = ExcelManager()
+        self.csv_manager = CsvManager()
 
     def parse_header(self, request):
         """
@@ -409,8 +410,198 @@ class ProformaService:
         if new_schedules:
             ProformaSchedule.objects.bulk_create(new_schedules)
 
-    # --- Helper Methods ---
 
+
+    def calculate_summary(self, rows):
+        """
+        [신규] 화면 표시용 Summary 데이터 계산
+        """
+        if not rows:
+            return {}
+
+        # self._to_float()를 사용하여 안전하게 합계 계산
+        total_pilot_in = sum(self._to_float(row.get('pilot_in')) for row in rows)
+        total_work_hours = sum(self._to_float(row.get('work_hours')) for row in rows)
+        total_pilot_out = sum(self._to_float(row.get('pilot_out')) for row in rows)
+        total_dist = sum(self._to_float(row.get('dist')) for row in rows)
+        total_sea_time = sum(self._to_float(row.get('sea_time')) for row in rows)
+
+        # 평균 속도 = 총 거리 / 총 항해 시간
+        avg_speed = 0
+        if total_sea_time > 0:
+            avg_speed = round(total_dist / total_sea_time, 2)
+
+        return {
+            'pilot_in': total_pilot_in,
+            'work_hours': total_work_hours,
+            'pilot_out': total_pilot_out,
+            'dist': total_dist,
+            'sea_time': total_sea_time,
+            'spd': avg_speed
+        }
+
+
+    def upload_excel(self, file_obj):
+        """엑셀 업로드 및 날짜 포맷팅"""
+        # 1. ExcelManager를 통해 파싱 (Config 사용)
+        header, rows = self.excel_manager.parse_excel(file_obj, ex_cfg.PROFORMA_CONFIG)
+
+        # 2. 날짜 필드 후처리 (Excel datetime -> HTML input date string)
+        # Config에 'effective_date' 키가 있는지 확인하고 처리
+        if 'effective_date' in header:
+            header['effective_date'] = self._format_date_for_input(header['effective_date'])
+
+        # 3. 데이터 후처리 (Default Value)
+        for row in rows:
+            if not row.get('direction'): row['direction'] = const.DEFAULT_DIRECTION
+            if not row.get('turn_info'): row['turn_info'] = const.DEFAULT_TURN_INO
+
+            for key in ['pilot_in', 'work_hours', 'pilot_out', 'dist', 'eca_dist', 'spd', 'sea_time']:
+                row[key] = self._to_float(row.get(key, 0))
+
+                # float 변환
+                for key in ['pilot_in', 'work_hours', 'pilot_out', 'dist', 'eca_dist', 'spd', 'sea_time']:
+                    row[key] = self._to_float(row.get(key, 0))
+
+                # int 변환
+                for key in ['no', 'etb_no', 'etd_no']:
+                    val = row.get(key, 0)
+                    row[key] = int(val) if str(val).isdigit() else 0
+
+        # 4. 계산
+        calc_header = {'data_id': header.get('data_id')}
+        calculated_rows = self.calculate_schedule(rows, calc_header)
+
+        return header, calculated_rows
+
+
+    def generate_template(self):
+        """
+        Proforma 템플릿 엑셀 생성 (ExcelManager 위임)
+        """
+        # Config만 넘기면 됨
+        return self.excel_manager.create_template(ex_cfg.PROFORMA_CONFIG)
+
+
+    def export_proforma(self, header, rows):
+        """
+        [신규] 화면의 데이터를 엑셀로 Export
+        """
+        # 1. ExcelManager에 데이터 주입
+        # header와 rows는 이미 parse_header/parse_rows를 통해 딕셔너리 리스트 형태임
+        output = self.excel_manager.create_template(
+            config=ex_cfg.PROFORMA_CONFIG,
+            header_data=header,
+            rows_data=rows
+        )
+        return output
+
+
+    def export_grid_csv(self, rows):
+        """
+        [신규] Grid 데이터만 CSV로 다운로드
+        Basic Info는 제외하고 테이블 형태 데이터만 출력
+        """
+        # 공통 CsvManager 사용
+        # Config의 grid_headers 정보만 넘겨주면 됨
+        return self.csv_manager.create_csv(
+            data_rows=rows,
+            headers_config=ex_cfg.PROFORMA_CONFIG['grid_headers']
+        )
+
+    def generate_db_csv(self, header, rows):
+        """
+        [리팩토링] csv_configs를 활용한 DB CSV 생성
+        """
+        output = io.StringIO()
+        output.write('\ufeff')
+        writer = csv.writer(output)
+
+        # 1. Config에서 헤더 추출 및 작성
+        # csv_cfg.PROFORMA_DB_MAP = [('Header', 'key'), ...]
+        headers = [item[0] for item in csv_cfg.PROFORMA_DB_MAP]
+        writer.writerow(headers)
+
+        if not rows:
+            return output.getvalue()
+
+        # ---------------------------------------------------------
+        # 2. 사전 계산 (Global Logic)
+        # ---------------------------------------------------------
+        # (1) SVCE_LANE_STD_YN
+        is_standard = 'N'
+        try:
+            eff_dt = datetime.strptime(str(header.get('effective_date', ''))[:10], '%Y-%m-%d')
+            if datetime.now() >= eff_dt:
+                is_standard = 'Y'
+        except:
+            is_standard = 'N'
+
+        # (2) STD_SVCE_SPD
+        total_dist = sum(self._to_float(r.get('dist', 0)) for r in rows)
+        total_sea_time = sum(self._to_float(r.get('sea_time', 0)) for r in rows)
+        std_speed = round(total_dist / total_sea_time, 2) if total_sea_time > 0 else 0
+
+        # (3) Counter
+        port_call_counter = {}
+
+        # ---------------------------------------------------------
+        # 3. Row Iteration
+        # ---------------------------------------------------------
+        for i, row in enumerate(rows):
+            if not row.get('port_code'): continue
+
+            # --- Row Logic ---
+            # CLG_PORT_INDC_SEQ
+            dir_cd = row.get('direction', '')
+            port_cd = row.get('port_code', '')
+            call_key = (dir_cd, port_cd)
+            port_call_counter[call_key] = port_call_counter.get(call_key, 0) + 1
+
+            # TURN_PORT_SYS_CD
+            turn_par = row.get('turn_info', 'N')
+            if i == len(rows) - 1:
+                turn_sys = 'F'
+            elif turn_par == 'Y':
+                turn_sys = 'Y'
+            else:
+                turn_sys = 'N'
+
+            # ---------------------------------------------------------
+            # 4. Context 통합 (Header + Row + Calculated)
+            # ---------------------------------------------------------
+            # 하나의 딕셔너리에 모든 정보를 모읍니다.
+            row_context = {}
+
+            # 1) Basic Header 정보 (lane_code, duration 등)
+            row_context.update(header)
+
+            # 2) Grid Row 정보 (port_code, dist 등)
+            row_context.update(row)
+
+            # 3) Calculated 정보 (계산된 로직 결과)
+            row_context.update({
+                'is_standard': is_standard,
+                'std_speed': std_speed,
+                'clg_seq': port_call_counter[call_key],
+                'turn_sys': turn_sys
+            })
+
+            # ---------------------------------------------------------
+            # 5. Config 기반 매핑 및 쓰기
+            # ---------------------------------------------------------
+            # Config에 정의된 순서대로 row_context에서 값을 꺼냅니다.
+            row_values = []
+            for _, key in csv_cfg.PROFORMA_DB_MAP:
+                val = row_context.get(key, '')
+                if val is None: val = ''
+                row_values.append(str(val))
+
+            writer.writerow(row_values)
+
+        return output.getvalue()
+
+    # --- Helper Methods ---
     def _create_default_row(self):
         return {
             'port_code': '', 'direction': const.DEFAULT_DIRECTION,
@@ -554,87 +745,6 @@ class ProformaService:
         # (calculate_schedule에서 역산될 수도 있지만 초기값으로 넣어둠)
         prev_row['sea_time'] = const.DEFAULT_SEA_TIME
 
-    def calculate_summary(self, rows):
-        """
-        [신규] 화면 표시용 Summary 데이터 계산
-        """
-        if not rows:
-            return {}
-
-        # self._to_float()를 사용하여 안전하게 합계 계산
-        total_pilot_in = sum(self._to_float(row.get('pilot_in')) for row in rows)
-        total_work_hours = sum(self._to_float(row.get('work_hours')) for row in rows)
-        total_pilot_out = sum(self._to_float(row.get('pilot_out')) for row in rows)
-        total_dist = sum(self._to_float(row.get('dist')) for row in rows)
-        total_sea_time = sum(self._to_float(row.get('sea_time')) for row in rows)
-
-        # 평균 속도 = 총 거리 / 총 항해 시간
-        avg_speed = 0
-        if total_sea_time > 0:
-            avg_speed = round(total_dist / total_sea_time, 2)
-
-        return {
-            'pilot_in': total_pilot_in,
-            'work_hours': total_work_hours,
-            'pilot_out': total_pilot_out,
-            'dist': total_dist,
-            'sea_time': total_sea_time,
-            'spd': avg_speed
-        }
-
-    def generate_template(self):
-        """
-        Proforma 템플릿 엑셀 생성 (ExcelManager 위임)
-        """
-        # Config만 넘기면 됨
-        return self.excel_manager.create_template(ex_cfg.PROFORMA_CONFIG)
-
-    def export_proforma(self, header, rows):
-        """
-        [신규] 화면의 데이터를 엑셀로 Export
-        """
-        # 1. ExcelManager에 데이터 주입
-        # header와 rows는 이미 parse_header/parse_rows를 통해 딕셔너리 리스트 형태임
-        output = self.excel_manager.create_template(
-            config=ex_cfg.PROFORMA_CONFIG,
-            header_data=header,
-            rows_data=rows
-        )
-        return output
-
-    def upload_excel(self, file_obj):
-        """엑셀 업로드 및 날짜 포맷팅"""
-        # 1. ExcelManager를 통해 파싱 (Config 사용)
-        header, rows = self.excel_manager.parse_excel(file_obj, ex_cfg.PROFORMA_CONFIG)
-
-        # 2. 날짜 필드 후처리 (Excel datetime -> HTML input date string)
-        # Config에 'effective_date' 키가 있는지 확인하고 처리
-        if 'effective_date' in header:
-            header['effective_date'] = self._format_date_for_input(header['effective_date'])
-
-        # 3. 데이터 후처리 (Default Value)
-        for row in rows:
-            if not row.get('direction'): row['direction'] = const.DEFAULT_DIRECTION
-            if not row.get('turn_info'): row['turn_info'] = const.DEFAULT_TURN_INO
-
-            for key in ['pilot_in', 'work_hours', 'pilot_out', 'dist', 'eca_dist', 'spd', 'sea_time']:
-                row[key] = self._to_float(row.get(key, 0))
-
-                # float 변환
-                for key in ['pilot_in', 'work_hours', 'pilot_out', 'dist', 'eca_dist', 'spd', 'sea_time']:
-                    row[key] = self._to_float(row.get(key, 0))
-
-                # int 변환
-                for key in ['no', 'etb_no', 'etd_no']:
-                    val = row.get(key, 0)
-                    row[key] = int(val) if str(val).isdigit() else 0
-
-        # 4. 계산
-        calc_header = {'data_id': header.get('data_id')}
-        calculated_rows = self.calculate_schedule(rows, calc_header)
-
-        return header, calculated_rows
-
     def _format_date_for_input(self, val):
         """YYYY-MM-DD 문자열로 변환 (HTML input type='date' 호환용)"""
         if not val: return ''
@@ -650,9 +760,3 @@ class ProformaService:
         if len(s_val) >= 10:
             return s_val[:10]
         return s_val
-
-    def _to_float(self, val):
-        try:
-            return float(val)
-        except:
-            return 0.0

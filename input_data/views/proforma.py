@@ -89,8 +89,26 @@ def proforma_create(request):
             return response
 
         elif action == "csv":
-            # TODO csv 공통 CSV 개발 후 proforma CSV 개발
-            return redirect('input_data:proforma_csv')
+            # Grid 형태의 CSV 다운로드
+
+            # 1. 계산 최신화
+            rows = service.calculate_schedule(rows, header)
+
+            # 2. Service 호출
+            # export_grid_csv:화면 , generate_db_csv: DB
+            # csv_content = service.export_grid_csv(rows)
+            csv_content = service.generate_db_csv(header, rows)
+
+            # 3. 응답 생성
+            response = HttpResponse(csv_content, content_type='text/csv; charset=utf-8')
+
+            # 파일명: Lane_ProformaName_List.csv
+            lane = header.get('lane_code', 'Lane')
+            pf_name = header.get('proforma_name', 'Schedule')
+            filename = f"{lane}_{pf_name}_List.csv"
+
+            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            return response
 
         elif action == "close":
             return redirect('input_data:input_home')
