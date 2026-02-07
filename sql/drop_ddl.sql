@@ -35,4 +35,5 @@ DROP TABLE IF EXISTS public."cas_schedule_proforma" CASCADE;
 DROP TABLE IF EXISTS public."cas_cost_ts_cost" CASCADE;
 DROP TABLE IF EXISTS public."cas_vessel_capacity" CASCADE;
 DROP TABLE IF EXISTS public."cas_vessel_info" CASCADE;
+DROP TABLE IF EXISTS public."cas_week_period" CASCADE;
 DROP TABLE IF EXISTS public."django_session" CASCADE;

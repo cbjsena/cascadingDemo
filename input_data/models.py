@@ -210,15 +210,15 @@ class VesselInfo(BaseModel):
     vessel_name = models.CharField(max_length=50, verbose_name="Vessel Name")
     nominal_capacity = models.IntegerField(verbose_name="Nominal Capacity")
     own_yn = models.CharField(max_length=1, choices=OWN_TYPE_CHOICES, verbose_name="Own YN")
-    delivery_port_code = models.CharField(max_length=10, verbose_name="Delivery Port Code")
+    delivery_port_code = models.CharField(max_length=10, null=True, blank=True, verbose_name="Delivery Port Code")
     delivery_date = models.DateTimeField(null=True, blank=True, verbose_name="Delivery Date")
-    redelivery_port_code = models.DateTimeField(null=True, blank=True, verbose_name="Redelivery Port Code")
+    redelivery_port_code = models.CharField(max_length=10, null=True, blank=True, verbose_name="Redelivery Port Code")
     redelivery_date = models.DateTimeField(null=True, blank=True, verbose_name="Redelivery Date")
+    next_dock_port_code = models.CharField(max_length=10, null=True, blank=True, verbose_name="Next Dock Port Code")
     next_dock_in_date = models.DateTimeField(null=True, blank=True, verbose_name="Next Dock In Date")
     next_dock_out_date = models.DateTimeField(null=True, blank=True, verbose_name="Next Dock Out Date")
-    next_dock_port_code = models.CharField(max_length=10, null=True, blank=True, verbose_name="Next Dock Port Code")
-    built_date = models.CharField(max_length=50, null=True, blank=True, verbose_name="Built Date")
     built_port_code = models.CharField(max_length=10, null=True, blank=True, verbose_name="Built Port Code")
+    built_date = models.CharField(max_length=50, null=True, blank=True, verbose_name="Built Date")
 
     class Meta:
         verbose_name = "Vessel Info"
@@ -379,7 +379,7 @@ class BunkerConsumptionSea(BaseModel):
     bunker_consumption_sea_id = models.AutoField(primary_key=True)
     base_year_month = models.CharField(max_length=6, verbose_name="Base Year Month")
     nominal_capacity = models.IntegerField(verbose_name="Nominal Capacity")
-    sea_speed = models.DecimalField(max_digits=5, decimal_places=1, verbose_name="Sea Speed")
+    sea_speed = models.DecimalField(max_digits=5, decimal_places=3, verbose_name="Sea Speed")
     bunker_consumption = models.DecimalField(max_digits=25, decimal_places=13, verbose_name="Bunker Consumption")
 
     class Meta:
@@ -397,7 +397,7 @@ class BunkerConsumptionPort(BaseModel):
     nominal_capacity = models.IntegerField(verbose_name="Nominal Capacity")
     port_stay_bunker_consumption = models.DecimalField(max_digits=5, decimal_places=3,
                                                        verbose_name="Port Stay Bunker Consumption")
-    idling_bunker_consumption = models.DecimalField(max_digits=25, decimal_places=13,
+    idling_bunker_consumption = models.DecimalField(max_digits=5, decimal_places=3,
                                                     verbose_name="Idling Bunker Consumption")
     pilot_inout_bunker_consumption = models.DecimalField(max_digits=5, decimal_places=3,
                                                          verbose_name="Pilot In/Out Bunker Consumption")
@@ -434,7 +434,7 @@ class BunkerPrice(BaseModel):
     trade_code = models.CharField(max_length=10, verbose_name="Trade Code")
     lane_code = models.CharField(max_length=10, verbose_name="Lane Code")
     bunker_type = models.CharField(max_length=4, choices=BUNKER_TYPE_CHOICES, verbose_name="Bunker Type")
-    bunker_price = models.DecimalField(max_digits=5, decimal_places=3, verbose_name="Bunker Price")
+    bunker_price = models.DecimalField(max_digits=10, decimal_places=3, verbose_name="Bunker Price")
 
     class Meta:
         verbose_name = "Bunker Price"
@@ -558,3 +558,20 @@ class BunkerPrice(BaseModel):
 #
 #     def __str__(self):
 #         return f"{self.ghg_target_effective_from_year}~{self.ghg_target_effective_to_year}:{self.ghg_target_co2}"
+
+
+class master_week_period(BaseModel):
+    master_week_period_id = models.AutoField(primary_key=True)
+    base_year = models.IntegerField(verbose_name="Base Year")
+    base_week = models.IntegerField(verbose_name="Base Week")
+    base_month = models.IntegerField(verbose_name="Base Month")
+    week_start_date = models.DateTimeField(verbose_name="Week Start")
+    week_end_date = models.DateTimeField(verbose_name="Week End")
+
+    class Meta:
+        verbose_name = "Week Period"
+        db_table = "cas_week_period"
+        unique_together = ("base_week",)
+
+    def __str__(self):
+        return f"{self.base_week} - {self.week_start} - {self.week_end}"
