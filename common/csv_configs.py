@@ -11,7 +11,6 @@ PROFORMA_DB_MAP = [
     ("EFFCT_DATE", "effective_date"),
     ("SVCE_LANE_STD_YN", "is_standard"),        # Logic 계산 필드
     ("SVCE_DUR_DAYS", "duration"),
-    ("STD_SVCE_SPD", "std_speed"),              # Logic 계산 필드
     ("FRST_VSL_CLS_CD", "capacity"),
     ("FRST_VSL_CLS_CT", "count"),
     ("SCH_DIR_CD", "direction"),
@@ -32,5 +31,5 @@ PROFORMA_DB_MAP = [
     ("LINK_DIST", "dist"),
     ("LINK_SPD", "spd"),
     ("TRAN_TIME_HRS", "sea_time"),
-    ("tml_cd", "terminal")
+    ("TML_CD", "terminal")
 ]

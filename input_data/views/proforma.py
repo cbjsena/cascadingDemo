@@ -6,6 +6,7 @@ from input_data.models import InputDataSnapshot
 from input_data.services.proforma_service import ProformaService
 from common import messages as msg
 from common import constants as const
+from common.menus import MENU_STRUCTURE
 
 @login_required
 def proforma_create(request):
@@ -18,6 +19,10 @@ def proforma_create(request):
         "rows": [],
         "header": {},
         "days": const.DAYS,
+
+        "menu_structure": MENU_STRUCTURE,
+        # "current_group": "Schedule",  # 사이드바에서 펼쳐놓을 그룹 (선택사항)
+        "current_model": "proforma_schedule",  # 현재 활성화된 메뉴 (선택사항)
     }
 
     if request.method == "POST":
@@ -151,6 +156,8 @@ def proforma_upload(request):
                 "header": header,
                 # "summary": summary,  # <--- 화면으로 전달
                 "days": const.DAYS,
+                "menu_structure": MENU_STRUCTURE,
+                "current_model": "proforma_schedule",
             }
 
             messages.success(request, msg.UPLOAD_SUCCESS)

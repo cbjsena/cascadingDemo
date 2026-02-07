@@ -8,7 +8,7 @@ from django.views.decorators.http import require_POST
 
 from input_data.models import InputDataSnapshot
 from common import messages as msg
-from .common import MENU_STRUCTURE
+from common.menus import MENU_STRUCTURE
 
 
 @login_required

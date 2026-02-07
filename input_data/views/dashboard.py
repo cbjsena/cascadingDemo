@@ -1,7 +1,7 @@
 from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
 from input_data.models import InputDataSnapshot
-from .common import MENU_STRUCTURE
+from common.menus import MENU_STRUCTURE
 
 @login_required
 def input_home(request):
