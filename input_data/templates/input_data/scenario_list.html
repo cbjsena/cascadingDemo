@@ -1,14 +1,14 @@
 {% extends "base.html" %}
 
-{% block title %}Snapshot List - Cascading Opt{% endblock %}
+{% block title %}Scenario List - Cascading Opt{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <h1 class="h2">Snapshot List</h1>
+        <h1 class="h2">Scenario List</h1>
         <div class="btn-toolbar mb-2 mb-md-0">
-            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createSnapshotModal">
-                <i class="bi bi-plus-lg"></i> Create New Snapshot
+            <button type="button" class="btn btn-sm btn-primary" data-bs-toggle="modal" data-bs-target="#createScenarioModal">
+                <i class="bi bi-plus-lg"></i> Create New Scenario
             </button>
         </div>
     </div>
@@ -19,7 +19,7 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th scope="col" class="ps-4">Data ID</th>
+                            <th scope="col" class="ps-4">Scenario ID</th>
                             <th scope="col">Description</th>
                             <th scope="col">Base YM</th>
                             <th scope="col">Created By</th>
@@ -28,34 +28,34 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for snapshot in snapshots %}
+                        {% for scenario  in scenarios  %}
                         <tr>
-                            <td class="ps-4 fw-bold text-primary">{{ snapshot.data_id }}</td>
-                            <td>{{ snapshot.description|default:"-" }}</td>
+                            <td class="ps-4 fw-bold text-primary">{{ scenario.scenario_id }}</td>
+                            <td>{{ scenario.description|default:"-" }}</td>
                             <td>
-                                {% if snapshot.base_year_month %}
-                                    <span class="badge bg-secondary">{{ snapshot.base_year_month }}</span>
+                                {% if scenario.base_year_month %}
+                                    <span class="badge bg-secondary">{{ scenario.base_year_month }}</span>
                                 {% else %}
                                     -
                                 {% endif %}
                             </td>
                             <td>
-                                {% if snapshot.created_by %}
+                                {% if scenario.created_by %}
                                     <span class="badge bg-light text-dark border">
-                                        <i class="bi bi-person-fill"></i> {{ snapshot.created_by.username }}
+                                        <i class="bi bi-person-fill"></i> {{ scenario.created_by.username }}
                                     </span>
                                 {% else %}
                                     <span class="text-muted small">-</span>
                                 {% endif %}
                             </td>
-                            <td class="small text-muted">{{ snapshot.created_at|date:"Y-m-d H:i" }}</td>
+                            <td class="small text-muted">{{ scenario.created_at|date:"Y-m-d H:i" }}</td>
                             <td class="text-end pe-4">
 <!--                                <button class="btn btn-sm btn-outline-dark me-1" title="View Details"><i class="bi bi-eye"></i></button>-->
                                 <button type="button"
                                         class="btn btn-sm btn-outline-danger"
                                         data-bs-toggle="modal"
                                         data-bs-target="#deleteModal"
-                                        data-snapshot-id="{{ snapshot.data_id }}">
+                                        data-scenario-id="{{ scenario.scenario_id }}">
                                     <i class="bi bi-trash"></i>Del
                                 </button>
                             </td>
@@ -64,7 +64,7 @@
                         <tr>
                             <td colspan="6" class="text-center py-5 text-muted">
                                 <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                                No snapshots found. Please create a new one.
+                                No scenarios  found. Please create a new one.
                             </td>
                         </tr>
                         {% endfor %}
@@ -75,33 +75,33 @@
     </div>
 </div>
 
-<div class="modal fade" id="createSnapshotModal" tabindex="-1" aria-labelledby="createSnapshotModalLabel" aria-hidden="true">
+<div class="modal fade" id="createScenarioModal" tabindex="-1" aria-labelledby="createScenarioModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form method="post" action="{% url 'input_data:snapshot_create' %}">
+            <form method="post" action="{% url 'input_data:scenario_create' %}">
                 {% csrf_token %}
                 <div class="modal-header">
-                    <h5 class="modal-title" id="createSnapshotModalLabel">Create New Snapshot</h5>
+                    <h5 class="modal-title" id="createScenarioModalLabel">Create New Scenario </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="newDataId" class="form-label fw-bold">New Data ID <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="newDataId" name="data_id" value="{{ default_data_id }}" required>
+                        <label for="newDataId" class="form-label fw-bold">New Scenario ID <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="newDataId" name="scenario_id" value="{{ default_scenario_id }}" required>
                         <div class="form-text">Auto-generated ID (YYYYMMDD + Seq). You can modify it.</div>
                     </div>
 
                     <div class="mb-3">
                         <label for="sourceDataId" class="form-label">Copy Data From (Optional)</label>
-                        <select class="form-select" id="sourceDataId" name="source_data_id">
+                        <select class="form-select" id="sourceDataId" name="source_scenario_id">
                             <option value="" selected>None (Create Empty)</option>
-                            {% for snapshot in snapshots %}
-                                <option value="{{ snapshot.data_id }}">
-                                    {{ snapshot.data_id }} ({{ snapshot.description|truncatechars:30 }})
+                            {% for scenario  in scenarios  %}
+                                <option value="{{ scenario.scenario_id }}">
+                                    {{ scenario.scenario_id }} ({{ scenario.description|truncatechars:30 }})
                                 </option>
                             {% endfor %}
                         </select>
-                        <div class="form-text">Select an existing snapshot to clone all its data.</div>
+                        <div class="form-text">Select an existing scenario  to clone all its data.</div>
                     </div>
 
                     <div class="mb-3">
@@ -128,11 +128,11 @@
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header bg-danger text-white">
-                <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill"></i> Delete Snapshot</h5>
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle-fill"></i> Delete Scenario </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body">
-                <p>Are you sure you want to delete this snapshot?</p>
+                <p>Are you sure you want to delete this scenario ?</p>
                 <p class="fw-bold text-danger text-center fs-5" id="deleteTargetId"></p>
                 <p class="small text-muted mb-0">
                     This action cannot be undone.<br>
@@ -157,15 +157,15 @@
         if (deleteModal) {
             deleteModal.addEventListener('show.bs.modal', function (event) {
                 var button = event.relatedTarget;
-                var snapshotId = button.getAttribute('data-snapshot-id');
+                var scenarioId = button.getAttribute('data-scenario-id');
 
                 var modalTitle = deleteModal.querySelector('#deleteTargetId');
-                modalTitle.textContent = snapshotId;
+                modalTitle.textContent = scenarioId;
 
                 var form = deleteModal.querySelector('#deleteForm');
                 // URL 패턴에 맞춰 ID 치환
-                var urlTemplate = "{% url 'input_data:snapshot_delete' 'PLACEHOLDER' %}";
-                form.action = urlTemplate.replace('PLACEHOLDER', snapshotId);
+                var urlTemplate = "{% url 'input_data:scenario_delete' 'PLACEHOLDER' %}";
+                form.action = urlTemplate.replace('PLACEHOLDER', scenarioId);
             });
         }
     });

@@ -24,12 +24,12 @@ def get_port_distance(request):
     """[API] 포트 거리 조회"""
     origin = request.GET.get('origin')
     destination = request.GET.get('destination')
-    data_id = request.GET.get('data_id')
+    scenario_id = request.GET.get('scenario_id')
 
     distance = 0
     try:
         obj = Distance.objects.filter(
-            data_id=data_id,
+            scenario_id=scenario_id,
             from_port_code=origin,
             to_port_code=destination
         ).first()

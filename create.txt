@@ -33,7 +33,7 @@
         - SELECT  'DROP TABLE IF EXISTS public."' || tablename || '" CASCADE;' AS drop_sql
             FROM pg_tables
             WHERE schemaname = 'public'
-        - 테스트 시 db 초기화 pytest result/tests/test_result_crud.py --create-db -s
+        - 테스트 시 db 초기화 pytest --create-db -s
 6. 관리자 계정 생성
     6.1 관리자 계정을 생성하여 Django 관리자 페이지에 접근할 수 있도록 설정
         - python manage.py createsuperuser cascading/qwer123$ yukaris@cyberlogitec.com
@@ -44,8 +44,8 @@
         - pytest run/tests/ -vv -rw
         - pytest run/tests/test_run_views.py
         - pytest run/tests/test_run_models.py::RunExecutionModelTest            // 특정 클래스의 모든 테스트 실행
-        - pytest run/tests/test_run_views.py::test_post_creates_full_snapshot   //특정 함수(테스트 케이스)만 실행
-        - pytest -m snapshot //마커가 "snapshot"인 테스트만 실행 (@pytest.mark.snapshot, 유형별 테스트 그룹 관리에 유용)
+        - pytest run/tests/test_run_views.py::test_post_creates_full_scenario    //특정 함수(테스트 케이스)만 실행
+        - pytest -m scenario  //마커가 "scenario "인 테스트만 실행 (@pytest.mark.scenario , 유형별 테스트 그룹 관리에 유용)
     7.3 pytest 옵션
         -v: verbose
         -vv: very verbose, 어떤 부분에서 경고가 발생했는지 줄번호까지 표시

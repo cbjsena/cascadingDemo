@@ -7,7 +7,7 @@ PROFORMA_CONFIG = {
 
     # Basic Info Header: (좌표, 헤더명, 파싱키)
     'basic_headers': [
-        ('A2', 'Snapshot ID', 'data_id', 2),
+        ('A2', 'Scenario ID', 'scenario_id', 2),
         ('C2', 'Service Lane Code', 'lane_code', 2),
         ('E2', 'Proforma Name', 'proforma_name', 2),
         ('G2', 'Effective Date', 'effective_date', 2),
@@ -18,13 +18,13 @@ PROFORMA_CONFIG = {
 
     # [신규] Basic Information 예시 값
     'basic_examples': {
-        'data_id': 'default_id',
-        'lane_code': 'FP1',
+        'scenario_id': 'default_scenario',
+        'lane_code': 'FE1',
         'proforma_name': '7001',
-        'effective_date': '2026-07-01',
+        'effective_date': '2026-01-01',
         'capacity': '20000',
-        'count': '19',
-        'duration': '42.0'
+        'count': '12',
+        'duration': '84.0'
     },
 
     # Grid Headers: (헤더명, 파싱키, 컬럼인덱스)
@@ -32,7 +32,7 @@ PROFORMA_CONFIG = {
         ("No.", "no", 1),
         ("Port\nCode", "port_code", 2),
         ("Direction", "direction", 3),
-        ("Turning\nPort", "turn_info", 4),
+        ("Turning\nPort Info", "turn_port_info_code", 4),
         ("Pilot\nIn", "pilot_in", 5),
         ("ETB\nNo.", "etb_no", 6),
         ("ETB\nDay", "etb_day", 7),
@@ -54,7 +54,7 @@ PROFORMA_CONFIG = {
         'no': 1,
         'port_code': 'KRPUS',
         'direction': 'E',
-        'turn_info': 'N',
+        'turn_port_info_code': 'N',
         'pilot_in': 2,
         'etb_no': 0, 'etb_day': 'MON', 'etb_time': '0800',
         'work_hours': 24,

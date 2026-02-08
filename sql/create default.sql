@@ -9,7 +9,7 @@ CREATE TABLE public.default_schedule_proforma (
 	port_code varchar(10) NOT NULL,
 	calling_port_indicator_seq varchar(2) NOT NULL,
 	calling_port_seq int4 NOT NULL,
-	turn_port_pair_code varchar(3) NOT NULL,
+	turn_port_info_code varchar(3) NOT NULL,
 	pilot_in_hours numeric(5, 3) NOT NULL,
 	etb_day_code varchar(3) NOT NULL,
 	etb_day_time varchar(4) NOT NULL,

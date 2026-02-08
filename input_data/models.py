@@ -1,68 +1,51 @@
-from django.conf import settings
 from django.db import models
+from common.models import CommonModel
 
 
-# ==========================================
-# [공통] TimeStamped Mixin (Audit Fields)
-# ==========================================
-class TimeStampedMixin(models.Model):
-    """
-    모든 모델에 공통적으로 포함될 생성/수정 로그 필드입니다.
-    """
-    created_at = models.DateTimeField(auto_now_add=True, verbose_name="Created At")
-    created_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
-        verbose_name="Created By", related_name="%(class)s_created"  # 역참조 이름 충돌 방지
-    )
-    updated_at = models.DateTimeField(auto_now=True, verbose_name="Updated At")
-    updated_by = models.ForeignKey(
-        settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True,
-        verbose_name="Updated By", related_name="%(class)s_updated"  # 역참조 이름 충돌 방지
-    )
-
-    class Meta:
-        abstract = True
+SCENARIO_STATUS_CODE = (
+    ("T", "TEST"),
+    ("N", "Not used"),
+)
 
 
-# ==========================================
-# [신규] 입력 데이터 스냅샷 (Master Table)
-# ==========================================
-class InputDataSnapshot(TimeStampedMixin):
+class ScenarioInfo(CommonModel):
     """
     입력 데이터 덩어리(스냅샷)에 대한 기본 정보를 관리하는 마스터 테이블입니다.
-    모든 하위 데이터 테이블은 data_id를 통해 이 테이블과 연결됩니다.
+    모든 하위 데이터 테이블은 scenario_id를 통해 이 테이블과 연결됩니다.
     """
-    # data_id를 문자열 PK로 설정 (예: '202501_BASE', 'TEST_SCENARIO_1')
-    data_id = models.CharField(max_length=50, primary_key=True, verbose_name="Data ID (Snapshot Key)")
+    # scenario_id를 문자열 PK로 설정 (예: '202501_BASE', 'TEST_SCENARIO_1')
+    id = models.CharField(
+        max_length=50,
+        primary_key=True,
+        db_column="scenario_id",  # DB 컬럼명 유지
+        verbose_name="Scenario ID"
+    )
     description = models.CharField(max_length=255, null=True, blank=True, verbose_name="Description")
-
-    # 필요시 시나리오 기준 연도/월 등을 추가할 수 있습니다.
     base_year_month = models.CharField(max_length=6, null=True, blank=True, verbose_name="Base Year Month")
+    status = models.CharField(max_length=50,  choices=SCENARIO_STATUS_CODE, default='T',verbose_name="Scenario Status")
 
     class Meta:
-        verbose_name = "Input Data Snapshot"
-        verbose_name_plural = "Input Data Snapshot"
-        db_table = "cas_input_data_snapshot"
+        verbose_name = "Scenario Info"
+        verbose_name_plural = "Scenario Info"
+        db_table = "cas_scenario_info"
 
     def __str__(self):
-        return f"[{self.data_id}] {self.description}"
+        return f"[{self.id}] {self.description}"
 
 
 # ==========================================
-# [공통] 추상 모델 (FK to Snapshot + Audit)
+# [공통] 추상 모델 (FK to Scenario + Audit)
 # ==========================================
-class BaseModel(TimeStampedMixin):
+class BaseModel(CommonModel):
     """
     모든 하위 데이터 모델이 상속받는 기본 모델입니다.
-    InputDataSnapshot에 대한 FK(data_id)를 포함합니다.
+    ScenarioInfo에 대한 FK(scenario_id)를 포함합니다.
     """
-    # data_id 필드 추가: 스냅샷이 삭제되면 하위 데이터도 같이 삭제됨 (CASCADE)
-    data_id = models.ForeignKey(
-        InputDataSnapshot,
+    scenario = models.ForeignKey(
+        ScenarioInfo,
         on_delete=models.CASCADE,
-        db_column='data_id',
-        verbose_name="Data ID",
-        related_name="%(class)s_set"  # 역참조 이름 충돌 방지
+        verbose_name="Scenario ID",
+        related_name="%(class)s_set"
     )
 
     class Meta:
@@ -93,10 +76,6 @@ SCHEDULE_CHANGE_STATUS_CODE_CHOICES = (
     ("R", "Port Call Swap"),
 )
 
-YN_CHOICES = (
-    ("Y", "Yes"),
-    ("N", "No"),
-)
 
 FULL_EMPTY_CHOICES = (
     ("F", "Full"),
@@ -117,7 +96,7 @@ BUNKER_TYPE_CHOICES = (
     ("MGO", "Marine Gas Oil"),
 )
 
-TURN_PORT_PAR_CD = (
+TURN_PORT_INFO_CD = (
     ("Y", "Y"),
     ("N", "N"),
 )
@@ -136,7 +115,7 @@ class ProformaSchedule(BaseModel):
     proforma_schedule_id = models.AutoField(primary_key=True)
     lane_code = models.CharField(max_length=10, verbose_name="Lane Code")
     proforma_name = models.CharField(max_length=30, verbose_name="Proforma Name")
-    lane_standard = models.BooleanField(null=True, blank=True, verbose_name="Lane Standard")
+    effective_date = models.DateTimeField(verbose_name="Effective Date")
     duration = models.DecimalField(max_digits=5, decimal_places=1, verbose_name="Duration")
     declared_capacity = models.CharField(max_length=5, verbose_name="Declared Capacity (Class Code)")
     declared_count = models.IntegerField(verbose_name="Declared Count")
@@ -144,7 +123,7 @@ class ProformaSchedule(BaseModel):
     port_code = models.CharField(max_length=10, verbose_name="Port Code")
     calling_port_indicator_seq = models.CharField(max_length=2, verbose_name="Calling Port Indicator Seq.")
     calling_port_seq = models.IntegerField(verbose_name="Calling Port Seq.")
-    turn_port_pair_code = models.CharField(max_length=3, choices=TURN_PORT_PAR_CD, verbose_name="ETB Day Code")
+    turn_port_info_code = models.CharField(max_length=3, choices=TURN_PORT_INFO_CD, verbose_name="Turn Port Info")
     pilot_in_hours = models.DecimalField(max_digits=5, decimal_places=3, verbose_name="Pilot In Hours", default=3)
     etb_day_code = models.CharField(max_length=3, verbose_name="ETB Day Code")
     etb_day_time = models.CharField(max_length=4, verbose_name="ETB Day Time")
@@ -164,7 +143,7 @@ class ProformaSchedule(BaseModel):
     class Meta:
         verbose_name = "Proforma Schedule"
         db_table = "cas_schedule_proforma"
-        unique_together = (("lane_code", "proforma_name", "direction", "port_code", "calling_port_indicator_seq"),)
+        unique_together = (("scenario", "lane_code", "proforma_name", "direction", "port_code", "calling_port_indicator_seq"),)
 
     def __str__(self):
         return f"{self.lane_code} - {self.proforma_name} - {self.direction}- {self.port_code}"
@@ -193,7 +172,7 @@ class LongRangeSchedule(BaseModel):
     class Meta:
         verbose_name = "Long Range Schedule"
         db_table = "cas_schedule_long_range"
-        unique_together = (("lane_code", "vessel_code", "voyage_number", "direction", "port_code",
+        unique_together = (("scenario", "lane_code", "vessel_code", "voyage_number", "direction", "port_code",
                             "calling_port_indicator_seq"),)
 
     def __str__(self):
@@ -223,7 +202,7 @@ class VesselInfo(BaseModel):
     class Meta:
         verbose_name = "Vessel Info"
         db_table = "cas_vessel_info"
-        unique_together = ("vessel_code",)
+        unique_together = ("scenario", "vessel_code",)
 
     def __str__(self):
         return f"{self.vessel_code} ({self.vessel_name})"
@@ -241,7 +220,7 @@ class CharterCost(BaseModel):
     class Meta:
         verbose_name = "Charter Cost"
         db_table = "cas_vessel_charter_cost"
-        unique_together = (("vessel_code", "currency_code", "hire_from_date"),)
+        unique_together = (("scenario", "vessel_code", "currency_code", "hire_from_date"),)
 
     def __str__(self):
         return f"{self.vessel_code} : {self.hire_from_date} ~ {self.hire_to_date} ({self.currency_code})"
@@ -262,7 +241,7 @@ class VesselCapacity(BaseModel):
     class Meta:
         verbose_name = "Vessel Capacity"
         db_table = "cas_vessel_capacity"
-        unique_together = (("trade_code", "lane_code", "vessel_code", "voyage_number", "direction",
+        unique_together = (("scenario", "trade_code", "lane_code", "vessel_code", "voyage_number", "direction",
                             "effective_from_date"),)
 
     def __str__(self):
@@ -283,7 +262,7 @@ class CanalFee(BaseModel):
     class Meta:
         verbose_name = "Canal Fee"
         db_table = "cas_cost_canal_fee"
-        unique_together = (("vessel_code", "direction", "port_code"),)
+        unique_together = (("scenario", "vessel_code", "direction", "port_code"),)
 
     def __str__(self):
         return f"{self.vessel_code} @ {self.port_code} - {self.direction}"
@@ -299,7 +278,7 @@ class Distance(BaseModel):
     class Meta:
         verbose_name = "Distance"
         db_table = "cas_cost_distance"
-        unique_together = (("from_port_code", "to_port_code"),)
+        unique_together = (("scenario", "from_port_code", "to_port_code"),)
 
     def __str__(self):
         return f"{self.from_port_code} -> {self.to_port_code}"
@@ -314,7 +293,7 @@ class ExchangeRate(BaseModel):
     class Meta:
         verbose_name = "Exchange Rate"
         db_table = "cas_cost_exchange_rate"
-        unique_together = (("base_year_month", "currency_code"),)
+        unique_together = (("scenario", "base_year_month", "currency_code"),)
 
     def __str__(self):
         return f"{self.base_year_month} - {self.currency_code}"
@@ -328,7 +307,7 @@ class ExchangeRate(BaseModel):
 #     class Meta:
 #         verbose_name = "Own Vessel Cost"
 #         db_table = "cas_cost_own_vessel_cost"
-#         unique_together = (("base_year_month"),)
+#         unique_together = (("scenario", "base_year_month"),)
 #
 #     def __str__(self):
 #         return f"{self.base_year_month}"
@@ -346,7 +325,7 @@ class ExchangeRate(BaseModel):
 #     class Meta:
 #         verbose_name = "Port Charge"
 #         db_table = "cas_cost_port_charge"
-#         unique_together = (("base_year_month", "port_code", "currency_code", "tonnage_port_yn", "nominal_capacity"),)
+#         unique_together = (("scenario", "base_year_month", "port_code", "currency_code", "tonnage_port_yn", "nominal_capacity"),)
 #
 #     def __str__(self):
 #         return f"{self.base_year_month} - {self.port_code}({self.currency_code}) - {self.nominal_capacity}"
@@ -365,7 +344,7 @@ class TSCost(BaseModel):
     class Meta:
         verbose_name = "TS Cost"
         db_table = "cas_cost_ts_cost"
-        unique_together = (("base_year_month", "port_code", "full_empty_code", "container_code", "currency_code"),)
+        unique_together = (("scenario", "base_year_month", "port_code", "full_empty_code", "container_code", "currency_code"),)
 
     def __str__(self):
         return (f"{self.base_year_month} - {self.port_code} ({self.currency_code}) - {self.full_empty_code} "
@@ -385,7 +364,7 @@ class BunkerConsumptionSea(BaseModel):
     class Meta:
         verbose_name = "Bunker Consumption Sea"
         db_table = "cas_bunker_consumption_sea"
-        unique_together = (("base_year_month", "nominal_capacity", "sea_speed"),)
+        unique_together = (("scenario", "base_year_month", "nominal_capacity", "sea_speed"),)
 
     def __str__(self):
         return f"{self.base_year_month} - {self.nominal_capacity}TEU - {self.sea_speed}kts"
@@ -405,7 +384,7 @@ class BunkerConsumptionPort(BaseModel):
     class Meta:
         verbose_name = "Bunker Consumption Port"
         db_table = "cas_bunker_consumption_port"
-        unique_together = (("base_year_month", "nominal_capacity"),)
+        unique_together = (("scenario", "base_year_month", "nominal_capacity"),)
 
     def __str__(self):
         return f"{self.base_year_month} - {self.nominal_capacity}TEU (Port)"
@@ -422,7 +401,7 @@ class BunkerConsumptionPort(BaseModel):
 #     class Meta:
 #         verbose_name = "Bunkering Port"
 #         db_table = "cas_bunker_bunkering_por"
-#         unique_together = (("base_year_month", "lane_code", "bunker_type", "bunkering_port_code"),)
+#         unique_together = (("scenario", "base_year_month", "lane_code", "bunker_type", "bunkering_port_code"),)
 #
 #     def __str__(self):
 #         return f"{self.base_year_month} - {self.lane_code} @ {self.bunkering_port_code} ({self.bunker_type})"
@@ -439,7 +418,7 @@ class BunkerPrice(BaseModel):
     class Meta:
         verbose_name = "Bunker Price"
         db_table = "cas_bunker_bunker_price"
-        unique_together = (("base_year_month", "trade_code", "lane_code", "bunker_type"),)
+        unique_together = (("scenario", "base_year_month", "trade_code", "lane_code", "bunker_type"),)
 
     def __str__(self):
         return f"{self.base_year_month} - {self.trade_code} - {self.lane_code}({self.bunker_type})"
@@ -457,7 +436,7 @@ class BunkerPrice(BaseModel):
 #     class Meta:
 #         verbose_name = "ETS TS Port"
 #         db_table = "cas_ets_ts_port"
-#         unique_together = ("ets_ts_port_code",)
+#         unique_together = ("scenario", "ets_ts_port_code",)
 #
 #     def __str__(self):
 #         return f"{self.ets_ts_port_code} - {self.ets_ts_port_name}"
@@ -471,7 +450,7 @@ class BunkerPrice(BaseModel):
 #     class Meta:
 #         verbose_name = "ETS Country"
 #         db_table = "cas_ets_country"
-#         unique_together = ("ets_country_code",)
+#         unique_together = ("scenario", "ets_country_code",)
 #
 #     def __str__(self):
 #         return f"{self.ets_country_code} ({self.ets_country_name})"
@@ -485,7 +464,7 @@ class BunkerPrice(BaseModel):
 #     class Meta:
 #         verbose_name = "ETS Bunker Consumption"
 #         db_table = "cas_ets_bunker_consumption"
-#         unique_together = ("bunker_type",)
+#         unique_together = ("scenario", "bunker_type",)
 #
 #     def __str__(self):
 #         return f"{self.bunker_type}"
@@ -506,7 +485,7 @@ class BunkerPrice(BaseModel):
 #     class Meta:
 #         verbose_name = "ETS EUA"
 #         db_table = "cas_ets_eua"
-#         unique_together = (("trade_code", "lane_code", "vessel_code", "voyage_number", "direction",
+#         unique_together = (("scenario", "trade_code", "lane_code", "vessel_code", "voyage_number", "direction",
 #                             "base_year_month"),)
 #
 #     def __str__(self):
@@ -524,7 +503,7 @@ class BunkerPrice(BaseModel):
 #     class Meta:
 #         verbose_name = "FUEL EU"
 #         db_table = "cas_fuel_eu"
-#         unique_together = (("trade_code", "lane_code"),)
+#         unique_together = (("scenario", "trade_code", "lane_code"),)
 #
 #     def __str__(self):
 #         return f"{self.trade_code} - {self.lane_code} - {self.base_year_week}"
@@ -539,7 +518,7 @@ class BunkerPrice(BaseModel):
 #     class Meta:
 #         verbose_name = "Fuel Eu Bunker"
 #         db_table = "cas_fuel_eu_bunker"
-#         unique_together = ("bunker_type",)
+#         unique_together = ("scenario", "bunker_type",)
 #
 #     def __str__(self):
 #         return f"{self.bunker_type} (GHG: {self.ghg_intensity})"
@@ -554,7 +533,7 @@ class BunkerPrice(BaseModel):
 #     class Meta:
 #         verbose_name = "Greenhouse Gas Target"
 #         db_table = "cas_fuel_eu_ghg_target"
-#         unique_together = ("ghg_target_effective_from_year",)
+#         unique_together = ("scenario", "ghg_target_effective_from_year",)
 #
 #     def __str__(self):
 #         return f"{self.ghg_target_effective_from_year}~{self.ghg_target_effective_to_year}:{self.ghg_target_co2}"
@@ -571,7 +550,7 @@ class master_week_period(BaseModel):
     class Meta:
         verbose_name = "Week Period"
         db_table = "cas_week_period"
-        unique_together = ("base_week",)
+        unique_together = ("scenario", "base_week",)
 
     def __str__(self):
         return f"{self.base_week} - {self.week_start} - {self.week_end}"

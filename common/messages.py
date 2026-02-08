@@ -3,9 +3,9 @@
 # ==========================================
 # 성공 메세지 (Success)
 # ==========================================
-SNAPSHOT_CREATE_SUCCESS = "Snapshot '{data_id}' has been created successfully."
-SNAPSHOT_CLONE_SUCCESS = "Snapshot '{data_id}' created (Cloned from '{source_id}')."
-SNAPSHOT_DELETE_SUCCESS = "Snapshot '{data_id}' has been deleted successfully."
+SCENARIO_CREATE_SUCCESS = "Scenario '{scenario_id}' has been created successfully."
+SCENARIO_CLONE_SUCCESS = "Scenario '{scenario_id}' created (Cloned from '{source_id}')."
+SCENARIO_DELETE_SUCCESS = "Scenario '{scenario_id}' has been deleted successfully."
 SCHEDULE_CALCULATED = "Schedule calculated."
 SCHEDULE_SAVE_SUCCESS = "Schedule saved successfully."
 SCHEDULE_NEW_STARTED = "New schedule started."
@@ -13,10 +13,10 @@ SCHEDULE_NEW_STARTED = "New schedule started."
 # ==========================================
 # 에러 메세지 (Error)
 # ==========================================
-SNAPSHOT_ID_DUPLICATE = "Data ID '{data_id}' already exists."
-SNAPSHOT_DELETE_ERROR = "Error deleting snapshot: {error}"
-SNAPSHOT_CLONE_ERROR = "Failed to clone data: {error}"
-SNAPSHOT_NOT_FOUND = "Snapshot '{data_id}' not found."
+SCENARIO_ID_DUPLICATE = "Scenario ID '{scenario_id}' already exists."
+SCENARIO_DELETE_ERROR = "Error deleting scenario : {error}"
+SCENARIO_CLONE_ERROR = "Failed to clone data: {error}"
+SCENARIO_NOT_FOUND = "Scenario '{scenario_id}' not found."
 PERMISSION_DENIED = "You do not have permission to perform this action."
 SAVE_ERROR = "Failed to save: {error}"
 

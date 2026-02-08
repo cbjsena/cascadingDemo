@@ -3,9 +3,10 @@ from decimal import Decimal
 from django.db import transaction
 import csv
 import io
+from django.utils import timezone
 from datetime import datetime
 from common import csv_configs as csv_cfg
-from input_data.models import Distance, InputDataSnapshot, ProformaSchedule
+from input_data.models import Distance, ScenarioInfo, ProformaSchedule
 from common import messages as msg
 from common import excel_configs as ex_cfg
 from common.utils.excel_manager import ExcelManager
@@ -70,7 +71,7 @@ class ProformaService:
 
         return rows
 
-    def add_row(self, rows, data_id):
+    def add_row(self, rows, scenario_id):
         """최하단에 행 추가"""
         new_row = self._create_default_row()
 
@@ -193,7 +194,7 @@ class ProformaService:
            - 이전 행의 Sea Time/Speed 업데이트
            - 현재 행의 ETD = ETB + Work Hours 계산
         """
-        data_id = header_info.get('data_id')
+        scenario_id = header_info.get('scenario_id')
         if not rows:
             return rows
 
@@ -215,7 +216,7 @@ class ProformaService:
                 next_row = rows[i + 1]
                 if curr.get('port_code') and next_row.get('port_code'):
                     dist_obj = Distance.objects.filter(
-                        data_id=data_id,
+                        scenario_id=scenario_id,
                         from_port_code=curr['port_code'],
                         to_port_code=next_row['port_code']
                     ).first()
@@ -293,7 +294,7 @@ class ProformaService:
 
         return rows
 
-    def add_row(self, rows, data_id):
+    def add_row(self, rows, scenario_id):
         """
         최하단 행 추가
         - 이전 행이 있다면: Previous ETD + 24h(Sea Time) = New ETB
@@ -316,7 +317,7 @@ class ProformaService:
         rows.append(new_row)
 
         # 전체 재계산 (거리 등 동기화)
-        return self.calculate_schedule(rows, {'data_id': data_id})
+        return self.calculate_schedule(rows, {'scenario_id': scenario_id})
 
     def insert_row(self, rows, index):
         """
@@ -342,7 +343,7 @@ class ProformaService:
             # 인덱스 오류 시 맨 뒤 추가
             return self.add_row(rows, None)
 
-        return self.calculate_schedule(rows, {'data_id': None})
+        return self.calculate_schedule(rows, {'scenario_id': None})
 
     def delete_rows(self, rows, indices):
         if not indices: return rows
@@ -350,45 +351,64 @@ class ProformaService:
         for i in indices:
             if 0 <= i < len(rows):
                 del rows[i]
-        return self.calculate_schedule(rows, {'data_id': None})
+        return self.calculate_schedule(rows, {'scenario_id': None})
 
     @transaction.atomic
     def save_to_db(self, header, rows, user):
-        # 기존과 동일
-        data_id = header.get('data_id')
+        scenario_id_val = header.get('scenario_id')
         lane_code = header.get('lane_code')
         proforma_name = header.get('proforma_name')
 
         try:
-            snapshot = InputDataSnapshot.objects.get(data_id=data_id)
-        except InputDataSnapshot.DoesNotExist:
-            raise ValueError(msg.SNAPSHOT_NOT_FOUND.format(data_id=data_id))
+            # 여기서 scenario는 ScenarioInfo 객체여야 함
+            scenario_obj = ScenarioInfo.objects.get(id=scenario_id_val)
+        except ScenarioInfo.DoesNotExist:
+            raise ValueError(msg.SCENARIO_NOT_FOUND.format(scenario_id=scenario_id_val))
+
+        # Effective Date를 Timezone Aware 객체로 변환
+        eff_date_str = header.get('effective_date', '')
+        effective_date = timezone.now()  # 기본값
+
+        if eff_date_str:
+            try:
+                # 1. 문자열 -> Naive Datetime 변환 (YYYY-MM-DD)
+                # 입력값이 '2026-01-01' 형태라고 가정
+                dt = datetime.strptime(str(eff_date_str)[:10], '%Y-%m-%d')
+                # 2. Naive -> Aware Datetime 변환
+                effective_date = timezone.make_aware(dt)
+            except ValueError:
+                pass  # 파싱 실패 시 기본값(Now) 사용
 
         ProformaSchedule.objects.filter(
-            data_id=snapshot,
-            vessel_service_lane_code=lane_code,
+            scenario=scenario_obj,
+            lane_code=lane_code,
             proforma_name=proforma_name
         ).delete()
 
         new_schedules = []
         for row in rows:
             if not row.get('port_code'): continue
+            port_cd = row['port_code']
+            raw_terminal = row.get('terminal', '')
+
+            if not raw_terminal:
+                terminal_code = f"{port_cd}01"
+            else:
+                terminal_code = raw_terminal
 
             schedule = ProformaSchedule(
-                data_id=snapshot,
-                vessel_service_lane_code=lane_code,
+                scenario=scenario_obj,
+                lane_code=lane_code,
                 proforma_name=proforma_name,
+                effective_date=effective_date,
                 duration=Decimal(header.get('duration') or 0),
-                standard_service_speed=Decimal(header.get('std_speed') or 0),
                 declared_capacity=header.get('capacity', ''),
                 declared_count=int(header.get('count') or 0),
-                service_lane_standard=True,
-                port_code=row['port_code'],
+                port_code=port_cd,
                 direction=row.get('direction', 'E'),
                 calling_port_indicator_seq="1",
                 calling_port_seq=int(row['no']),
-                turn_port_pair_code=row.get('turn_info', 'N'),
-                turn_port_system_code='N',
+                turn_port_info_code=row.get('turn_port_info_code', 'N'),
                 pilot_in_hours=Decimal(row.get('pilot_in') or 0),
                 etb_day_code=row.get('etb_day', ''),
                 etb_day_time=row.get('etb_time', ''),
@@ -402,6 +422,7 @@ class ProformaService:
                 link_eca_distance=int(float(row.get('eca_dist') or 0)),
                 link_speed=Decimal(row.get('spd') or 0),
                 sea_hours=Decimal(row.get('sea_time') or 0),
+                terminal_code=terminal_code,
                 created_by=user,
                 updated_by=user
             )
@@ -454,7 +475,7 @@ class ProformaService:
         # 3. 데이터 후처리 (Default Value)
         for row in rows:
             if not row.get('direction'): row['direction'] = const.DEFAULT_DIRECTION
-            if not row.get('turn_info'): row['turn_info'] = const.DEFAULT_TURN_INO
+            if not row.get('turn_port_info_code'): row['turn_port_info_code'] = const.DEFAULT_TURN_INO
 
             for key in ['pilot_in', 'work_hours', 'pilot_out', 'dist', 'eca_dist', 'spd', 'sea_time']:
                 row[key] = self._to_float(row.get(key, 0))
@@ -469,10 +490,10 @@ class ProformaService:
                     row[key] = int(val) if str(val).isdigit() else 0
 
         # 4. 계산
-        calc_header = {'data_id': header.get('data_id')}
+        calc_header = {'scenario_id': header.get('scenario_id')}
         calculated_rows = self.calculate_schedule(rows, calc_header)
 
-        return header, calculated_rows
+        return header, rows
 
 
     def generate_template(self):
@@ -529,13 +550,13 @@ class ProformaService:
         # 2. 사전 계산 (Global Logic)
         # ---------------------------------------------------------
         # (1) SVCE_LANE_STD_YN
-        is_standard = 'N'
-        try:
-            eff_dt = datetime.strptime(str(header.get('effective_date', ''))[:10], '%Y-%m-%d')
-            if datetime.now() >= eff_dt:
-                is_standard = 'Y'
-        except:
-            is_standard = 'N'
+        # is_standard = 'N'
+        # try:
+        #     eff_dt = datetime.strptime(str(header.get('effective_date', ''))[:10], '%Y-%m-%d')
+        #     if datetime.now() >= eff_dt:
+        #         is_standard = 'Y'
+        # except:
+        #     is_standard = 'N'
 
         # (2) STD_SVCE_SPD
         total_dist = sum(self._to_float(r.get('dist', 0)) for r in rows)
@@ -559,7 +580,7 @@ class ProformaService:
             port_call_counter[call_key] = port_call_counter.get(call_key, 0) + 1
 
             # TURN_PORT_SYS_CD
-            turn_par = row.get('turn_info', 'N')
+            turn_par = row.get('turn_port_info_code', 'N')
             if i == len(rows) - 1:
                 turn_sys = 'F'
             elif turn_par == 'Y':
@@ -581,7 +602,7 @@ class ProformaService:
 
             # 3) Calculated 정보 (계산된 로직 결과)
             row_context.update({
-                'is_standard': is_standard,
+                # 'is_standard': is_standard,
                 'std_speed': std_speed,
                 'clg_seq': port_call_counter[call_key],
                 'turn_sys': turn_sys
@@ -605,7 +626,7 @@ class ProformaService:
     def _create_default_row(self):
         return {
             'port_code': '', 'direction': const.DEFAULT_DIRECTION,
-            'turn_info': const.DEFAULT_TURN_INO, 'pilot_in': const.DEFAULT_PILOT_IN,
+            'turn_port_info_code': const.DEFAULT_TURN_INO, 'pilot_in': const.DEFAULT_PILOT_IN,
             'etb_no': 0,
             'etb_day': const.DEFAULT_ETB_DAY,
             'etb_time': const.DEFAULT_TIME,

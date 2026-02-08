@@ -8,10 +8,10 @@ urlpatterns = [
     #  데이터 홈 (대시보드 형태)
     path('', views.input_home, name='input_home'),
 
-    # Snapshot 목록 전용 URL (반드시 동적 URL보다 위에 위치)
-    path('snapshots/', views.snapshot_list, name='snapshot_list'),
-    path('snapshots/create/', views.snapshot_create, name='snapshot_create'),
-    path('snapshots/delete/<str:data_id>/', views.snapshot_delete, name='snapshot_delete'),
+    # Scenario 목록 전용 URL (반드시 동적 URL보다 위에 위치)
+    path('scenarios/', views.scenario_list, name='scenario_list'),
+    path('scenarios/create/', views.scenario_create, name='scenario_create'),
+    path('scenarios/delete/<str:scenario_id>/', views.scenario_delete, name='scenario_delete'),
 
     # Proforma Schedule  - views/proforma.py 에 정의된 함수들
     path('proforma/create/', views.proforma_create, name='proforma_create'),

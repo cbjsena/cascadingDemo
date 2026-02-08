@@ -8,7 +8,7 @@ INSERT INTO cas_cost_distance (
     eca_distance,
     created_by_id,
 	updated_by_id,
-    data_id 
+    scenario_id
 )
 
 SELECT
@@ -21,7 +21,7 @@ SELECT
 
     a.id,
     a.id,
-    'default_id' as data_id
+    'default_id' as scenario_id
 FROM default_cost_distance d  
 cROSS JOIN auth_user a
 where a.username = 'cascading' ;
@@ -29,6 +29,6 @@ commit;
 SELECT id, a.username
 FROM auth_user;
 
-select data_id, count(*) 
+select scenario_id, count(*)
  from cas_cost_distance
-group by data_id 
+group by scenario_id

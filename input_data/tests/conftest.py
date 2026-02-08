@@ -1,81 +1,108 @@
 import pytest
 from django.contrib.auth.models import User
-from input_data.models import InputDataSnapshot, ProformaSchedule
+from django.utils import timezone
+from input_data.models import ScenarioInfo, ProformaSchedule, Distance
+
+
+# =========================================================
+# User & Client Fixtures
+# [Related Scenarios] INPUT_ACCESS_001, INPUT_SCENARIO_DELETE_002, 003
+# =========================================================
 
 @pytest.fixture
-def test_user(db):
-    """테스트용 사용자 생성"""
-    return User.objects.create_user(username='testuser', password='password')
+def user(db):
+    """일반 사용자 (test_user)"""
+    return User.objects.create_user(username='test_user', password='password')
 
-@pytest.fixture
-def auth_client(client, test_user):
-    """로그인된 Client 반환"""
-    client.force_login(test_user)
-    return client
 
 @pytest.fixture
 def other_user(db):
-    """다른 일반 사용자 (작성자가 아닌 사람)"""
+    """다른 사용자 (other_user) - 권한 테스트용"""
     return User.objects.create_user(username='other_user', password='password')
+
 
 @pytest.fixture
 def admin_user(db):
-    """슈퍼유저 (모든 권한)"""
-    return User.objects.create_superuser(username='admin_user', password='password', email='admin@test.com')
+    """관리자 (admin_user) - 슈퍼유저 권한 테스트용"""
+    return User.objects.create_superuser(username='admin_user', password='password')
+
 
 @pytest.fixture
-def admin_client(client, admin_user):
-    """슈퍼유저로 로그인된 Client"""
-    client.force_login(admin_user)
+def auth_client(client, user):
+    """로그인된 Client"""
+    client.login(username='test_user', password='password')
     return client
 
-@pytest.fixture
-def snapshot_of_other(db, other_user):
-    """다른 사용자가 만든 스냅샷"""
-    return InputDataSnapshot.objects.create(
-        data_id="OTHER_USER_SNAPSHOT",
-        description="Snapshot created by other user",
-        base_year_month="202505",
-        created_by=other_user, # 작성자가 other_user임
-        updated_by=other_user
-    )
+
+# =========================================================
+# Scenario Fixtures
+# [Related Scenarios] INPUT_SCENARIO_LIST_001, CREATE_002
+# =========================================================
 
 @pytest.fixture
-def base_snapshot(db, test_user):
-    """기본 스냅샷 생성"""
-    return InputDataSnapshot.objects.create(
-        data_id="TEST_BASE_01",
-        description="Base Snapshot for Testing",
-        base_year_month="202501",
-        created_by=test_user,
-        updated_by=test_user
+def base_scenario(db, user):
+    """기본 시나리오 (데이터 없음)"""
+    return ScenarioInfo.objects.create(
+        id="TEST_SCENARIO_001",
+        description="Base Test Scenario",
+        base_year_month="202601",
+        status="T",  # Default Status
+        created_by=user,
+        updated_by=user
     )
 
+
 @pytest.fixture
-def snapshot_with_data(db, base_snapshot, test_user):
-    """하위 데이터(ProformaSchedule)가 포함된 스냅샷"""
+def scenario_with_data(db, user):
+    """
+    하위 데이터가 포함된 시나리오
+    [Related Scenarios] INPUT_SCENARIO_CLONE_001, DELETE_001
+    """
+    # 1. 부모 생성
+    scenario = ScenarioInfo.objects.create(
+        id="SCENARIO_WITH_DATA",
+        description="Scenario for Cascade Test",
+        base_year_month="202601",
+        status="T",
+        created_by=user,
+        updated_by=user
+    )
+
+    # 2. 자식 생성 (Proforma Schedule)
     ProformaSchedule.objects.create(
-        data_id=base_snapshot,
-        vessel_service_lane_code="NE2",
-        proforma_name="NE2_PF_V1",
-        duration=70.0,
-        standard_service_speed=18.5,
-        declared_capacity="14000",
-        declared_count=10,
-        direction="W",
+        scenario=scenario,
+        lane_code="TEST_LANE",
+        proforma_name="PF_DATA",
+        effective_date=timezone.now(),
+        duration=40.0,
+        declared_capacity="10000",
+        declared_count=1,
+        direction="E",
         port_code="KRPUS",
-        calling_port_indicator_seq="01",
+        calling_port_indicator_seq="1",
         calling_port_seq=1,
-        etb_day_code="MON",
-        etb_day_time="0800",
-        etb_day_number=1,
-        etd_day_code="TUE",
-        etd_day_time="1800",
-        etd_day_number=2,
-        link_distance=500,
-        link_speed=15.0,
-        sea_hours=33.5,
-        created_by=test_user,
-        updated_by=test_user
+        turn_port_info_code="N",
+        etb_day_code="SUN", etb_day_time="0800", etb_day_number=0,
+        etd_day_code="MON", etd_day_time="0800", etd_day_number=1,
+        terminal_code="PNC",
+        created_by=user,
+        updated_by=user
     )
-    return base_snapshot
+    return scenario
+
+
+# =========================================================
+# Master Data Fixtures
+# [Related Scenarios] PROFORMA_DATA_DIST
+# =========================================================
+
+@pytest.fixture
+def distance_data(db, base_scenario):
+    """거리 테이블 기초 데이터"""
+    return Distance.objects.create(
+        scenario=base_scenario,
+        from_port_code="KRPUS",
+        to_port_code="JPTYO",
+        distance=500,
+        eca_distance=100
+    )

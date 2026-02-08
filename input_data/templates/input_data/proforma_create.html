@@ -49,11 +49,11 @@
             <div class="card-body">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-2">
-                        <label class="form-label small text-muted">Snapshot ID</label>
-                        <select class="form-select" name="data_id">
-                            {% for snap in snapshots %}
-                            <option value="{{ snap.data_id }}" {% if header.data_id == snap.data_id %}selected{% endif %}>
-                                {{ snap.data_id }}
+                        <label class="form-label small text-muted">Scenario ID</label>
+                        <select class="form-select" name="scenario_id">
+                            {% for scenario in scenarios  %}
+                            <option value="{{ scenario.scenario_id }}" {% if header.scenario_id == scenario.scenario_id %}selected{% endif %}>
+                                {{ scenario.scenario_id }}
                             </option>
                             {% endfor %}
                         </select>
@@ -154,9 +154,9 @@
 
                                 <td>
                                      <select class="form-select form-select-sm border-0 bg-transparent p-0"
-                                             name="turn_info[]">
-                                        <option value="Y" {% if row.turn_info == 'Y' %}selected{% endif %}>Y</option>
-                                        <option value="N" {% if row.turn_info == 'N' %}selected{% endif %}>N</option>
+                                             name="turn_port_info_code[]">
+                                        <option value="Y" {% if row.turn_port_info_code == 'Y' %}selected{% endif %}>Y</option>
+                                        <option value="N" {% if row.turn_port_info_code == 'N' %}selected{% endif %}>N</option>
                                     </select>
                                 </td>
 

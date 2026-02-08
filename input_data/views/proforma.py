@@ -2,7 +2,7 @@ from django.http import HttpResponse
 from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from input_data.models import InputDataSnapshot
+from input_data.models import ScenarioInfo
 from input_data.services.proforma_service import ProformaService
 from common import messages as msg
 from common import constants as const
@@ -15,7 +15,7 @@ def proforma_create(request):
 
     # 초기 컨텍스트
     context = {
-        "snapshots": InputDataSnapshot.objects.all().order_by('-created_at'),
+        "scenarios": ScenarioInfo.objects.all().order_by('-created_at'),
         "rows": [],
         "header": {},
         "days": const.DAYS,
@@ -34,7 +34,7 @@ def proforma_create(request):
 
         # 2. 액션 처리
         if action == "add_row":
-            rows = service.add_row(rows, header.get('data_id'))
+            rows = service.add_row(rows, header.get('scenario_id'))
 
         elif action == "insert_row":
             try:
@@ -151,7 +151,7 @@ def proforma_upload(request):
 
             # 3. Context에 summary 추가
             context = {
-                "snapshots": InputDataSnapshot.objects.all().order_by('-created_at'),
+                "scenarios": ScenarioInfo.objects.all().order_by('-created_at'),
                 "rows": rows,
                 "header": header,
                 # "summary": summary,  # <--- 화면으로 전달
