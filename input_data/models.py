@@ -171,7 +171,7 @@ class LongRangeSchedule(AbsLongRangeSchedule, ScenarioBaseModel):
 # 3. Vessel Info
 class AbsVesselInfo(models.Model):
     """Vessel Info 데이터 필드 (추상)"""
-    vessel_code = models.CharField(max_length=4, verbose_name="Vessel Code")
+    vessel_code = models.CharField(max_length=10, verbose_name="Vessel Code")
     vessel_name = models.CharField(max_length=50, verbose_name="Vessel Name")
     nominal_capacity = models.IntegerField(verbose_name="Nominal Capacity")
     own_yn = models.CharField(max_length=1, choices=OWN_TYPE_CHOICES, verbose_name="Own YN")

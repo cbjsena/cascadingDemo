@@ -77,48 +77,54 @@ class Command(BaseCommand):
             self.stdout.write(self.style.ERROR(msg.LOAD_FAIL.format(table=table_name, error=str(e))))
 
     def clean_row(self, model, row):
-        """CSV의 빈 문자열을 필드 타입에 맞춰 None이나 0으로 변환"""
+        """CSV 값을 필드 타입에 맞춰 변환 (실패 시 ValueError 발생시켜 행 스킵 유도)"""
         cleaned = {}
         for key, value in row.items():
-            # 모델에 없는 필드는 스킵 (CSV 컬럼이 더 많을 경우 대비)
             try:
                 field = model._meta.get_field(key)
             except:
                 continue
 
-            # 값 공백 제거
             val = value.strip() if isinstance(value, str) else value
             internal_type = field.get_internal_type()
 
-            # 1. 값이 빈 문자열('')인 경우 처리
+            # 1. 빈 값 처리
             if val == '':
                 if field.is_relation or internal_type in ['IntegerField', 'DecimalField', 'FloatField',
                                                           'BigIntegerField']:
-                    if field.null:
-                        cleaned[key] = None
-                    else:
-                        cleaned[key] = 0
+                    cleaned[key] = None if field.null else 0
                 else:
                     cleaned[key] = None if field.null else ''
 
-            # 2. 값이 있는 경우 처리
+            # 2. 값이 있는 경우 - 타입별 강제 변환
             else:
-                # [수정] 날짜 필드인 경우 포맷 변환 및 Timezone 처리
-                if internal_type in ['DateTimeField', 'DateField']:
-                    try:
-                        # 포맷: YYYY/MM/DD HH:MM:SS
-                        dt = datetime.strptime(val, '%Y/%m/%d %H:%M:%S')
-                        cleaned[key] = timezone.make_aware(dt)
-                    except ValueError:
+                try:
+                    # (A) 정수형 (Integer)
+                    if internal_type in ['IntegerField', 'BigIntegerField']:
+                        # 콤마 제거 후 int 변환 시도 -> "INVALID"일 경우 여기서 ValueError 발생
+                        cleaned[key] = int(val.replace(',', ''))
+
+                    # (B) 실수/소수형 (Decimal, Float)
+                    elif internal_type == 'DecimalField':
+                        cleaned[key] = Decimal(val.replace(',', ''))
+                    elif internal_type == 'FloatField':
+                        cleaned[key] = float(val.replace(',', ''))
+
+                    # (C) 날짜형 (Date/DateTime)
+                    elif internal_type in ['DateTimeField', 'DateField']:
                         try:
-                            # 포맷: YYYY/MM/DD (시간 없을 경우)
-                            dt = datetime.strptime(val, '%Y/%m/%d')
-                            # [보완] 날짜만 있어도 Timezone Aware로 변환 (경고 방지)
-                            cleaned[key] = timezone.make_aware(dt)
+                            dt = datetime.strptime(val, '%Y/%m/%d %H:%M:%S')
                         except ValueError:
-                            # 변환 실패 시 원본 값 유지 (Django가 처리하도록 둠 -> 에러 발생 시 위에서 잡힘)
-                            cleaned[key] = val
-                else:
-                    cleaned[key] = val
+                            # 시간 포맷 없으면 날짜만 시도
+                            dt = datetime.strptime(val, '%Y/%m/%d')
+                        cleaned[key] = timezone.make_aware(dt)
+
+                    # (D) 그 외 (문자열 등)
+                    else:
+                        cleaned[key] = val
+
+                except ValueError as e:
+                    # 변환 실패 시 명확한 에러 메시지와 함께 raise -> load_data의 loop에서 잡힘
+                    raise ValueError(f"Column '{key}' expects {internal_type}, but got '{val}'")
 
         return cleaned
