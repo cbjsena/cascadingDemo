@@ -349,31 +349,7 @@ class Distance(AbsDistance, ScenarioBaseModel):
         return f"[{self.scenario.id}] {self.from_port_code} -> {self.to_port_code}"
 
 
-# 3. Exchange Rate
-class AbsExchangeRate(models.Model):
-    """Exchange Rate 데이터 필드 (추상)"""
-    base_year_month = models.CharField(max_length=6, verbose_name="Base Year Month")
-    currency_code = models.CharField(max_length=3, verbose_name="Currency Code")
-    exchange_rate = models.DecimalField(max_digits=15, decimal_places=6, verbose_name="Exchange Rate")
 
-    class Meta:
-        abstract = True
-
-class BaseExchangeRate(AbsExchangeRate):
-    """[BASE] 기준 Exchange Rate"""
-    class Meta:
-        verbose_name = "Standard Exchange Rate"
-        db_table = "base_cost_exchange_rate"
-        unique_together = (("base_year_month", "currency_code"),)
-
-class ExchangeRate(AbsExchangeRate, ScenarioBaseModel):
-    """[SCE] 시나리오 Exchange Rate"""
-    exchange_rate_id = models.AutoField(primary_key=True)
-
-    class Meta:
-        verbose_name = "Exchange Rate"
-        db_table = "sce_cost_exchange_rate"
-        unique_together = (("scenario", "base_year_month", "currency_code"),)
 
 
 # 4. TS Cost
@@ -481,7 +457,7 @@ class BaseBunkerPrice(AbsBunkerPrice):
     """[BASE] 기준 Bunker Price"""
     class Meta:
         verbose_name = "Standard Bunker Price"
-        db_table = "base_bunker_bunker_price"
+        db_table = "base_bunker_price"
         unique_together = (("base_year_month", "trade_code", "lane_code", "bunker_type"),)
 
 class BunkerPrice(AbsBunkerPrice, ScenarioBaseModel):
@@ -490,7 +466,7 @@ class BunkerPrice(AbsBunkerPrice, ScenarioBaseModel):
 
     class Meta:
         verbose_name = "Bunker Price"
-        db_table = "sce_bunker_bunker_price"
+        db_table = "sce_bunker_price"
         unique_together = (("scenario", "base_year_month", "trade_code", "lane_code", "bunker_type"),)
 
 
@@ -607,7 +583,6 @@ class PortConstraint(AbsPortConstraint, ScenarioBaseModel):
 
 
 class BaseWeekPeriod(CommonModel):
-    base_week_period_id = models.AutoField(primary_key=True)
     base_year = models.IntegerField(verbose_name="Base Year")
     base_week = models.IntegerField(verbose_name="Base Week")
     base_month = models.IntegerField(verbose_name="Base Month")
@@ -617,14 +592,38 @@ class BaseWeekPeriod(CommonModel):
     class Meta:
         verbose_name = "Week Period"
         db_table = "base_week_period"
-        unique_together = ("base_week",)
+        unique_together = ("base_year", "base_week",)
 
     def __str__(self):
-        return f"{self.base_week} - {self.week_start_date} - {self.week_end_date}"
+        return f"{self.base_year}{self.base_week} - {self.week_start_date} - {self.week_end_date}"
 
 
-
-
+####################### 미사용 모델  ##########################
+# # 3. Exchange Rate
+# class AbsExchangeRate(models.Model):
+#     """Exchange Rate 데이터 필드 (추상)"""
+#     base_year_month = models.CharField(max_length=6, verbose_name="Base Year Month")
+#     currency_code = models.CharField(max_length=3, verbose_name="Currency Code")
+#     exchange_rate = models.DecimalField(max_digits=15, decimal_places=6, verbose_name="Exchange Rate")
+#
+#     class Meta:
+#         abstract = True
+#
+# class BaseExchangeRate(AbsExchangeRate):
+#     """[BASE] 기준 Exchange Rate"""
+#     class Meta:
+#         verbose_name = "Standard Exchange Rate"
+#         db_table = "base_cost_exchange_rate"
+#         unique_together = (("base_year_month", "currency_code"),)
+#
+# class ExchangeRate(AbsExchangeRate, ScenarioBaseModel):
+#     """[SCE] 시나리오 Exchange Rate"""
+#     exchange_rate_id = models.AutoField(primary_key=True)
+#
+#     class Meta:
+#         verbose_name = "Exchange Rate"
+#         db_table = "sce_cost_exchange_rate"
+#         unique_together = (("scenario", "base_year_month", "currency_code"),)
 # class OwnVesselCost(BaseModel):
 #     own_vessel_cost_id = models.AutoField(primary_key=True)
 #     base_year_month = models.CharField(max_length=6, verbose_name="Base Year Month")
@@ -637,8 +636,6 @@ class BaseWeekPeriod(CommonModel):
 #
 #     def __str__(self):
 #         return f"{self.base_year_month}"
-
-
 # class PortCharge(BaseModel):
 #     port_charge_id = models.AutoField(primary_key=True)
 #     base_year_month = models.CharField(max_length=6, verbose_name="Base Year Month")
@@ -670,8 +667,6 @@ class BaseWeekPeriod(CommonModel):
 #
 #     def __str__(self):
 #         return f"{self.base_year_month} - {self.lane_code} @ {self.bunkering_port_code} ({self.bunker_type})"
-
-
 # ==========================================
 # Group 5: ETS & Fuel EU
 # ==========================================
@@ -785,4 +780,5 @@ class BaseWeekPeriod(CommonModel):
 #
 #     def __str__(self):
 #         return f"{self.ghg_target_effective_from_year}~{self.ghg_target_effective_to_year}:{self.ghg_target_co2}"
+
 

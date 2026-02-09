@@ -1,6 +1,5 @@
 import pytest
 from django.urls import reverse
-from input_data.models import ScenarioInfo
 
 
 @pytest.mark.django_db
