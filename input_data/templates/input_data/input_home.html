@@ -122,9 +122,13 @@
         <div class="col-md-6">
             <div class="card shadow-sm h-100">
                 <div class="card-body">
-                    <h5 class="card-title">Quick Upload</h5>
-                    <p class="card-text text-muted">Upload Excel files directly to update schedules or costs.</p>
-                    <button class="btn btn-outline-dark">Go to Upload</button>
+                    <h5 class="card-title">Create Default Scenario</h5>
+                    <p class="card-text text-muted">
+                        Initialize or Reset <strong>202601_BASE</strong> from Master Data.
+                    </p>
+                    <button id="btn-create-base" class="btn btn-primary">
+                        <i class="fas fa-database"></i> Run Creation
+                    </button>
                 </div>
             </div>
         </div>
@@ -140,4 +144,55 @@
     </div>
 
 </div>
+
+<script>
+    document.addEventListener('DOMContentLoaded', function() {
+        const btnCreateBase = document.getElementById('btn-create-base');
+
+        if (btnCreateBase) {
+            btnCreateBase.addEventListener('click', function() {
+                // 1. 실행 확인 (데이터 삭제 경고)
+                if (!confirm("Are you sure you want to create '202601_BASE'?\nExisting data for this scenario will be deleted.")) {
+                    return;
+                }
+
+                // 2. 로딩 상태 표시 (버튼 비활성화)
+                const originalText = btnCreateBase.innerHTML;
+                btnCreateBase.disabled = true;
+                btnCreateBase.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
+
+                // 3. API 호출
+                fetch("{% url 'input_data:create_base_scenario' %}", {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-CSRFToken': '{{ csrf_token }}' // Django CSRF Token 필수
+                    },
+                    body: JSON.stringify({
+                        'scenario_id': '202601_BASE',
+                        'description': 'Base Scenario (Initialized from Dashboard)'
+                    })
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert("Success: " + data.message);
+                        location.reload(); // 성공 시 페이지 새로고침하여 데이터 반영
+                    } else {
+                        alert("Error: " + data.message);
+                        // 에러 시 버튼 원상복구
+                        btnCreateBase.disabled = false;
+                        btnCreateBase.innerHTML = originalText;
+                    }
+                })
+                .catch(error => {
+                    console.error('Error:', error);
+                    alert("An unexpected error occurred.");
+                    btnCreateBase.disabled = false;
+                    btnCreateBase.innerHTML = originalText;
+                });
+            });
+        }
+    });
+</script>
 {% endblock %}

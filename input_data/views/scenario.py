@@ -90,6 +90,51 @@ def scenario_delete(request, scenario_id):
     return redirect("input_data:scenario_list")
 
 
+from django.http import JsonResponse
+from django.views.decorators.http import require_POST
+from django.contrib.auth.decorators import login_required
+from input_data.services.scenario_service import create_scenario_from_base
+from common import messages as msg
+import json
+
+
+@login_required
+@require_POST
+def create_base_scenario_view(request):
+    """
+    [Web UI] Base 시나리오 생성 버튼 클릭 시 호출
+    """
+    try:
+        # JSON Body 혹은 Form Data 처리
+        # (Fetch API 사용 시 body, Form submit 시 POST dict)
+        if request.content_type == 'application/json':
+            data = json.loads(request.body)
+            target_id = data.get('scenario_id', '202601_BASE')
+            description = data.get('description', 'Base Scenario created from Web')
+        else:
+            target_id = request.POST.get('scenario_id', '202601_BASE')
+            description = request.POST.get('description', 'Base Scenario created from Web')
+
+        # [수정 사항 3] 로그인한 사용자(request.user) 전달
+        scenario, summary = create_scenario_from_base(
+            target_id=target_id,
+            description=description,
+            user=request.user
+        )
+
+        return JsonResponse({
+            "status": "success",
+            "message": msg.SCENARIO_CREATE_SUCCESS.format(scenario_id=target_id),
+            "summary": summary
+        })
+
+    except Exception as e:
+        return JsonResponse({
+            "status": "error",
+            "message": msg.SAVE_ERROR.format(error=str(e))
+        }, status=500)
+
+
 def _clone_scenario_data(source_id, target_scenario):
     app_config = apps.get_app_config('input_data')
     models_to_clone = [m for m in app_config.get_models() if m.__name__ != 'ScenarioInfo']

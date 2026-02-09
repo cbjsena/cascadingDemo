@@ -12,6 +12,7 @@ urlpatterns = [
     path('scenarios/', views.scenario_list, name='scenario_list'),
     path('scenarios/create/', views.scenario_create, name='scenario_create'),
     path('scenarios/delete/<str:scenario_id>/', views.scenario_delete, name='scenario_delete'),
+    path('scenario/create-base/', views.create_base_scenario_view, name='create_base_scenario'),
 
     # Proforma Schedule  - views/proforma.py 에 정의된 함수들
     path('proforma/create/', views.proforma_create, name='proforma_create'),
