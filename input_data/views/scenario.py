@@ -1,3 +1,4 @@
+from django.core.exceptions import FieldDoesNotExist
 from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
@@ -94,6 +95,20 @@ def _clone_scenario_data(source_id, target_scenario):
     models_to_clone = [m for m in app_config.get_models() if m.__name__ != 'ScenarioInfo']
 
     for model_class in models_to_clone:
+        # 1. ScenarioInfo 자체는 제외
+        if model_class.__name__ == 'ScenarioInfo':
+            continue
+
+        # 2. [중요] 'Std'로 시작하는 표준 테이블 제외 (또는 scenario 필드 존재 여부 확인)
+        # 가장 확실한 방법: 'scenario' 필드가 있는지 검사
+        try:
+            model_class._meta.get_field('scenario')
+        except FieldDoesNotExist:
+            # scenario 필드가 없는 모델(Std 등)은 복제 대상 아님 -> Skip
+            continue
+
+        # 3. 복제 로직 실행
+        # (ScenarioBaseModel을 상속받은 모델들만 여기 도달함)
         original_objects = model_class.objects.filter(scenario__id=source_id)
         if original_objects.exists():
             new_objects = []

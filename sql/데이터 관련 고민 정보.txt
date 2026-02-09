@@ -1,0 +1,33 @@
+1. basic_bunker_consumption_port, basic_bunker_consumption_sea
+    - base year month 필요한가? 시기에 상관없이 소비량 일정
+
+2. basic_bunker_price
+    - 예측치 필요
+
+4. basic_cost_ts_cost
+    - ts_cost     추정치 필요
+
+5. basic_schedule_proforma
+    - turning port 관련 로직 단순하면 turn_port_info_code 만 필요(기존 TURN_PORT_PAR_CD에 해당)
+
+6. basic_vessel_capacity
+    - effective_from_date 제거하고 마지막 레코드만 입력
+    - 이 테이블의 capacity가 declared_capacity에 해당하는지?
+        - 해당한다면 vessel_info의 nominal_capacity의 용도는?
+        - 아니라면 이 테이블의 capacity 용도는?
+    - cascading 결과에 해당 -> 선박이 lane 변경할 사항에 대해서 가능한 후보 데이터를 입력해야 하나?
+
+7. basic_vessel_charter_cost
+    - hire_rate 정수
+
+8. basic_vessel_info
+    - delivery, redelivery, next dock, built 관련 정보 누락이 많음
+
+
+* USD 환산되어 입력 시 currency 필요 없음
+    - 현재 USD 환산되어 입력됨: basic_cost_canal_fee, basic_vessel_charter_cost
+    - basic_cost_ts_cost 만 변경해서 입력하면 됨.
+    - basic_cost_exchange_rate 제거 가능
+
+* 추가 데이터(미래 OR 누락) 필요한가?
+    - basic_bunker_price, basic_cost_ts_cost, basic_vessel_capacity, basic_vessel_info

@@ -33,7 +33,7 @@
         - SELECT  'DROP TABLE IF EXISTS public."' || tablename || '" CASCADE;' AS drop_sql
             FROM pg_tables
             WHERE schemaname = 'public'
-        - 테스트 시 db 초기화 pytest --create-db -s
+        - 테스트 시 db 초기화 pytest --create-db
 6. 관리자 계정 생성
     6.1 관리자 계정을 생성하여 Django 관리자 페이지에 접근할 수 있도록 설정
         - python manage.py createsuperuser cascading/qwer123$ yukaris@cyberlogitec.com

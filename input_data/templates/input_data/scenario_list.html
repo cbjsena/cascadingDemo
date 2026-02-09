@@ -30,7 +30,7 @@
                     <tbody>
                         {% for scenario  in scenarios  %}
                         <tr>
-                            <td class="ps-4 fw-bold text-primary">{{ scenario.scenario_id }}</td>
+                            <td class="ps-4 fw-bold text-primary">{{ scenario.id }}</td>
                             <td>{{ scenario.description|default:"-" }}</td>
                             <td>
                                 {% if scenario.base_year_month %}
@@ -55,7 +55,7 @@
                                         class="btn btn-sm btn-outline-danger"
                                         data-bs-toggle="modal"
                                         data-bs-target="#deleteModal"
-                                        data-scenario-id="{{ scenario.scenario_id }}">
+                                        data-scenario-id="{{ scenario.id }}">
                                     <i class="bi bi-trash"></i>Del
                                 </button>
                             </td>
@@ -96,8 +96,8 @@
                         <select class="form-select" id="sourceDataId" name="source_scenario_id">
                             <option value="" selected>None (Create Empty)</option>
                             {% for scenario  in scenarios  %}
-                                <option value="{{ scenario.scenario_id }}">
-                                    {{ scenario.scenario_id }} ({{ scenario.description|truncatechars:30 }})
+                                <option value="{{ scenario.id }}">
+                                    {{ scenario.id }} ({{ scenario.description|truncatechars:30 }})
                                 </option>
                             {% endfor %}
                         </select>

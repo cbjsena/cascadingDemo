@@ -23,6 +23,10 @@ MENU_STRUCTURE = {
         # {"name": "Bunkering Port", "key": "bunkering_port"},
         {"name": "Bunker Price", "key": "bunker_price"},
     ],
+    "Fix Information": [
+        {"name": "Fix Lane Vessel", "key": "fix_lane_vessel"},
+        {"name": "Fix Vessel Schedule", "key": "fix_vessel_schedule"},
+    ],
     # "ETS & Fuel EU": [
     #     {"name": "ETS TS Port", "key": "ets_ts_port"},
     #     {"name": "ETS Country", "key": "ets_country"},

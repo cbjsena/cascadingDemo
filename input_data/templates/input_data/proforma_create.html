@@ -52,8 +52,8 @@
                         <label class="form-label small text-muted">Scenario ID</label>
                         <select class="form-select" name="scenario_id">
                             {% for scenario in scenarios  %}
-                            <option value="{{ scenario.scenario_id }}" {% if header.scenario_id == scenario.scenario_id %}selected{% endif %}>
-                                {{ scenario.scenario_id }}
+                            <option value="{{ scenario.id }}" {% if header.scenario_id == scenario.id %}selected{% endif %}>
+                                {{ scenario.id }}
                             </option>
                             {% endfor %}
                         </select>

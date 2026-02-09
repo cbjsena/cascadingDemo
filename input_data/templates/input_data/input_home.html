@@ -76,9 +76,9 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for scenario  in recent_scenarios  %}
+                    {% for scenario in recent_scenarios  %}
                     <tr>
-                        <td class="ps-4 fw-bold text-primary">{{ scenario.scenario_id }}</td>
+                        <td class="ps-4 fw-bold text-primary">{{ scenario.id }}</td>
                         <td>{{ scenario.description|default:"-"|truncatechars:30 }}</td>
                         <td>
                             {% if scenario.base_year_month %}

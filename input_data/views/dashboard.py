@@ -9,15 +9,15 @@ def input_home(request):
     total_scenarios = ScenarioInfo.objects.count()
     recent_scenarios = ScenarioInfo.objects.order_by('-created_at')[:5]
 
-    if recent_scenarios .exists():
-        last_update = recent_scenarios .first().created_at
+    if recent_scenarios.exists():
+        last_update = recent_scenarios.first().created_at
     else:
         last_update = None
 
     context = {
         "menu_structure": MENU_STRUCTURE,
-        "total_scenarios ": total_scenarios ,
-        "recent_scenarios ": recent_scenarios ,
+        "total_scenarios": total_scenarios ,
+        "recent_scenarios": recent_scenarios ,
         "last_update": last_update,
     }
     return render(request, 'input_data/input_home.html', context)
