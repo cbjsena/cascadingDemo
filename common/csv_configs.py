@@ -15,7 +15,7 @@ PROFORMA_DB_MAP = [
     ("FRST_VSL_CLS_CT", "count"),
     ("SCH_DIR_CD", "direction"),
     ("PORT_CD", "port_code"),
-    ("CLG_PORT_INDC_SEQ", "clg_seq"),           # Logic 계산 필드 (Sequence)
+    ("CLG_PORT_INDC_SEQ", "clg_seq"),  # Logic 계산 필드 (Sequence)
     ("PORT_ROT_SEQ", "no"),
     ("TURN_PORT_INFO_CD", "turn_port_info_code"),
     ("MANU_IN_HRS", "pilot_in"),
@@ -30,5 +30,5 @@ PROFORMA_DB_MAP = [
     ("LINK_DIST", "dist"),
     ("LINK_SPD", "spd"),
     ("TRAN_TIME_HRS", "sea_time"),
-    ("TML_CD", "terminal")
+    ("TML_CD", "terminal"),
 ]

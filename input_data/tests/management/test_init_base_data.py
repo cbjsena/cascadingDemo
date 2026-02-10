@@ -12,7 +12,7 @@ def temp_base_data_dir(tmp_path):
     테스트용 임시 CSV 디렉토리 구조 생성
     구조: {tmp_path}/input_data/data/base_data/
     """
-    target_dir = tmp_path / 'input_data' / 'data' / 'base_data'
+    target_dir = tmp_path / "input_data" / "data" / "base_data"
     target_dir.mkdir(parents=True)
     return tmp_path, target_dir
 
@@ -33,11 +33,11 @@ TEST,Test Vessel,10000,O,2025/01/01 12:00:00
 TEST2,Test Vessel 2,20000,C,2025/02/01"""
 
         csv_file = data_dir / "base_vessel_info.csv"
-        csv_file.write_text(csv_content, encoding='utf-8-sig')
+        csv_file.write_text(csv_content, encoding="utf-8-sig")
 
         # BASE_DIR을 임시 경로로 오버라이딩하여 커맨드 실행
         with override_settings(BASE_DIR=base_dir):
-            call_command('init_base_data')
+            call_command("init_base_data")
 
         # 검증
         assert BaseVesselInfo.objects.count() == 2
@@ -65,10 +65,10 @@ TEST2,Test Vessel 2,20000,C,2025/02/01"""
 EMPTY,Empty Value Vessel,,O,"""
 
         csv_file = data_dir / "base_vessel_info.csv"
-        csv_file.write_text(csv_content, encoding='utf-8-sig')
+        csv_file.write_text(csv_content, encoding="utf-8-sig")
 
         with override_settings(BASE_DIR=base_dir):
-            call_command('init_base_data')
+            call_command("init_base_data")
 
         obj = BaseVesselInfo.objects.get(vessel_code="EMPTY")
         # IntegerField 빈 값 -> 0 (모델 필드가 null=False라면) 또는 None (null=True라면)
@@ -89,10 +89,10 @@ ERR,Error Vessel,INVALID,O
 OK2,Normal Vessel 2,6000,O"""
 
         csv_file = data_dir / "base_vessel_info.csv"
-        csv_file.write_text(csv_content, encoding='utf-8-sig')
+        csv_file.write_text(csv_content, encoding="utf-8-sig")
 
         with override_settings(BASE_DIR=base_dir):
-            call_command('init_base_data')
+            call_command("init_base_data")
 
         # 검증: 정상 행 2개만 저장되어야 함
         assert BaseVesselInfo.objects.count() == 2
@@ -113,7 +113,7 @@ OK2,Normal Vessel 2,6000,O"""
         # CSV 파일 생성 안 함
 
         with override_settings(BASE_DIR=base_dir):
-            call_command('init_base_data')
+            call_command("init_base_data")
 
         captured = capsys.readouterr()
         # 모든 Base 모델에 대해 File not found 메시지가 찍혀야 함 (하나라도 확인)

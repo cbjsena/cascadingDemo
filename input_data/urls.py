@@ -1,32 +1,38 @@
 from django.urls import path
+
 # views 패키지(폴더)를 임포트합니다. __init__.py 덕분에 함수들을 바로 쓸 수 있습니다.
 from input_data import views
 
-app_name = 'input_data'
+app_name = "input_data"
 
 urlpatterns = [
     #  데이터 홈 (대시보드 형태)
-    path('', views.input_home, name='input_home'),
-
+    path("", views.input_home, name="input_home"),
     # Scenario 목록 전용 URL (반드시 동적 URL보다 위에 위치)
-    path('scenarios/', views.scenario_list, name='scenario_list'),
-    path('scenarios/create/', views.scenario_create, name='scenario_create'),
-    path('scenarios/delete/<str:scenario_id>/', views.scenario_delete, name='scenario_delete'),
-    path('scenario/create-base/', views.create_base_scenario_view, name='create_base_scenario'),
-
+    path("scenarios/", views.scenario_list, name="scenario_list"),
+    path("scenarios/create/", views.scenario_create, name="scenario_create"),
+    path(
+        "scenarios/delete/<str:scenario_id>/",
+        views.scenario_delete,
+        name="scenario_delete",
+    ),
+    path(
+        "scenario/create-base/",
+        views.create_base_scenario_view,
+        name="create_base_scenario",
+    ),
     # Proforma Schedule  - views/proforma.py 에 정의된 함수들
-    path('proforma/create/', views.proforma_create, name='proforma_create'),
-    path('proforma/export/', views.proforma_export, name='proforma_export'),
-    path('proforma/csv/', views.proforma_csv, name='proforma_csv'),
-    path('proforma/upload/', views.proforma_upload, name='proforma_upload'),
-    path('proforma/template/', views.proforma_template_download, name='proforma_template'),
-
+    path("proforma/create/", views.proforma_create, name="proforma_create"),
+    path("proforma/export/", views.proforma_export, name="proforma_export"),
+    path("proforma/csv/", views.proforma_csv, name="proforma_csv"),
+    path("proforma/upload/", views.proforma_upload, name="proforma_upload"),
+    path(
+        "proforma/template/", views.proforma_template_download, name="proforma_template"
+    ),
     # API
-    path('api/distance/', views.get_port_distance, name='api_get_distance'),
-
+    path("api/distance/", views.get_port_distance, name="api_get_distance"),
     # Input List (Common)
     # 동적 데이터 조회: /input/schedule/proforma/ 등 형태
     # 상단에 위치하면 안됨(다른 URL과 충돌 가능성)
-    path('<str:group_name>/<str:model_name>/', views.input_list, name='input_list'),
-
+    path("<str:group_name>/<str:model_name>/", views.input_list, name="input_list"),
 ]

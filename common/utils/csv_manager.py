@@ -16,14 +16,14 @@ class CsvManager:
         output = io.StringIO()
 
         # 1. 한글 깨짐 방지를 위한 BOM(Byte Order Mark) 추가
-        output.write('\ufeff')
+        output.write("\ufeff")
 
         writer = csv.writer(output)
 
         # 2. CSV 헤더 작성
         # headers_config의 첫 번째 요소(Label)를 사용
         # CSV 헤더에는 줄바꿈(\n)이 있으면 보기 안 좋으므로 공백으로 치환
-        labels = [item[0].replace('\n', ' ') for item in headers_config]
+        labels = [item[0].replace("\n", " ") for item in headers_config]
         writer.writerow(labels)
 
         # 3. 데이터 작성
@@ -33,10 +33,10 @@ class CsvManager:
         for row in data_rows:
             row_values = []
             for key in keys:
-                val = row.get(key, '')
+                val = row.get(key, "")
                 # None 데이터 처리
                 if val is None:
-                    val = ''
+                    val = ""
                 row_values.append(str(val))
             writer.writerow(row_values)
 

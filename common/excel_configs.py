@@ -3,32 +3,29 @@ SECTION_BASIC = "Basic Information"
 
 # --- Proforma Configuration Group ---
 PROFORMA_CONFIG = {
-    'sheet_title': "Proforma Schedule",
-
+    "sheet_title": "Proforma Schedule",
     # Basic Info Header: (좌표, 헤더명, 파싱키)
-    'basic_headers': [
-        ('A2', 'Scenario ID', 'scenario_id', 2),
-        ('C2', 'Service Lane Code', 'lane_code', 2),
-        ('E2', 'Proforma Name', 'proforma_name', 2),
-        ('G2', 'Effective Date', 'effective_date', 2),
-        ('I2', 'Declared Capacity', 'capacity', 2),
-        ('K2', 'Declared Count', 'count', 2),
-        ('M2', 'Duration', 'duration', 2),
+    "basic_headers": [
+        ("A2", "Scenario ID", "scenario_id", 2),
+        ("C2", "Service Lane Code", "lane_code", 2),
+        ("E2", "Proforma Name", "proforma_name", 2),
+        ("G2", "Effective Date", "effective_date", 2),
+        ("I2", "Declared Capacity", "capacity", 2),
+        ("K2", "Declared Count", "count", 2),
+        ("M2", "Duration", "duration", 2),
     ],
-
     # [신규] Basic Information 예시 값
-    'basic_examples': {
-        'scenario_id': 'default_scenario',
-        'lane_code': 'FE1',
-        'proforma_name': '7001',
-        'effective_date': '2026-01-01',
-        'capacity': '20000',
-        'count': '12',
-        'duration': '84.0'
+    "basic_examples": {
+        "scenario_id": "default_scenario",
+        "lane_code": "FE1",
+        "proforma_name": "7001",
+        "effective_date": "2026-01-01",
+        "capacity": "20000",
+        "count": "12",
+        "duration": "84.0",
     },
-
     # Grid Headers: (헤더명, 파싱키, 컬럼인덱스)
-    'grid_headers': [
+    "grid_headers": [
         ("No.", "no", 1),
         ("Port\nCode", "port_code", 2),
         ("Direction", "direction", 3),
@@ -48,30 +45,33 @@ PROFORMA_CONFIG = {
         ("Sea\nTime", "sea_time", 17),
         ("Terminal\nCode", "terminal", 18),
     ],
-
     # Grid 첫 번째 행 예시 값
-    'grid_examples': {
-        'no': 1,
-        'port_code': 'KRPUS',
-        'direction': 'E',
-        'turn_port_info_code': 'N',
-        'pilot_in': 2,
-        'etb_no': 0, 'etb_day': 'MON', 'etb_time': '0800',
-        'work_hours': 24,
-        'etd_no': 1, 'etd_day': 'TUE', 'etd_time': '0800',
-        'pilot_out': 2.5,
-        'dist': 0, 'eca_dist': 0, 'spd': 0, 'sea_time': 0,
-        'terminal': 'KRPUS01'
+    "grid_examples": {
+        "no": 1,
+        "port_code": "KRPUS",
+        "direction": "E",
+        "turn_port_info_code": "N",
+        "pilot_in": 2,
+        "etb_no": 0,
+        "etb_day": "MON",
+        "etb_time": "0800",
+        "work_hours": 24,
+        "etd_no": 1,
+        "etd_day": "TUE",
+        "etd_time": "0800",
+        "pilot_out": 2.5,
+        "dist": 0,
+        "eca_dist": 0,
+        "spd": 0,
+        "sea_time": 0,
+        "terminal": "KRPUS01",
     },
-
     # Summary Columns: {Column Index: Column Letter}
     # 'summary_cols': {
     #     5: 'E', 9: 'I', 13: 'M', 14: 'N', 17: 'Q'
     # },
-
-    'col_widths': [5, 12, 10, 10, 8, 8, 8, 8, 10, 8, 8, 8, 10, 8, 8, 8, 10, 15],
-
+    "col_widths": [5, 12, 10, 10, 8, 8, 8, 8, 10, 8, 8, 8, 10, 8, 8, 8, 10, 15],
     # 추가적인 옵션들 (시작 행 등)
-    'start_row_grid': 6,
-    'start_row_data': 7,
+    "start_row_grid": 6,
+    "start_row_data": 7,
 }

@@ -9,7 +9,6 @@ from django.utils import timezone
 
 from common import messages as msg
 
-
 # PostgreSQL 전용
 TABLE_DEF_QUERY = """
 SELECT
@@ -31,9 +30,10 @@ WHERE c.table_schema = 'public'
 ORDER BY c.table_name, c.ordinal_position;
 """
 
+
 class InputDataConfig(AppConfig):
-    default_auto_field = 'django.db.models.BigAutoField'
-    name = 'input_data'
+    default_auto_field = "django.db.models.BigAutoField"
+    name = "input_data"
 
     def ready(self):
         # 1. DB 코멘트 업데이트
@@ -41,16 +41,17 @@ class InputDataConfig(AppConfig):
         # 2. 테이블 정의서 문서 생성
         post_migrate.connect(generate_table_definition, sender=self)
 
+
 def add_db_comments(sender, **kwargs):
     """
     마이그레이션 후 DB 테이블 및 컬럼 코멘트 추가
     """
-    app_config = kwargs.get('app_config')
-    if app_config is None or app_config.name != 'input_data':
+    app_config = kwargs.get("app_config")
+    if app_config is None or app_config.name != "input_data":
         return
 
     vendor = connection.vendor
-    if vendor == 'sqlite':
+    if vendor == "sqlite":
         return
 
     # print(msg.DB_COMMENT_UPDATE_START.format(vendor=vendor))
@@ -64,10 +65,10 @@ def add_db_comments(sender, **kwargs):
             if table_verbose:
                 try:
                     sql = ""
-                    if vendor in ['postgresql', 'oracle']:
+                    if vendor in ["postgresql", "oracle"]:
                         safe_comment = table_verbose.replace("'", "''")
                         sql = f"COMMENT ON TABLE \"{db_table}\" IS '{safe_comment}'"
-                    elif vendor == 'mysql':
+                    elif vendor == "mysql":
                         safe_comment = table_verbose.replace("'", "\\'")
                         sql = f"ALTER TABLE `{db_table}` COMMENT = '{safe_comment}'"
 
@@ -77,7 +78,7 @@ def add_db_comments(sender, **kwargs):
                     print(msg.DB_COMMENT_FAIL.format(target=db_table, error=str(e)))
 
             # 2. 컬럼 코멘트 (PostgreSQL / Oracle Only)
-            if vendor in ['postgresql', 'oracle']:
+            if vendor in ["postgresql", "oracle"]:
                 for field in model._meta.fields:
                     column_name = field.column
                     column_verbose = field.verbose_name
@@ -87,28 +88,32 @@ def add_db_comments(sender, **kwargs):
 
                     try:
                         safe_col_comment = str(column_verbose).replace("'", "''")
-                        sql = f"COMMENT ON COLUMN \"{db_table}\".\"{column_name}\" IS '{safe_col_comment}'"
+                        sql = f'COMMENT ON COLUMN "{db_table}"."{column_name}" IS \'{safe_col_comment}\''
                         cursor.execute(sql)
                     except Exception as e:
-                        print(msg.DB_COMMENT_FAIL.format(target=f"{db_table}.{column_name}", error=str(e)))
+                        print(
+                            msg.DB_COMMENT_FAIL.format(
+                                target=f"{db_table}.{column_name}", error=str(e)
+                            )
+                        )
 
 
 def generate_table_definition(sender, **kwargs):
     """
     마이그레이션 후 base 테이블 정의서를 Markdown 파일로 생성
     """
-    app_config = kwargs.get('app_config')
-    if app_config is None or app_config.name != 'input_data':
+    app_config = kwargs.get("app_config")
+    if app_config is None or app_config.name != "input_data":
         return
 
     # PostgreSQL이 아니면 스킵 (쿼리가 PG 전용)
-    if connection.vendor != 'postgresql':
+    if connection.vendor != "postgresql":
         # print(msg.DOC_GEN_SKIP)
         return
 
     # 저장 경로 설정: input_data/data/table_definitions.md
-    output_dir = os.path.join(settings.BASE_DIR, 'doc', 'db')
-    output_file = os.path.join(output_dir, 'base_table_definitions.csv')
+    output_dir = os.path.join(settings.BASE_DIR, "doc", "db")
+    output_file = os.path.join(output_dir, "base_table_definitions.csv")
 
     if not os.path.exists(output_dir):
         os.makedirs(output_dir)
@@ -123,16 +128,24 @@ def generate_table_definition(sender, **kwargs):
         if not rows:
             return
 
-        with open(output_file, 'w', newline='', encoding='utf-8-sig') as f:
+        with open(output_file, "w", newline="", encoding="utf-8-sig") as f:
             writer = csv.writer(f)
 
             # 1. 문서 헤더 (생성 정보)
-            writer.writerow(['[Base Data Table Definition]'])
-            writer.writerow(['Generated At', timezone.now().strftime('%Y-%m-%d %H:%M:%S')])
+            writer.writerow(["[Base Data Table Definition]"])
+            writer.writerow(
+                ["Generated At", timezone.now().strftime("%Y-%m-%d %H:%M:%S")]
+            )
             writer.writerow([])  # 빈 줄
 
             # 2. 컬럼 헤더
-            headers = ['Table Name', 'Column Name', 'Data Type', 'Nullable', 'Description (Comment)']
+            headers = [
+                "Table Name",
+                "Column Name",
+                "Data Type",
+                "Nullable",
+                "Description (Comment)",
+            ]
             writer.writerow(headers)
 
             # 3. 데이터 행 작성

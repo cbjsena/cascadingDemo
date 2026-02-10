@@ -12,7 +12,7 @@ class TestDashboardView:
         """
         [Dashboard] Context 변수명 검증 (오타 방지)
         """
-        url = reverse('input_data:input_home')
+        url = reverse("input_data:input_home")
         response = auth_client.get(url)
 
         assert response.status_code == 200
@@ -24,7 +24,9 @@ class TestDashboardView:
         context = response.context
 
         # 실패했던 원인: "total_scenarios " (공백) -> "total_scenarios" (정상)
-        assert "total_scenarios" in context, "Context key 'total_scenarios' not found (Check for typos/spaces)"
+        assert (
+            "total_scenarios" in context
+        ), "Context key 'total_scenarios' not found (Check for typos/spaces)"
         assert "recent_scenarios" in context, "Context key 'recent_scenarios' not found"
         assert "last_update" in context
 
@@ -37,10 +39,10 @@ class TestDashboardView:
         """
         [Dashboard] HTML 렌더링 시 ID가 포함되는지 확인
         """
-        url = reverse('input_data:input_home')
+        url = reverse("input_data:input_home")
         response = auth_client.get(url)
 
-        content = response.content.decode('utf-8')
+        content = response.content.decode("utf-8")
 
         # 화면에 Scenario ID가 출력되어야 함 (scenario.id 사용 여부 확인)
         assert base_scenario.id in content

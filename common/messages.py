@@ -55,7 +55,9 @@ ROW_ERROR = "[WARN] Row skipped in {table}: {error}"
 # 6. DB 관리 (Database Management)
 # ==========================================
 DB_COMMENT_UPDATE_START = "Updating database comments (Vendor: {vendor})..."
-DB_COMMENT_NOT_SUPPORTED = "Database vendor '{vendor}' does not support comments via this script."
+DB_COMMENT_NOT_SUPPORTED = (
+    "Database vendor '{vendor}' does not support comments via this script."
+)
 DB_TABLE_COMMENT_SUCCESS = "[TABLE] {table}: {comment}"
 DB_COLUMN_COMMENT_SUCCESS = "  - [COL] {column}: {comment}"
 DB_COMMENT_FAIL = "[FAIL] {target}: {error}"

@@ -3,34 +3,34 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 from input_data.models import ScenarioInfo, ProformaSchedule, Distance
 
-
 # =========================================================
 # User & Client Fixtures
 # [Related Scenarios] INPUT_ACCESS_001, INPUT_SCENARIO_DELETE_002, 003
 # =========================================================
 
+
 @pytest.fixture
 def user(db):
     """일반 사용자 (test_user)"""
-    return User.objects.create_user(username='test_user', password='password')
+    return User.objects.create_user(username="test_user", password="password")
 
 
 @pytest.fixture
 def other_user(db):
     """다른 사용자 (other_user) - 권한 테스트용"""
-    return User.objects.create_user(username='other_user', password='password')
+    return User.objects.create_user(username="other_user", password="password")
 
 
 @pytest.fixture
 def admin_user(db):
     """관리자 (admin_user) - 슈퍼유저 권한 테스트용"""
-    return User.objects.create_superuser(username='admin_user', password='password')
+    return User.objects.create_superuser(username="admin_user", password="password")
 
 
 @pytest.fixture
 def auth_client(client, user):
     """로그인된 Client"""
-    client.login(username='test_user', password='password')
+    client.login(username="test_user", password="password")
     return client
 
 
@@ -38,6 +38,7 @@ def auth_client(client, user):
 # Scenario Fixtures
 # [Related Scenarios] INPUT_SCENARIO_LIST_001, CREATE_002
 # =========================================================
+
 
 @pytest.fixture
 def base_scenario(db, user):
@@ -48,7 +49,7 @@ def base_scenario(db, user):
         base_year_month="202601",
         status="T",  # Default Status
         created_by=user,
-        updated_by=user
+        updated_by=user,
     )
 
 
@@ -65,7 +66,7 @@ def scenario_with_data(db, user):
         base_year_month="202601",
         status="T",
         created_by=user,
-        updated_by=user
+        updated_by=user,
     )
 
     # 2. 자식 생성 (Proforma Schedule)
@@ -82,11 +83,15 @@ def scenario_with_data(db, user):
         calling_port_indicator_seq="1",
         calling_port_seq=1,
         turn_port_info_code="N",
-        etb_day_code="SUN", etb_day_time="0800", etb_day_number=0,
-        etd_day_code="MON", etd_day_time="0800", etd_day_number=1,
+        etb_day_code="SUN",
+        etb_day_time="0800",
+        etb_day_number=0,
+        etd_day_code="MON",
+        etd_day_time="0800",
+        etd_day_number=1,
         terminal_code="PNC",
         created_by=user,
-        updated_by=user
+        updated_by=user,
     )
     return scenario
 
@@ -96,6 +101,7 @@ def scenario_with_data(db, user):
 # [Related Scenarios] PROFORMA_DATA_DIST
 # =========================================================
 
+
 @pytest.fixture
 def distance_data(db, base_scenario):
     """거리 테이블 기초 데이터"""
@@ -104,5 +110,5 @@ def distance_data(db, base_scenario):
         from_port_code="KRPUS",
         to_port_code="JPTYO",
         distance=500,
-        eca_distance=100
+        eca_distance=100,
     )

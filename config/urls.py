@@ -14,6 +14,7 @@ Including another URLconf
     1. Import the include() function: from django.urls import include, path
     2. Add a URL to urlpatterns:  path('blog/', include('blog.urls'))
 """
+
 from django.contrib import admin
 from django.urls import path, include
 from django.views.generic import RedirectView
@@ -21,9 +22,11 @@ from django.views.generic import RedirectView
 from input_data import views
 
 urlpatterns = [
-    path('admin/', admin.site.urls),
+    path("admin/", admin.site.urls),
     path("accounts/", include("django.contrib.auth.urls")),
-    path('input/', include('input_data.urls')),
-    path('', RedirectView.as_view(url='/input/', permanent=True)), # 루트 접속 시 input으로 이동
+    path("input/", include("input_data.urls")),
+    path(
+        "", RedirectView.as_view(url="/input/", permanent=True)
+    ),  # 루트 접속 시 input으로 이동
     path("external-api/v1/", include("external_api.urls")),  # API 서버 엔드포인트
 ]

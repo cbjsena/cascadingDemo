@@ -5,6 +5,7 @@ from django.contrib.messages import get_messages
 from input_data.models import ScenarioInfo, ProformaSchedule
 from common import messages as msg
 
+
 @pytest.mark.django_db
 class TestScenarioView:
     """
@@ -19,7 +20,7 @@ class TestScenarioView:
         """
         [INPUT_SCENARIO_LIST_001] 시나리오 목록 조회 및 기본값 확인
         """
-        url = reverse('input_data:scenario_list')
+        url = reverse("input_data:scenario_list")
         response = auth_client.get(url)
 
         assert response.status_code == 200
@@ -39,8 +40,8 @@ class TestScenarioView:
         [INPUT_ACCESS_001] 비로그인 사용자 접근 차단
         """
         urls = [
-            reverse('input_data:scenario_list'),
-            reverse('input_data:scenario_create'),
+            reverse("input_data:scenario_list"),
+            reverse("input_data:scenario_create"),
             # delete는 인자 필요하므로 생략하거나 임의 ID로 테스트
         ]
         for url in urls:
@@ -55,18 +56,18 @@ class TestScenarioView:
         """
         [INPUT_SCENARIO_CREATE_001] 신규 시나리오 생성 (성공)
         """
-        url = reverse('input_data:scenario_create')
+        url = reverse("input_data:scenario_create")
         data = {
             "scenario_id": "NEW_SCENARIO_2026",
             "description": "Test Create",
-            "base_year_month": "202602"
+            "base_year_month": "202602",
         }
 
         response = auth_client.post(url, data)
 
         # Redirect 확인
         assert response.status_code == 302
-        assert response.url == reverse('input_data:scenario_list')
+        assert response.url == reverse("input_data:scenario_list")
 
         # DB 저장 확인
         obj = ScenarioInfo.objects.get(id="NEW_SCENARIO_2026")
@@ -77,10 +78,10 @@ class TestScenarioView:
         """
         [INPUT_SCENARIO_CREATE_002] 중복 ID 생성 시도 (실패)
         """
-        url = reverse('input_data:scenario_create')
+        url = reverse("input_data:scenario_create")
         data = {
             "scenario_id": base_scenario.id,  # 이미 존재하는 ID
-            "description": "Duplicate"
+            "description": "Duplicate",
         }
 
         # Follow Redirect to check messages
@@ -104,18 +105,21 @@ class TestScenarioView:
         source_id = scenario_with_data.id
         new_id = "CLONED_SCENARIO"
 
-        url = reverse('input_data:scenario_create')
+        url = reverse("input_data:scenario_create")
         data = {
             "scenario_id": new_id,
             "source_scenario_id": source_id,
-            "description": "Cloned"
+            "description": "Cloned",
         }
 
         # [수정] follow=True 추가하여 에러 메시지 확인 가능하도록 함
         response = auth_client.post(url, data, follow=True)
 
         # 만약 생성이 안되었다면 에러 메시지가 있을 것임
-        if response.status_code == 200 and not ScenarioInfo.objects.filter(id=new_id).exists():
+        if (
+            response.status_code == 200
+            and not ScenarioInfo.objects.filter(id=new_id).exists()
+        ):
             messages = list(get_messages(response.wsgi_request))
             # 에러 메시지 출력 (pytest -s 옵션 사용 시 보임)
             print("Messages:", [str(m) for m in messages])
@@ -141,7 +145,7 @@ class TestScenarioView:
         [INPUT_SCENARIO_DELETE_001] 시나리오 삭제 (성공 & Cascade)
         """
         target_id = scenario_with_data.id
-        url = reverse('input_data:scenario_delete', args=[target_id])
+        url = reverse("input_data:scenario_delete", args=[target_id])
 
         response = auth_client.post(url)
 
@@ -157,11 +161,10 @@ class TestScenarioView:
         """
         # 타인(other_user) 소유의 시나리오 생성
         other_scenario = ScenarioInfo.objects.create(
-            id="OTHER_USER_SCENARIO",
-            created_by=other_user
+            id="OTHER_USER_SCENARIO", created_by=other_user
         )
 
-        url = reverse('input_data:scenario_delete', args=[other_scenario.id])
+        url = reverse("input_data:scenario_delete", args=[other_scenario.id])
 
         # auth_client(test_user)가 삭제 시도
         response = auth_client.post(url, follow=True)
@@ -180,13 +183,12 @@ class TestScenarioView:
         """
         # 타인 소유 시나리오
         target = ScenarioInfo.objects.create(
-            id="TARGET_FOR_ADMIN",
-            created_by=other_user
+            id="TARGET_FOR_ADMIN", created_by=other_user
         )
 
         # 관리자 로그인
         client.force_login(admin_user)
-        url = reverse('input_data:scenario_delete', args=[target.id])
+        url = reverse("input_data:scenario_delete", args=[target.id])
 
         response = client.post(url)
 

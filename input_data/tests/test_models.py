@@ -57,12 +57,17 @@ class TestProformaModels:
             lane_code="TEST",
             proforma_name="PF_01",
             effective_date=eff_date,
-            duration=10, declared_capacity="10k", declared_count=1,
-            direction="E", port_code="KRPUS",
-            calling_port_indicator_seq="1", calling_port_seq=1,
+            duration=10,
+            declared_capacity="10k",
+            declared_count=1,
+            direction="E",
+            port_code="KRPUS",
+            calling_port_indicator_seq="1",
+            calling_port_seq=1,
             turn_port_info_code="N",
-            etb_day_number=0, etd_day_number=0,
-            created_by=user
+            etb_day_number=0,
+            etd_day_number=0,
+            created_by=user,
         )
 
         # Then
@@ -80,16 +85,20 @@ class TestProformaModels:
 
         common_data = {
             "scenario": base_scenario,
-            "lane_code": "TEST", "proforma_name": "PF_01",
-            "effective_date":eff_date,
+            "lane_code": "TEST",
+            "proforma_name": "PF_01",
+            "effective_date": eff_date,
             "duration": 10,
-            "declared_capacity": "10k", "declared_count": 1,
-            "direction": "E", "port_code": "KRPUS",
+            "declared_capacity": "10k",
+            "declared_count": 1,
+            "direction": "E",
+            "port_code": "KRPUS",
             "calling_port_indicator_seq": "1",  # Key Factor
             "calling_port_seq": 1,
             "turn_port_info_code": "N",
-            "etb_day_number": 0, "etd_day_number": 0,
-            "created_by": user
+            "etb_day_number": 0,
+            "etd_day_number": 0,
+            "created_by": user,
         }
 
         ProformaSchedule.objects.create(**common_data)

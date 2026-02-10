@@ -8,6 +8,7 @@ from common import messages as msg
 from common import constants as const
 from common.menus import MENU_STRUCTURE
 
+
 @login_required
 def proforma_create(request):
     """Proforma Schedule 생성 View"""
@@ -15,18 +16,17 @@ def proforma_create(request):
 
     # 초기 컨텍스트
     context = {
-        "scenarios": ScenarioInfo.objects.all().order_by('-created_at'),
+        "scenarios": ScenarioInfo.objects.all().order_by("-created_at"),
         "rows": [],
         "header": {},
         "days": const.DAYS,
-
         "menu_structure": MENU_STRUCTURE,
         # "current_group": "Schedule",  # 사이드바에서 펼쳐놓을 그룹 (선택사항)
         "current_model": "proforma_schedule",  # 현재 활성화된 메뉴 (선택사항)
     }
 
     if request.method == "POST":
-        action = request.POST.get('action')
+        action = request.POST.get("action")
 
         # 1. 파싱 (모든 액션 공통)
         rows = service.parse_rows(request)
@@ -34,17 +34,17 @@ def proforma_create(request):
 
         # 2. 액션 처리
         if action == "add_row":
-            rows = service.add_row(rows, header.get('scenario_id'))
+            rows = service.add_row(rows, header.get("scenario_id"))
 
         elif action == "insert_row":
             try:
-                idx = int(request.POST.get('selected_index', -1))
+                idx = int(request.POST.get("selected_index", -1))
                 rows = service.insert_row(rows, idx)
             except ValueError:
                 pass  # 인덱스 없음/오류 무시
 
         elif action == "delete_row":
-            indices = request.POST.getlist('row_check')
+            indices = request.POST.getlist("row_check")
             rows = service.delete_rows(rows, indices)
 
         elif action == "new":
@@ -82,15 +82,15 @@ def proforma_create(request):
             # 응답 생성
             response = HttpResponse(
                 excel_file,
-                content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+                content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
 
             # 파일명: Lane_ProformaName_Schedule.xlsx
-            lane = header.get('lane_code', 'Lane')
-            pf_name = header.get('proforma_name', 'Schedule')
+            lane = header.get("lane_code", "Lane")
+            pf_name = header.get("proforma_name", "Schedule")
             filename = f"{lane}_{pf_name}_Proforma.xlsx"
 
-            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
             return response
 
         elif action == "csv":
@@ -105,41 +105,43 @@ def proforma_create(request):
             csv_content = service.generate_db_csv(header, rows)
 
             # 3. 응답 생성
-            response = HttpResponse(csv_content, content_type='text/csv; charset=utf-8')
+            response = HttpResponse(csv_content, content_type="text/csv; charset=utf-8")
 
             # 파일명: Lane_ProformaName_List.csv
-            lane = header.get('lane_code', 'Lane')
-            pf_name = header.get('proforma_name', 'Schedule')
+            lane = header.get("lane_code", "Lane")
+            pf_name = header.get("proforma_name", "Schedule")
             filename = f"{lane}_{pf_name}_List.csv"
 
-            response['Content-Disposition'] = f'attachment; filename="{filename}"'
+            response["Content-Disposition"] = f'attachment; filename="{filename}"'
             return response
 
         elif action == "close":
-            return redirect('input_data:input_home')
+            return redirect("input_data:input_home")
 
-        context['rows'] = rows
-        context['header'] = header
+        context["rows"] = rows
+        context["header"] = header
 
-    return render(request, 'input_data/proforma_create.html', context)
+    return render(request, "input_data/proforma_create.html", context)
 
 
 @login_required
 def proforma_export(request):
     # Export Logic Placeholder
     messages.info(request, msg.FUNC_NOT_IMPLEMENTED.format(func_name="Export"))
-    return redirect('input_data:proforma_create')
+    return redirect("input_data:proforma_create")
+
 
 @login_required
 def proforma_csv(request):
     # Export Logic Placeholder
     messages.info(request, msg.FUNC_NOT_IMPLEMENTED.format(func_name="Csv"))
-    return redirect('input_data:proforma_csv')
+    return redirect("input_data:proforma_csv")
+
 
 @login_required
 def proforma_upload(request):
-    if request.method == 'POST' and request.FILES.get('excel_file'):
-        excel_file = request.FILES['excel_file']
+    if request.method == "POST" and request.FILES.get("excel_file"):
+        excel_file = request.FILES["excel_file"]
         service = ProformaService()
 
         try:
@@ -151,7 +153,7 @@ def proforma_upload(request):
 
             # 3. Context에 summary 추가
             context = {
-                "scenarios": ScenarioInfo.objects.all().order_by('-created_at'),
+                "scenarios": ScenarioInfo.objects.all().order_by("-created_at"),
                 "rows": rows,
                 "header": header,
                 # "summary": summary,  # <--- 화면으로 전달
@@ -161,20 +163,20 @@ def proforma_upload(request):
             }
 
             messages.success(request, msg.UPLOAD_SUCCESS)
-            return render(request, 'input_data/proforma_create.html', context)
+            return render(request, "input_data/proforma_create.html", context)
 
         except Exception as e:
             messages.error(request, msg.UPLOAD_FAIL.format(error=str(e)))
-            return redirect('input_data:proforma_create')
+            return redirect("input_data:proforma_create")
 
-    return redirect('input_data:proforma_create')
+    return redirect("input_data:proforma_create")
 
 
 @login_required
 def proforma_template_download(request):
     """
-        Proforma Schedule 엑셀 템플릿 다운로드
-        """
+    Proforma Schedule 엑셀 템플릿 다운로드
+    """
     service = ProformaService()
 
     # 엑셀 파일 생성 (BytesIO 객체 반환)
@@ -183,9 +185,9 @@ def proforma_template_download(request):
     # HTTP 응답 설정
     response = HttpResponse(
         excel_file,
-        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     )
     # 다운로드 파일명 설정
-    response['Content-Disposition'] = 'attachment; filename="Proforma_Template.xlsx"'
+    response["Content-Disposition"] = 'attachment; filename="Proforma_Template.xlsx"'
 
     return response
