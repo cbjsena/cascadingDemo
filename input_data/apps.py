@@ -54,7 +54,7 @@ def add_db_comments(sender, **kwargs):
     if vendor == "sqlite":
         return
 
-    # print(msg.DB_COMMENT_UPDATE_START.format(vendor=vendor))
+    print(msg.DB_COMMENT_UPDATE_START.format(vendor=vendor))
 
     with connection.cursor() as cursor:
         for model in app_config.get_models():

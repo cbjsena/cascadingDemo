@@ -15,7 +15,7 @@ from input_data.models import (
     BaseDistance,
     # 6. Constraints
     BaseFixedVesselDeployment,
-    BaseFixedVesselEvent,
+    BaseFixedScheduleChange,
     BaseLongRangeSchedule,
     BasePortConstraint,
     # 1. Schedule
@@ -31,7 +31,7 @@ from input_data.models import (
     CharterCost,
     Distance,
     FixedVesselDeployment,
-    FixedVesselEvent,
+    FixedScheduleChange,
     LongRangeSchedule,
     PortConstraint,
     ProformaSchedule,
@@ -56,7 +56,7 @@ MODEL_MAPPING = [
     (BaseBunkerConsumptionPort, BunkerConsumptionPort),
     (BaseBunkerPrice, BunkerPrice),
     (BaseFixedVesselDeployment, FixedVesselDeployment),
-    (BaseFixedVesselEvent, FixedVesselEvent),
+    (BaseFixedScheduleChange, FixedScheduleChange),
     (BasePortConstraint, PortConstraint),
 ]
 

@@ -1,5 +1,5 @@
 ﻿[Base Data Table Definition]
-Generated At,2026-02-10 06:23:37
+Generated At,2026-02-10 14:06:04
 
 Table Name,Column Name,Data Type,Nullable,Description (Comment)
 base_bunker_consumption_port,base_year_month,character varying,NO,Base Year Month
@@ -20,11 +20,11 @@ base_constraint_fixed_deployment,lane_code,character varying,NO,Lane Code
 base_constraint_fixed_deployment,vessel_code,character varying,NO,Vessel Code
 base_constraint_fixed_deployment,deployment_type,character varying,NO,Deployment Type
 base_constraint_fixed_deployment,remark,character varying,YES,Remark
-base_constraint_fixed_event,vessel_code,character varying,NO,Vessel Code
-base_constraint_fixed_event,port_code,character varying,NO,Port Code
-base_constraint_fixed_event,event_type,character varying,NO,Event Type
-base_constraint_fixed_event,event_date,timestamp with time zone,NO,Event Date
-base_constraint_fixed_event,description,character varying,YES,Description
+base_constraint_fixed_schedule_change,vessel_code,character varying,NO,Vessel Code
+base_constraint_fixed_schedule_change,port_code,character varying,NO,Port Code
+base_constraint_fixed_schedule_change,schedule_change_status_code,character varying,YES,Change Status
+base_constraint_fixed_schedule_change,eta,timestamp with time zone,NO,ETA
+base_constraint_fixed_schedule_change,remark,character varying,YES,Remark
 base_constraint_port,port_code,character varying,NO,Port Code
 base_constraint_port,terminal_code,character varying,NO,Terminal Code
 base_constraint_port,exclude_vessel_class,character varying,YES,Excluded Vessel Class
@@ -46,12 +46,12 @@ base_schedule_long_range,direction,character varying,NO,Direction
 base_schedule_long_range,start_port_berthing_year_week,character varying,NO,Start Port Berthing Year Week
 base_schedule_long_range,proforma_name,character varying,NO,Proforma Name
 base_schedule_long_range,port_code,character varying,NO,Port Code
-base_schedule_long_range,calling_port_indicator_seq,character varying,NO,Calling Port Indicator Seq.
+base_schedule_long_range,calling_port_indicator,character varying,NO,Calling Port Indicator Seq.
 base_schedule_long_range,calling_port_seq,integer,NO,Calling Port Seq.
 base_schedule_long_range,schedule_change_status_code,character varying,YES,Change Status
-base_schedule_long_range,eta_initial_arrival,timestamp with time zone,YES,ETA
-base_schedule_long_range,etb_initial_berthing,timestamp with time zone,YES,ETB
-base_schedule_long_range,etd_initial_departure,timestamp with time zone,YES,ETD
+base_schedule_long_range,eta,timestamp with time zone,YES,ETA
+base_schedule_long_range,etb,timestamp with time zone,YES,ETB
+base_schedule_long_range,etd,timestamp with time zone,YES,ETD
 base_schedule_long_range,terminal_code,character varying,YES,Terminal Code
 base_schedule_proforma,lane_code,character varying,NO,Lane Code
 base_schedule_proforma,proforma_name,character varying,NO,Proforma Name
@@ -61,7 +61,7 @@ base_schedule_proforma,declared_capacity,character varying,NO,Declared Capacity
 base_schedule_proforma,declared_count,integer,NO,Declared Count
 base_schedule_proforma,direction,character varying,NO,Direction
 base_schedule_proforma,port_code,character varying,NO,Port Code
-base_schedule_proforma,calling_port_indicator_seq,character varying,NO,Calling Port Indicator Seq.
+base_schedule_proforma,calling_port_indicator,character varying,NO,Calling Port Indicator Seq.
 base_schedule_proforma,calling_port_seq,integer,NO,Calling Port Seq.
 base_schedule_proforma,turn_port_info_code,character varying,NO,Turn Port Info
 base_schedule_proforma,pilot_in_hours,numeric,NO,Pilot In Hours

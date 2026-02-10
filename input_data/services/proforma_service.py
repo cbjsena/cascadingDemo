@@ -317,7 +317,7 @@ class ProformaService:
                 declared_count=int(header.get("count") or 0),
                 port_code=port_cd,
                 direction=row.get("direction", "E"),
-                calling_port_indicator_seq="1",
+                calling_port_indicator="1",
                 calling_port_seq=int(row["no"]),
                 turn_port_info_code=row.get("turn_port_info_code", "N"),
                 pilot_in_hours=Decimal(row.get("pilot_in") or 0),

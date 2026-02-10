@@ -82,7 +82,7 @@ def scenario_with_data(db, user):
         declared_count=1,
         direction="E",
         port_code="KRPUS",
-        calling_port_indicator_seq="1",
+        calling_port_indicator="1",
         calling_port_seq=1,
         turn_port_info_code="N",
         etb_day_code="SUN",

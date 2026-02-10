@@ -33,13 +33,13 @@ CREATE TABLE public.basic_constraint_fixed_deployment (
 	remark varchar(255) NULL,
 	CONSTRAINT basic_constraint_fixed_deployment_pkey PRIMARY KEY (scenario_id, lane_code, vessel_code)
 );
-CREATE TABLE public.cas_constraint_fixed_event (
+CREATE TABLE public.cas_constraint_fixed_schedule_changet (
 	vessel_code varchar(20) NOT NULL,
 	event_type varchar(2) NOT NULL,
 	port_code varchar(10) NULL,
 	event_date timestamptz NOT NULL,
 	description varchar(255) NULL,
-	CONSTRAINT cas_constraint_fixed_event_pkey PRIMARY KEY (vessel_code, event_type, port_code, event_date)
+	CONSTRAINT cas_constraint_fixed_schedule_changet_pkey PRIMARY KEY (vessel_code, event_type, port_code, event_date)
 );
 
 -- ##################### cost	#####################
@@ -98,7 +98,7 @@ CREATE TABLE public.basic_schedule_proforma(
 	declared_count int4 NOT NULL,
 	direction varchar(2) NOT NULL,
 	port_code varchar(10) NOT NULL,
-	calling_port_indicator_seq varchar(2) NOT NULL,
+	calling_port_indicator varchar(2) NOT NULL,
 	calling_port_seq int4 NOT NULL,
 	turn_port_info_code varchar(3) NOT NULL,
 	pilot_in_hours numeric(5, 3) NOT NULL,
@@ -115,7 +115,7 @@ CREATE TABLE public.basic_schedule_proforma(
 	link_speed numeric(5, 3) NULL,
 	sea_hours numeric(5, 3) NULL,
 	terminal_code varchar(10) NOT NULL,
-	CONSTRAINT basic_schedule_proforma_pkey PRIMARY KEY (lane_code, proforma_name, direction, calling_port_indicator_seq,port_code)
+	CONSTRAINT basic_schedule_proforma_pkey PRIMARY KEY (lane_code, proforma_name, direction, calling_port_indicator,port_code)
 );
 
 
@@ -127,14 +127,14 @@ CREATE TABLE public.basic_schedule_long_range(
 	start_port_berthing_year_week varchar(6) NOT NULL,
 	proforma_name varchar(30) NOT NULL,
 	port_code varchar(10) NOT NULL,
-	calling_port_indicator_seq varchar(2) NOT NULL,
+	calling_port_indicator varchar(2) NOT NULL,
 	calling_port_seq int4 NOT NULL,
 	schedule_change_status_code varchar(1) NULL,
-	eta_initial_arrival timestamptz NULL,
-	etb_initial_berthing timestamptz NULL,
-	etd_initial_departure timestamptz NULL,
+	eta timestamptz NULL,
+	etb timestamptz NULL,
+	etd timestamptz NULL,
 	terminal_code varchar(10) NULL,
-	CONSTRAINT basic_schedule_long_range_pkey PRIMARY KEY (lane_code, vessel_code,voyage_number, direction,calling_port_indicator_seq, port_code )
+	CONSTRAINT basic_schedule_long_range_pkey PRIMARY KEY (lane_code, vessel_code,voyage_number, direction,calling_port_indicator, port_code )
 );
 
 

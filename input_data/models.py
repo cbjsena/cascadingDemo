@@ -16,15 +16,6 @@ SCHEDULE_CHANGE_STATUS_CODE_CHOICES = (
 FULL_EMPTY_CHOICES = (("F", "Full"), ("E", "Empty"))
 BUNKER_TYPE_CHOICES = (("LSFO", "Low Sulphur Fuel Oil"), ("MGO", "Marine Gas Oil"))
 TURN_PORT_INFO_CD = (("Y", "Y"), ("N", "N"))
-FIXED_EVENT_TYPE_CHOICES = (
-    ("PI", "Phase In"),
-    ("PO", "Phase Out"),
-    ("DD", "Dry Dock"),
-    ("DE", "Delivery"),
-    ("RD", "Redelivery"),
-    ("LU", "Lay-Up"),
-    ("RA", "Re-Activate"),
-)
 DEPLOYMENT_TYPE_CHOICES = (
     ("I", "Must Go (Include)"),
     ("E", "Not Allowed (Exclude)"),
@@ -102,7 +93,7 @@ class AbsProformaSchedule(models.Model):
         max_length=2, choices=DIRECTION_CHOICES, verbose_name="Direction"
     )
     port_code = models.CharField(max_length=10, verbose_name="Port Code")
-    calling_port_indicator_seq = models.CharField(
+    calling_port_indicator = models.CharField(
         max_length=2, verbose_name="Calling Port Indicator Seq."
     )
     calling_port_seq = models.IntegerField(verbose_name="Calling Port Seq.")
@@ -145,7 +136,7 @@ class BaseProformaSchedule(AbsProformaSchedule):
 
     # 표준 데이터는 scenario_id, created_by, updated_by 없음
     class Meta:
-        verbose_name = "Standard Proforma Schedule"
+        verbose_name = "Base Proforma Schedule"
         db_table = "base_schedule_proforma"
         unique_together = (
             (
@@ -153,7 +144,7 @@ class BaseProformaSchedule(AbsProformaSchedule):
                 "proforma_name",
                 "direction",
                 "port_code",
-                "calling_port_indicator_seq",
+                "calling_port_indicator",
             ),
         )
 
@@ -176,7 +167,7 @@ class ProformaSchedule(AbsProformaSchedule, ScenarioBaseModel):
                 "proforma_name",
                 "direction",
                 "port_code",
-                "calling_port_indicator_seq",
+                "calling_port_indicator",
             ),
         )
 
@@ -199,7 +190,7 @@ class AbsLongRangeSchedule(models.Model):
     )
     proforma_name = models.CharField(max_length=30, verbose_name="Proforma Name")
     port_code = models.CharField(max_length=10, verbose_name="Port Code")
-    calling_port_indicator_seq = models.CharField(
+    calling_port_indicator = models.CharField(
         max_length=2, verbose_name="Calling Port Indicator Seq."
     )
     calling_port_seq = models.IntegerField(verbose_name="Calling Port Seq.")
@@ -210,13 +201,13 @@ class AbsLongRangeSchedule(models.Model):
         blank=True,
         verbose_name="Change Status",
     )
-    eta_initial_arrival = models.DateTimeField(
+    eta = models.DateTimeField(
         null=True, blank=True, verbose_name="ETA"
     )
-    etb_initial_berthing = models.DateTimeField(
+    etb = models.DateTimeField(
         null=True, blank=True, verbose_name="ETB"
     )
-    etd_initial_departure = models.DateTimeField(
+    etd = models.DateTimeField(
         null=True, blank=True, verbose_name="ETD"
     )
     terminal_code = models.CharField(
@@ -231,7 +222,7 @@ class BaseLongRangeSchedule(AbsLongRangeSchedule):
     """[BASE] 기준 Long Range Schedule"""
 
     class Meta:
-        verbose_name = "Standard Long Range Schedule"
+        verbose_name = "Base Long Range Schedule"
         db_table = "base_schedule_long_range"
         unique_together = (
             (
@@ -240,7 +231,7 @@ class BaseLongRangeSchedule(AbsLongRangeSchedule):
                 "voyage_number",
                 "direction",
                 "port_code",
-                "calling_port_indicator_seq",
+                "calling_port_indicator",
             ),
         )
 
@@ -261,7 +252,7 @@ class LongRangeSchedule(AbsLongRangeSchedule, ScenarioBaseModel):
                 "voyage_number",
                 "direction",
                 "port_code",
-                "calling_port_indicator_seq",
+                "calling_port_indicator",
             ),
         )
 
@@ -317,7 +308,7 @@ class BaseVesselInfo(AbsVesselInfo):
     """[BASE] 기준 Vessel Info"""
 
     class Meta:
-        verbose_name = "Standard Vessel Info"
+        verbose_name = "Base Vessel Info and Charter, Dock, Built of vessel "
         db_table = "base_vessel_info"
         unique_together = ("vessel_code",)
 
@@ -331,7 +322,7 @@ class VesselInfo(AbsVesselInfo, ScenarioBaseModel):
     vessel_info_id = models.AutoField(primary_key=True)
 
     class Meta:
-        verbose_name = "Vessel Info"
+        verbose_name = "Vessel Info and Charter, Dock, Built of vessel "
         db_table = "sce_vessel_info"
         unique_together = (
             "scenario",
@@ -362,7 +353,7 @@ class BaseCharterCost(AbsCharterCost):
     """[BASE] 기준 Charter Cost"""
 
     class Meta:
-        verbose_name = "Standard Charter Cost"
+        verbose_name = "Base Vessel charter hire rate information"
         db_table = "base_vessel_charter_cost"
         unique_together = (("vessel_code", "hire_from_date"),)
 
@@ -373,7 +364,7 @@ class CharterCost(AbsCharterCost, ScenarioBaseModel):
     charter_cost_id = models.AutoField(primary_key=True)
 
     class Meta:
-        verbose_name = "Charter Cost"
+        verbose_name = "Vessel charter hire rate information"
         db_table = "sce_vessel_charter_cost"
         unique_together = (("scenario", "vessel_code", "hire_from_date"),)
 
@@ -400,7 +391,7 @@ class BaseVesselCapacity(AbsVesselCapacity):
     """[BASE] 기준 Vessel Capacity"""
 
     class Meta:
-        verbose_name = "Standard Vessel Capacity"
+        verbose_name = "Base Vessel capacity information"
         db_table = "base_vessel_capacity"
         unique_together = (
             ("trade_code", "lane_code", "vessel_code", "voyage_number", "direction"),
@@ -413,7 +404,7 @@ class VesselCapacity(AbsVesselCapacity, ScenarioBaseModel):
     vessel_capacity_id = models.AutoField(primary_key=True)
 
     class Meta:
-        verbose_name = "Vessel Capacity"
+        verbose_name = "Vessel capacity information"
         db_table = "sce_vessel_capacity"
         unique_together = (
             (
@@ -456,7 +447,7 @@ class BaseCanalFee(AbsCanalFee):
     """[BASE] 기준 Canal Fee"""
 
     class Meta:
-        verbose_name = "Standard Canal Fee"
+        verbose_name = "Base Canal transit fee information"
         db_table = "base_cost_canal_fee"
         unique_together = (("vessel_code", "direction", "port_code"),)
 
@@ -467,7 +458,7 @@ class CanalFee(AbsCanalFee, ScenarioBaseModel):
     canal_fee_id = models.AutoField(primary_key=True)
 
     class Meta:
-        verbose_name = "Canal Fee"
+        verbose_name = "Canal transit fee information"
         db_table = "sce_cost_canal_fee"
         unique_together = (("scenario", "vessel_code", "direction", "port_code"),)
 
@@ -492,7 +483,7 @@ class BaseDistance(AbsDistance):
     """[BASE] 기준 Distance"""
 
     class Meta:
-        verbose_name = "Standard Distance"
+        verbose_name = "Base Distance and ECA distance between ports"
         db_table = "base_cost_distance"
         unique_together = (("from_port_code", "to_port_code"),)
 
@@ -503,7 +494,7 @@ class Distance(AbsDistance, ScenarioBaseModel):
     distance_id = models.AutoField(primary_key=True)
 
     class Meta:
-        verbose_name = "Distance"
+        verbose_name = "Distance and ECA distance between ports"
         db_table = "sce_cost_distance"
         unique_together = (("scenario", "from_port_code", "to_port_code"),)
 
@@ -528,7 +519,7 @@ class BaseTSCost(AbsTSCost):
     """[BASE] 기준 TS Cost"""
 
     class Meta:
-        verbose_name = "Standard TS Cost"
+        verbose_name = "Base Transshipment cost per port"
         db_table = "base_cost_ts_cost"
         unique_together = (("base_year_month", "port_code"),)
 
@@ -539,7 +530,7 @@ class TSCost(AbsTSCost, ScenarioBaseModel):
     ts_cost_id = models.AutoField(primary_key=True)
 
     class Meta:
-        verbose_name = "TS Cost"
+        verbose_name = "Transshipment cost per port"
         db_table = "sce_cost_ts_cost"
         unique_together = (("scenario", "base_year_month", "port_code"),)
 
@@ -570,7 +561,7 @@ class BaseBunkerConsumptionSea(AbsBunkerConsumptionSea):
     """[BASE] 기준 Bunker Consumption Sea"""
 
     class Meta:
-        verbose_name = "Standard Bunker Consumption Sea"
+        verbose_name = "Base Daily bunker consumption by vessel size and speed at sea"
         db_table = "base_bunker_consumption_sea"
         unique_together = (("base_year_month", "nominal_capacity", "sea_speed"),)
 
@@ -581,7 +572,7 @@ class BunkerConsumptionSea(AbsBunkerConsumptionSea, ScenarioBaseModel):
     bunker_consumption_sea_id = models.AutoField(primary_key=True)
 
     class Meta:
-        verbose_name = "Bunker Consumption Sea"
+        verbose_name = "Daily bunker consumption by vessel size and speed at sea"
         db_table = "sce_bunker_consumption_sea"
         unique_together = (
             ("scenario", "base_year_month", "nominal_capacity", "sea_speed"),
@@ -612,7 +603,7 @@ class BaseBunkerConsumptionPort(AbsBunkerConsumptionPort):
     """[BASE] 기준 Bunker Consumption Port"""
 
     class Meta:
-        verbose_name = "Standard Bunker Consumption Port"
+        verbose_name = "Base bunker consumption per hour by vessel size during port stay and idling"
         db_table = "base_bunker_consumption_port"
         unique_together = (("base_year_month", "nominal_capacity"),)
 
@@ -623,7 +614,7 @@ class BunkerConsumptionPort(AbsBunkerConsumptionPort, ScenarioBaseModel):
     bunker_consumption_port_id = models.AutoField(primary_key=True)
 
     class Meta:
-        verbose_name = "Bunker Consumption Port"
+        verbose_name = "bunker consumption per hour by vessel size during port stay and idling"
         db_table = "sce_bunker_consumption_port"
         unique_together = (("scenario", "base_year_month", "nominal_capacity"),)
 
@@ -650,7 +641,7 @@ class BaseBunkerPrice(AbsBunkerPrice):
     """[BASE] 기준 Bunker Price"""
 
     class Meta:
-        verbose_name = "Standard Bunker Price"
+        verbose_name = "Base Bunker price per ton by Lane and Trade and Bunker type"
         db_table = "base_bunker_price"
         unique_together = (
             ("base_year_month", "trade_code", "lane_code", "bunker_type"),
@@ -663,7 +654,7 @@ class BunkerPrice(AbsBunkerPrice, ScenarioBaseModel):
     bunker_price_id = models.AutoField(primary_key=True)
 
     class Meta:
-        verbose_name = "Bunker Price"
+        verbose_name = "Bunker price per ton by Lane and Trade and Bunker type"
         db_table = "sce_bunker_price"
         unique_together = (
             ("scenario", "base_year_month", "trade_code", "lane_code", "bunker_type"),
@@ -700,7 +691,7 @@ class BaseFixedVesselDeployment(AbsFixedVesselDeployment):
     """[BASE] 기준 Fixed Vessel Deployment"""
 
     class Meta:
-        verbose_name = "Standard Fixed Deployment"
+        verbose_name = "Base Constraints for fixed vessel deployment on specific lanes"
         db_table = "base_constraint_fixed_deployment"
         unique_together = (("lane_code", "vessel_code"),)
 
@@ -711,7 +702,7 @@ class FixedVesselDeployment(AbsFixedVesselDeployment, ScenarioBaseModel):
     fixed_deployment_id = models.AutoField(primary_key=True)
 
     class Meta:
-        verbose_name = "Fixed Vessel Deployment"
+        verbose_name = "Constraints for fixed vessel deployment on specific lanes"
         db_table = "sce_constraint_fixed_deployment"
         unique_together = (("scenario", "lane_code", "vessel_code"),)
 
@@ -723,51 +714,55 @@ class FixedVesselDeployment(AbsFixedVesselDeployment, ScenarioBaseModel):
 
 
 # 2. Fixed Vessel Event
-class AbsFixedVesselEvent(models.Model):
-    """Fixed Vessel Event 데이터 필드 (추상)
-    [제약조건 2] 선박별 고정 이벤트 (Point in Time)
-    특정 시점에 발생하는 Phase In / Phase Out / Dry Dock Start 등을 관리합니다.
+class AbsFixedScheduleChange(models.Model):
+    """Fixed Schedule Change 데이터 필드 (추상)
+    [제약조건 2] 선박별 스케줄 변경 이벤트 (Point in Time)
+    특정 시점에 발생하는 Phase In / Phase Out / Omition 등을 관리합니다.
     """
 
     vessel_code = models.CharField(max_length=20, verbose_name="Vessel Code")
     port_code = models.CharField(max_length=10, verbose_name="Port Code")
-    event_type = models.CharField(
-        max_length=2, choices=FIXED_EVENT_TYPE_CHOICES, verbose_name="Event Type"
+    schedule_change_status_code = models.CharField(
+        max_length=1,
+        choices=SCHEDULE_CHANGE_STATUS_CODE_CHOICES,
+        null=True,
+        blank=True,
+        verbose_name="Change Status",
     )
-    event_date = models.DateTimeField(verbose_name="Event Date")
-    description = models.CharField(
-        max_length=255, null=True, blank=True, verbose_name="Description"
+    eta = models.DateTimeField(verbose_name="ETA")
+    remark = models.CharField(
+        max_length=255, null=True, blank=True, verbose_name="Remark"
     )
 
     class Meta:
         abstract = True
 
 
-class BaseFixedVesselEvent(AbsFixedVesselEvent):
-    """[BASE] 기준 Fixed Vessel Event"""
+class BaseFixedScheduleChange(AbsFixedScheduleChange):
+    """[BASE] 기준 Fixed Schedule Change"""
 
     class Meta:
-        verbose_name = "Standard Fixed Event"
-        db_table = "base_constraint_fixed_event"
-        unique_together = (("vessel_code", "port_code", "event_type", "event_date"),)
+        verbose_name = "Base Constraints for fixed schedule change on specific vessels"
+        db_table = "base_constraint_fixed_schedule_change"
+        unique_together = (("vessel_code", "port_code", "schedule_change_status_code", "eta"),)
 
 
-class FixedVesselEvent(AbsFixedVesselEvent, ScenarioBaseModel):
-    """[SCE] 시나리오 Fixed Vessel Event"""
+class FixedScheduleChange(AbsFixedScheduleChange, ScenarioBaseModel):
+    """[SCE] 시나리오 Fixed Schedule Change"""
 
-    fixed_event_id = models.AutoField(primary_key=True)
+    fixed_schedule_change_id = models.AutoField(primary_key=True)
 
     class Meta:
-        verbose_name = "Fixed Vessel Event"
-        db_table = "sce_constraint_fixed_event"
+        verbose_name = "Fixed Constraints for fixed schedule change on specific vessels"
+        db_table = "sce_constraint_schedule_change"
         unique_together = (
-            ("scenario", "vessel_code", "port_code", "event_type", "event_date"),
+            ("scenario", "vessel_code", "port_code", "schedule_change_status_code", "eta"),
         )
 
     def __str__(self):
         return (
             f"[{self.scenario.id}] {self.vessel_code} : {self.port_code} "
-            f"({self.get_event_type_display()}) @ {self.event_date.date()}"
+            f"({self.get_event_type_display()}) @ {self.eta.date()}"
         )
 
 
@@ -794,7 +789,7 @@ class BasePortConstraint(AbsPortConstraint):
     """[BASE] 기준 Port Constraint"""
 
     class Meta:
-        verbose_name = "Standard Port Constraint"
+        verbose_name = "Base Constraints on vessel classes prohibited at specific ports"
         db_table = "base_constraint_port"
         unique_together = (("port_code", "terminal_code"),)
 
@@ -805,7 +800,7 @@ class PortConstraint(AbsPortConstraint, ScenarioBaseModel):
     constraint_id = models.AutoField(primary_key=True)
 
     class Meta:
-        verbose_name = "Port Constraint"
+        verbose_name = "Constraints on vessel classes prohibited at specific ports"
         db_table = "sce_constraint_port"
         unique_together = (("scenario", "port_code", "terminal_code"),)
 
@@ -846,7 +841,7 @@ class BaseWeekPeriod(CommonModel):
 # class BaseExchangeRate(AbsExchangeRate):
 #     """[BASE] 기준 Exchange Rate"""
 #     class Meta:
-#         verbose_name = "Standard Exchange Rate"
+#         verbose_name = "Base Exchange Rate"
 #         db_table = "base_cost_exchange_rate"
 #         unique_together = (("base_year_month", "currency_code"),)
 #
