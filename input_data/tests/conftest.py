@@ -1,7 +1,9 @@
 import pytest
+
 from django.contrib.auth.models import User
 from django.utils import timezone
-from input_data.models import ScenarioInfo, ProformaSchedule, Distance
+
+from input_data.models import Distance, ProformaSchedule, ScenarioInfo
 
 # =========================================================
 # User & Client Fixtures

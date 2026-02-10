@@ -1,7 +1,8 @@
-from django.shortcuts import render
 from django.contrib.auth.decorators import login_required
-from input_data.models import ScenarioInfo
+from django.shortcuts import render
+
 from common.menus import MENU_STRUCTURE
+from input_data.models import ScenarioInfo
 
 
 @login_required

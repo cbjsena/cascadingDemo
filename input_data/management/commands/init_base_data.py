@@ -1,13 +1,14 @@
-import os
 import csv
+import os
 from datetime import datetime
 from decimal import Decimal
 
-from django.core.management.base import BaseCommand
 from django.apps import apps
 from django.conf import settings
+from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
+
 from common import messages as msg
 
 
@@ -104,7 +105,10 @@ class Command(BaseCommand):
         for key, value in row.items():
             try:
                 field = model._meta.get_field(key)
-            except:
+            except Exception as e:
+                error_message = msg.ROW_ERROR.format(table=model, error=str(e))
+                detailed_message = f"{error_message} | ROW DATA: {row}"
+                self.stdout.write(self.style.ERROR(detailed_message))
                 continue
 
             val = value.strip() if isinstance(value, str) else value
@@ -149,7 +153,7 @@ class Command(BaseCommand):
                     else:
                         cleaned[key] = val
 
-                except ValueError as e:
+                except ValueError:
                     # 변환 실패 시 명확한 에러 메시지와 함께 raise -> load_data의 loop에서 잡힘
                     raise ValueError(
                         f"Column '{key}' expects {internal_type}, but got '{val}'"

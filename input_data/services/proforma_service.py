@@ -1,17 +1,21 @@
-import math
-from decimal import Decimal
-from django.db import transaction
 import csv
 import io
-from django.utils import timezone
+import math
 from datetime import datetime
-from common import csv_configs as csv_cfg
-from input_data.models import Distance, ScenarioInfo, ProformaSchedule
-from common import messages as msg
-from common import excel_configs as ex_cfg
-from common.utils.excel_manager import ExcelManager
+from decimal import Decimal
+
+from django.db import transaction
+from django.utils import timezone
+
+from common import (
+    constants as const,
+    csv_configs as csv_cfg,
+    excel_configs as ex_cfg,
+    messages as msg,
+)
 from common.utils.csv_manager import CsvManager
-from common import constants as const
+from common.utils.excel_manager import ExcelManager
+from input_data.models import Distance, ProformaSchedule, ScenarioInfo
 
 
 class ProformaService:
@@ -78,122 +82,6 @@ class ProformaService:
             rows.append(row)
 
         return rows
-
-    def add_row(self, rows, scenario_id):
-        """최하단에 행 추가"""
-        new_row = self._create_default_row()
-
-        # 1. 초기 상태에서 ETD 계산 (기본값 기반)
-        self._calc_etd_from_etb(new_row)
-
-        if rows:
-            last_row = rows[-1]
-
-            # 2. 이전 행 ETD 재계산 및 Sea Time 설정
-            self._calc_etd_from_etb(last_row)
-            last_row["sea_time"] = const.DEFAULT_SEA_TIME
-
-            # 3. 새 행 ETB 계산 = 이전 ETD + Sea Time
-            prev_etd_total = self._get_total_hours(
-                last_row.get("etd_no", 0), last_row.get("etd_time", "0000")
-            )
-
-            new_etb_total = prev_etd_total + const.DEFAULT_SEA_TIME
-            no, day, time = self._hours_to_tuple(new_etb_total)
-
-            new_row["etb_no"] = no
-            new_row["etb_day"] = day  # 계산된 요일 반영
-            new_row["etb_time"] = time
-
-            # 4. 새 행 ETD 재계산 (변경된 ETB 기준)
-            self._calc_etd_from_etb(new_row)
-
-        rows.append(new_row)
-        return self._reindex_rows(rows)
-
-    def insert_row(self, rows, index):
-        """중간 삽입"""
-        new_row = self._create_default_row()
-        self._calc_etd_from_etb(new_row)  # 초기화
-
-        if 0 <= index < len(rows):
-            prev_row = rows[index]
-
-            # 1. 이전 행 시간 재계산
-            self._calc_etd_from_etb(prev_row)
-            prev_row["sea_time"] = const.DEFAULT_SEA_TIME
-
-            # 2. 새 행 ETB 계산
-            prev_etd_total = self._get_total_hours(
-                prev_row["etd_no"], prev_row["etd_time"]
-            )
-            new_etb_total = prev_etd_total + const.DEFAULT_SEA_TIME
-
-            no, day, time = self._hours_to_tuple(new_etb_total)
-            new_row["etb_no"] = no
-            new_row["etb_day"] = day
-            new_row["etb_time"] = time
-
-            # 3. 새 행 ETD 재계산
-            self._calc_etd_from_etb(new_row)
-
-            rows.insert(index + 1, new_row)
-        else:
-            return self.add_row(rows, None)
-
-        return self._reindex_rows(rows)
-
-    def insert_row(self, rows, index):
-        """
-        중간 삽입: 선택된 행(index)의 바로 다음에 새 행을 추가함
-        - 로직 1: 기본값 적용 (Pilot, WorkHours 등)
-        - 로직 2: 새 행 ETB = 선택된 행 ETD + 24시간(Sea Time)
-        - 로직 3: 새 행 ETD = 새 행 ETB + 24시간(Work Hours)
-        """
-        new_row = self._create_default_row()
-        self._calc_etd_from_etb(new_row)  # 초기화
-
-        # 유효한 인덱스인지 확인 (index는 선택된 행의 0-based index)
-        if 0 <= index < len(rows):
-            prev_row = rows[index]  # 선택된 행이 '이전 행'이 됨
-
-            # 1. 이전 행 시간 재계산
-            self._calc_etd_from_etb(prev_row)
-            prev_row["sea_time"] = const.DEFAULT_SEA_TIME
-
-            # 2. 새 행 ETB 계산
-            prev_etd_total = self._get_total_hours(
-                prev_row["etd_no"], prev_row["etd_time"]
-            )
-            new_etb_total = prev_etd_total + const.DEFAULT_SEA_TIME
-
-            no, day, time = self._hours_to_tuple(new_etb_total)
-            new_row["etb_no"] = no
-            new_row["etb_day"] = day
-            new_row["etb_time"] = time
-
-            # 3. 새 행 ETD 재계산
-            self._calc_etd_from_etb(new_row)
-
-            # 선택된 행 *다음* 위치(index + 1)에 삽입
-            rows.insert(index + 1, new_row)
-
-        else:
-            # 인덱스가 없거나 이상하면 맨 뒤에 추가 (Add Row 로직)
-            return self.add_row(rows, None)
-
-        return self._reindex_rows(rows)
-
-    def delete_rows(self, rows, indices):
-        """선택된 행 삭제"""
-        if not indices:
-            return rows
-        # 인덱스 역순 정렬 후 삭제
-        indices = sorted([int(x) for x in indices], reverse=True)
-        for i in indices:
-            if 0 <= i < len(rows):
-                del rows[i]
-        return self._reindex_rows(rows)
 
     def calculate_schedule(self, rows, header_info):
         """
@@ -530,8 +418,8 @@ class ProformaService:
                     row[key] = int(val) if str(val).isdigit() else 0
 
         # 4. 계산
-        calc_header = {"scenario_id": header.get("scenario_id")}
-        calculated_rows = self.calculate_schedule(rows, calc_header)
+        # calc_header = {"scenario_id": header.get("scenario_id")}
+        # calculated_rows = self.calculate_schedule(rows, calc_header)
 
         return header, rows
 

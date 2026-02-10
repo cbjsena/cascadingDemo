@@ -1,9 +1,10 @@
 import pytest
-from django.urls import reverse
-from django.contrib.auth.models import User
+
 from django.contrib.messages import get_messages
-from input_data.models import ScenarioInfo, ProformaSchedule
+from django.urls import reverse
+
 from common import messages as msg
+from input_data.models import ProformaSchedule, ScenarioInfo
 
 
 @pytest.mark.django_db
@@ -174,7 +175,6 @@ class TestScenarioView:
 
         # 권한 에러 메시지
         messages = list(get_messages(response.wsgi_request))
-        msg_texts = [str(m) for m in messages]
         assert any(msg.PERMISSION_DENIED in str(m) for m in messages)
 
     def test_scenario_delete_by_superuser(self, client, admin_user, other_user):

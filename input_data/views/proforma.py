@@ -1,12 +1,12 @@
-from django.http import HttpResponse
-from django.shortcuts import render, redirect
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.http import HttpResponse
+from django.shortcuts import redirect, render
+
+from common import constants as const, messages as msg
+from common.menus import MENU_STRUCTURE
 from input_data.models import ScenarioInfo
 from input_data.services.proforma_service import ProformaService
-from common import messages as msg
-from common import constants as const
-from common.menus import MENU_STRUCTURE
 
 
 @login_required

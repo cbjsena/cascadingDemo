@@ -1,9 +1,12 @@
-import pytest
 import io
+
 import openpyxl
-from django.urls import reverse
+import pytest
+
 from django.contrib.messages import get_messages
-from input_data.models import ProformaSchedule, Distance
+from django.urls import reverse
+
+from input_data.models import Distance, ProformaSchedule
 
 
 @pytest.mark.django_db
@@ -105,7 +108,6 @@ class TestProformaView:
         data = {"action": "new", "port_code[]": ["A", "B"]}
         response = auth_client.post(url, data)
 
-        rows = response.context["rows"]
         assert len(response.context["rows"]) == 0
 
     # ==========================================================================

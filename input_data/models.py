@@ -1,4 +1,5 @@
 from django.db import models
+
 from common.models import CommonModel
 
 SCENARIO_STATUS_CODE = (("T", "TEST"), ("N", "Not used"))
@@ -349,7 +350,10 @@ class AbsCharterCost(models.Model):
     # currency_code = models.CharField(max_length=3, verbose_name="Currency Code")
     hire_from_date = models.DateTimeField(verbose_name="Hire From Date")
     hire_to_date = models.DateTimeField(verbose_name="Hire To Date")
-    hire_rate = models.DecimalField(max_digits=15, decimal_places=6,verbose_name="Hire Rate")
+    hire_rate = models.DecimalField(
+        max_digits=15, decimal_places=6, verbose_name="Hire Rate"
+    )
+
     class Meta:
         abstract = True
 
@@ -360,7 +364,7 @@ class BaseCharterCost(AbsCharterCost):
     class Meta:
         verbose_name = "Standard Charter Cost"
         db_table = "base_vessel_charter_cost"
-        unique_together = (("vessel_code",  "hire_from_date"),)
+        unique_together = (("vessel_code", "hire_from_date"),)
 
 
 class CharterCost(AbsCharterCost, ScenarioBaseModel):
@@ -371,9 +375,7 @@ class CharterCost(AbsCharterCost, ScenarioBaseModel):
     class Meta:
         verbose_name = "Charter Cost"
         db_table = "sce_vessel_charter_cost"
-        unique_together = (
-            ("scenario", "vessel_code", "hire_from_date"),
-        )
+        unique_together = (("scenario", "vessel_code", "hire_from_date"),)
 
 
 # 5. Vessel Capacity
@@ -539,9 +541,7 @@ class TSCost(AbsTSCost, ScenarioBaseModel):
     class Meta:
         verbose_name = "TS Cost"
         db_table = "sce_cost_ts_cost"
-        unique_together = (
-            ("scenario", "base_year_month", "port_code"),
-        )
+        unique_together = (("scenario", "base_year_month", "port_code"),)
 
 
 # ==========================================

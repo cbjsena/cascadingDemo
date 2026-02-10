@@ -1,44 +1,45 @@
 # input_data/services.py
 
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
+
 from input_data.models import (
-    ScenarioInfo,
-    # 1. Schedule
-    BaseProformaSchedule,
-    ProformaSchedule,
-    BaseLongRangeSchedule,
-    LongRangeSchedule,
-    # 2. Vessel
-    BaseVesselInfo,
-    VesselInfo,
-    BaseCharterCost,
-    CharterCost,
-    BaseVesselCapacity,
-    VesselCapacity,
-    # 3. Cost & Distance
-    BaseDistance,
-    Distance,
-    BaseCanalFee,
-    CanalFee,
-    BaseTSCost,
-    TSCost,
+    BaseBunkerConsumptionPort,
     # 4. Bunker
     BaseBunkerConsumptionSea,
-    BunkerConsumptionSea,
-    BaseBunkerConsumptionPort,
-    BunkerConsumptionPort,
     BaseBunkerPrice,
-    BunkerPrice,
+    BaseCanalFee,
+    BaseCharterCost,
+    # 3. Cost & Distance
+    BaseDistance,
     # 6. Constraints
     BaseFixedVesselDeployment,
-    FixedVesselDeployment,
     BaseFixedVesselEvent,
-    FixedVesselEvent,
+    BaseLongRangeSchedule,
     BasePortConstraint,
+    # 1. Schedule
+    BaseProformaSchedule,
+    BaseTSCost,
+    BaseVesselCapacity,
+    # 2. Vessel
+    BaseVesselInfo,
+    BunkerConsumptionPort,
+    BunkerConsumptionSea,
+    BunkerPrice,
+    CanalFee,
+    CharterCost,
+    Distance,
+    FixedVesselDeployment,
+    FixedVesselEvent,
+    LongRangeSchedule,
     PortConstraint,
+    ProformaSchedule,
+    ScenarioInfo,
+    TSCost,
+    VesselCapacity,
+    VesselInfo,
 )
-from django.contrib.auth import get_user_model
 
 User = get_user_model()
 
@@ -59,6 +60,7 @@ MODEL_MAPPING = [
     (BasePortConstraint, PortConstraint),
 ]
 
+
 @transaction.atomic
 def get_system_user():
     """
@@ -76,6 +78,7 @@ def get_system_user():
         user.save(update_fields=["password"])
 
     return user
+
 
 @transaction.atomic
 def create_scenario_from_base(target_id, description="Base Scenario", user=None):

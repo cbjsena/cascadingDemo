@@ -1,7 +1,10 @@
-import pytest
 import csv
 from unittest.mock import MagicMock, patch
+
+import pytest
+
 from django.apps import apps
+
 from input_data.apps import generate_table_definition
 
 

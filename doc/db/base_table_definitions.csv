@@ -1,5 +1,5 @@
 ﻿[Base Data Table Definition]
-Generated At,2026-02-10 05:34:08
+Generated At,2026-02-10 06:23:37
 
 Table Name,Column Name,Data Type,Nullable,Description (Comment)
 base_bunker_consumption_port,base_year_month,character varying,NO,Base Year Month

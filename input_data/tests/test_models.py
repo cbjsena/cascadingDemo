@@ -1,8 +1,11 @@
-import pytest
 from datetime import datetime
+
+import pytest
+
 from django.db.utils import IntegrityError
 from django.utils import timezone
-from input_data.models import ScenarioInfo, ProformaSchedule
+
+from input_data.models import ProformaSchedule, ScenarioInfo
 
 
 @pytest.mark.django_db

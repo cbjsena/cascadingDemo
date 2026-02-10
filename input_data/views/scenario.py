@@ -1,15 +1,19 @@
-from django.core.exceptions import FieldDoesNotExist
-from django.shortcuts import render, redirect, get_object_or_404
+import json
+
+from django.apps import apps
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.core.exceptions import FieldDoesNotExist
 from django.db import transaction
+from django.http import JsonResponse
+from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-from django.apps import apps
 from django.views.decorators.http import require_POST
 
-from input_data.models import ScenarioInfo
 from common import messages as msg
 from common.menus import MENU_STRUCTURE
+from input_data.models import ScenarioInfo
+from input_data.services.scenario_service import create_scenario_from_base
 
 
 @login_required
@@ -100,14 +104,6 @@ def scenario_delete(request, scenario_id):
     except Exception as e:
         messages.error(request, msg.SCENARIO_DELETE_ERROR.format(error=str(e)))
     return redirect("input_data:scenario_list")
-
-
-from django.http import JsonResponse
-from django.views.decorators.http import require_POST
-from django.contrib.auth.decorators import login_required
-from input_data.services.scenario_service import create_scenario_from_base
-from common import messages as msg
-import json
 
 
 @login_required

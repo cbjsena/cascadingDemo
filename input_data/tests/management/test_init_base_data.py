@@ -1,9 +1,9 @@
 import pytest
-import os
+
 from django.core.management import call_command
 from django.test import override_settings
+
 from input_data.models import BaseVesselInfo
-from common import messages as msg
 
 
 @pytest.fixture

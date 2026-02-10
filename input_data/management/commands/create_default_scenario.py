@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
-from input_data.services.scenario_service import create_scenario_from_base
+
 from common import messages as msg
+from input_data.services.scenario_service import create_scenario_from_base
 
 
 class Command(BaseCommand):
