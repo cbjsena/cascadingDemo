@@ -71,9 +71,10 @@ CREATE TABLE public.basic_cost_exchange_rate (
 CREATE TABLE public.basic_cost_ts_cost (
 	base_year_month varchar(6) NOT NULL,
 	port_code varchar(10) NOT NULL,
-	currency_code varchar(3) NOT NULL,
+	--currency_code varchar(3) NOT NULL,
 	ts_cost int4 NOT NULL,
-	CONSTRAINT basic_cost_ts_cost_pkey PRIMARY KEY (base_year_month, port_code, currency_code)
+	--CONSTRAINT basic_cost_ts_cost_pkey PRIMARY KEY (base_year_month, port_code, currency_code)
+	CONSTRAINT basic_cost_ts_cost_pkey PRIMARY KEY (base_year_month, port_code)
 );
 
 
@@ -168,11 +169,12 @@ CREATE TABLE public.basic_vessel_capacity (
 
 CREATE TABLE public.basic_vessel_charter_cost (
 	vessel_code varchar(4) NOT NULL,
-	currency_code varchar(3) NOT NULL,
+--	currency_code varchar(3) NOT NULL,
 	hire_from_date timestamptz NOT NULL,
 	hire_to_date timestamptz NOT NULL,
 	hire_rate int4 NOT NULL,
-	CONSTRAINT basic_vessel_charter_cost_pkey PRIMARY KEY (vessel_code, currency_code, hire_from_date)
+--	CONSTRAINT basic_vessel_charter_cost_pkey PRIMARY KEY (vessel_code, currency_code, hire_from_date)
+	CONSTRAINT basic_vessel_charter_cost_pkey PRIMARY KEY (vessel_code, hire_from_date)
 );
 
 CREATE TABLE public.basic_week_period (

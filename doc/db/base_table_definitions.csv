@@ -1,5 +1,5 @@
 ﻿[Base Data Table Definition]
-Generated At,2026-02-10 01:11:09
+Generated At,2026-02-10 05:34:08
 
 Table Name,Column Name,Data Type,Nullable,Description (Comment)
 base_bunker_consumption_port,base_year_month,character varying,NO,Base Year Month
@@ -38,7 +38,6 @@ base_cost_distance,distance,integer,NO,Distance
 base_cost_distance,eca_distance,integer,NO,ECA Distance
 base_cost_ts_cost,base_year_month,character varying,NO,Base Year Month
 base_cost_ts_cost,port_code,character varying,NO,Port Code
-base_cost_ts_cost,currency_code,character varying,NO,Currency Code
 base_cost_ts_cost,ts_cost,integer,NO,TS Cost
 base_schedule_long_range,lane_code,character varying,NO,Lane Code
 base_schedule_long_range,vessel_code,character varying,NO,Vessel Code
@@ -87,10 +86,9 @@ base_vessel_capacity,direction,character varying,NO,Direction
 base_vessel_capacity,teu_capacity,integer,NO,TEU Capacity
 base_vessel_capacity,reefer_capacity,integer,NO,Reefer Capacity
 base_vessel_charter_cost,vessel_code,character varying,NO,Vessel Code
-base_vessel_charter_cost,currency_code,character varying,NO,Currency Code
 base_vessel_charter_cost,hire_from_date,timestamp with time zone,NO,Hire From Date
 base_vessel_charter_cost,hire_to_date,timestamp with time zone,NO,Hire To Date
-base_vessel_charter_cost,hire_rate,integer,NO,Hire Rate
+base_vessel_charter_cost,hire_rate,numeric,NO,Hire Rate
 base_vessel_info,vessel_code,character varying,NO,Vessel Code
 base_vessel_info,vessel_name,character varying,NO,Vessel Name
 base_vessel_info,nominal_capacity,integer,NO,Nominal Capacity
