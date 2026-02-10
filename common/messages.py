@@ -50,3 +50,21 @@ DONE_LOADING = "[DONE] {table}: {count} rows loaded."
 EMPTY_CSV = "[EMPTY] {table}: CSV has no data."
 LOAD_FAIL = "[FAIL] {table}: {error}"
 ROW_ERROR = "[WARN] Row skipped in {table}: {error}"
+
+# ==========================================
+# 6. DB 관리 (Database Management)
+# ==========================================
+DB_COMMENT_UPDATE_START = "Updating database comments (Vendor: {vendor})..."
+DB_COMMENT_NOT_SUPPORTED = "Database vendor '{vendor}' does not support comments via this script."
+DB_TABLE_COMMENT_SUCCESS = "[TABLE] {table}: {comment}"
+DB_COLUMN_COMMENT_SUCCESS = "  - [COL] {column}: {comment}"
+DB_COMMENT_FAIL = "[FAIL] {target}: {error}"
+DB_COMMENT_COMPLETE = "Database comments update completed."
+
+# ==========================================
+# 7. 문서 자동 생성 (Doc Generation)
+# ==========================================
+DOC_GEN_START = "Generating table definition document (PostgreSQL only)..."
+DOC_GEN_SKIP = "Skipping document generation (Not PostgreSQL)."
+DOC_GEN_SUCCESS = "Table definition saved to '{path}'."
+DOC_GEN_FAIL = "Failed to generate table definition: {error}"

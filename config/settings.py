@@ -68,7 +68,7 @@ INSTALLED_APPS = [
 
     # Custom Apps
     'common',
-    'input_data',
+    'input_data.apps.InputDataConfig',
     'external_api',
 ]
 REST_FRAMEWORK = {

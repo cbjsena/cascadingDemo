@@ -1,6 +1,8 @@
 import os
 import csv
 from datetime import datetime
+from decimal import Decimal
+
 from django.core.management.base import BaseCommand
 from django.apps import apps
 from django.conf import settings

@@ -1,0 +1,115 @@
+﻿[Base Data Table Definition]
+Generated At,2026-02-10 01:11:09
+
+Table Name,Column Name,Data Type,Nullable,Description (Comment)
+base_bunker_consumption_port,base_year_month,character varying,NO,Base Year Month
+base_bunker_consumption_port,nominal_capacity,integer,NO,Nominal Capacity
+base_bunker_consumption_port,port_stay_bunker_consumption,numeric,NO,Port Stay Consumption
+base_bunker_consumption_port,idling_bunker_consumption,numeric,NO,Idling Consumption
+base_bunker_consumption_port,pilot_inout_bunker_consumption,numeric,NO,Pilot In/Out Consumption
+base_bunker_consumption_sea,base_year_month,character varying,NO,Base Year Month
+base_bunker_consumption_sea,nominal_capacity,integer,NO,Nominal Capacity
+base_bunker_consumption_sea,sea_speed,numeric,NO,Sea Speed
+base_bunker_consumption_sea,bunker_consumption,numeric,NO,Bunker Consumption
+base_bunker_price,base_year_month,character varying,NO,Base Year Month
+base_bunker_price,trade_code,character varying,NO,Trade Code
+base_bunker_price,lane_code,character varying,NO,Lane Code
+base_bunker_price,bunker_type,character varying,NO,Bunker Type
+base_bunker_price,bunker_price,numeric,NO,Bunker Price
+base_constraint_fixed_deployment,lane_code,character varying,NO,Lane Code
+base_constraint_fixed_deployment,vessel_code,character varying,NO,Vessel Code
+base_constraint_fixed_deployment,deployment_type,character varying,NO,Deployment Type
+base_constraint_fixed_deployment,remark,character varying,YES,Remark
+base_constraint_fixed_event,vessel_code,character varying,NO,Vessel Code
+base_constraint_fixed_event,port_code,character varying,NO,Port Code
+base_constraint_fixed_event,event_type,character varying,NO,Event Type
+base_constraint_fixed_event,event_date,timestamp with time zone,NO,Event Date
+base_constraint_fixed_event,description,character varying,YES,Description
+base_constraint_port,port_code,character varying,NO,Port Code
+base_constraint_port,terminal_code,character varying,NO,Terminal Code
+base_constraint_port,exclude_vessel_class,character varying,YES,Excluded Vessel Class
+base_cost_canal_fee,vessel_code,character varying,NO,Vessel Code
+base_cost_canal_fee,direction,character varying,NO,Direction
+base_cost_canal_fee,port_code,character varying,NO,Port Code
+base_cost_canal_fee,canal_fee,numeric,NO,Canal Fee
+base_cost_distance,from_port_code,character varying,NO,From Port Code
+base_cost_distance,to_port_code,character varying,NO,To Port Code
+base_cost_distance,distance,integer,NO,Distance
+base_cost_distance,eca_distance,integer,NO,ECA Distance
+base_cost_ts_cost,base_year_month,character varying,NO,Base Year Month
+base_cost_ts_cost,port_code,character varying,NO,Port Code
+base_cost_ts_cost,currency_code,character varying,NO,Currency Code
+base_cost_ts_cost,ts_cost,integer,NO,TS Cost
+base_schedule_long_range,lane_code,character varying,NO,Lane Code
+base_schedule_long_range,vessel_code,character varying,NO,Vessel Code
+base_schedule_long_range,voyage_number,character varying,NO,Voyage Number
+base_schedule_long_range,direction,character varying,NO,Direction
+base_schedule_long_range,start_port_berthing_year_week,character varying,NO,Start Port Berthing Year Week
+base_schedule_long_range,proforma_name,character varying,NO,Proforma Name
+base_schedule_long_range,port_code,character varying,NO,Port Code
+base_schedule_long_range,calling_port_indicator_seq,character varying,NO,Calling Port Indicator Seq.
+base_schedule_long_range,calling_port_seq,integer,NO,Calling Port Seq.
+base_schedule_long_range,schedule_change_status_code,character varying,YES,Change Status
+base_schedule_long_range,eta_initial_arrival,timestamp with time zone,YES,ETA
+base_schedule_long_range,etb_initial_berthing,timestamp with time zone,YES,ETB
+base_schedule_long_range,etd_initial_departure,timestamp with time zone,YES,ETD
+base_schedule_long_range,terminal_code,character varying,YES,Terminal Code
+base_schedule_proforma,lane_code,character varying,NO,Lane Code
+base_schedule_proforma,proforma_name,character varying,NO,Proforma Name
+base_schedule_proforma,effective_date,timestamp with time zone,NO,Effective Date
+base_schedule_proforma,duration,numeric,NO,Duration
+base_schedule_proforma,declared_capacity,character varying,NO,Declared Capacity
+base_schedule_proforma,declared_count,integer,NO,Declared Count
+base_schedule_proforma,direction,character varying,NO,Direction
+base_schedule_proforma,port_code,character varying,NO,Port Code
+base_schedule_proforma,calling_port_indicator_seq,character varying,NO,Calling Port Indicator Seq.
+base_schedule_proforma,calling_port_seq,integer,NO,Calling Port Seq.
+base_schedule_proforma,turn_port_info_code,character varying,NO,Turn Port Info
+base_schedule_proforma,pilot_in_hours,numeric,NO,Pilot In Hours
+base_schedule_proforma,etb_day_code,character varying,NO,ETB Day Code
+base_schedule_proforma,etb_day_time,character varying,NO,ETB Day Time
+base_schedule_proforma,etb_day_number,integer,NO,ETB Day Number
+base_schedule_proforma,actual_work_hours,numeric,NO,Actual Work Hours
+base_schedule_proforma,etd_day_code,character varying,NO,ETD Day Code
+base_schedule_proforma,etd_day_time,character varying,NO,ETD Day Time
+base_schedule_proforma,etd_day_number,integer,NO,ETD Day Number
+base_schedule_proforma,pilot_out_hours,numeric,NO,Pilot Out Hours
+base_schedule_proforma,link_distance,integer,NO,Link Distance
+base_schedule_proforma,link_eca_distance,integer,YES,Link ECA Distance
+base_schedule_proforma,link_speed,numeric,YES,Link Speed
+base_schedule_proforma,sea_hours,numeric,YES,Sea Hours
+base_schedule_proforma,terminal_code,character varying,NO,Terminal Code
+base_vessel_capacity,trade_code,character varying,NO,Trade Code
+base_vessel_capacity,lane_code,character varying,NO,Lane Code
+base_vessel_capacity,vessel_code,character varying,NO,Vessel Code
+base_vessel_capacity,voyage_number,character varying,NO,Voyage Number
+base_vessel_capacity,direction,character varying,NO,Direction
+base_vessel_capacity,teu_capacity,integer,NO,TEU Capacity
+base_vessel_capacity,reefer_capacity,integer,NO,Reefer Capacity
+base_vessel_charter_cost,vessel_code,character varying,NO,Vessel Code
+base_vessel_charter_cost,currency_code,character varying,NO,Currency Code
+base_vessel_charter_cost,hire_from_date,timestamp with time zone,NO,Hire From Date
+base_vessel_charter_cost,hire_to_date,timestamp with time zone,NO,Hire To Date
+base_vessel_charter_cost,hire_rate,integer,NO,Hire Rate
+base_vessel_info,vessel_code,character varying,NO,Vessel Code
+base_vessel_info,vessel_name,character varying,NO,Vessel Name
+base_vessel_info,nominal_capacity,integer,NO,Nominal Capacity
+base_vessel_info,own_yn,character varying,NO,Own YN
+base_vessel_info,delivery_port_code,character varying,YES,Delivery Port Code
+base_vessel_info,delivery_date,timestamp with time zone,YES,Delivery Date
+base_vessel_info,redelivery_port_code,character varying,YES,Redelivery Port Code
+base_vessel_info,redelivery_date,timestamp with time zone,YES,Redelivery Date
+base_vessel_info,next_dock_port_code,character varying,YES,Next Dock Port Code
+base_vessel_info,next_dock_in_date,timestamp with time zone,YES,Next Dock In Date
+base_vessel_info,next_dock_out_date,timestamp with time zone,YES,Next Dock Out Date
+base_vessel_info,built_port_code,character varying,YES,Built Port Code
+base_vessel_info,built_date,character varying,YES,Built Date
+base_week_period,created_at,timestamp with time zone,NO,Created At
+base_week_period,updated_at,timestamp with time zone,NO,Updated At
+base_week_period,base_year,integer,NO,Base Year
+base_week_period,base_week,integer,NO,Base Week
+base_week_period,base_month,integer,NO,Base Month
+base_week_period,week_start_date,timestamp with time zone,NO,Week Start
+base_week_period,week_end_date,timestamp with time zone,NO,Week End
+base_week_period,created_by_id,integer,YES,Created By
+base_week_period,updated_by_id,integer,YES,Updated By
