@@ -161,6 +161,15 @@
         - cherry-pick 적용: git cherry-pick <커밋해시>
         - 충돌 해결 후 계속 진행: git add <충돌해결된파일> && git cherry-pick --continue
         - cherry-pick 중단: git cherry-pick --abort
+    9.5 기등록 파일 제외
+        - git rm --cached <파일명>
+        - .gitignore에 파일/디렉토리 추가
+        - git add .gitignore
+        - git commit -m "Update .gitignore to exclude <파일명>"
+        - 로컬 변경사항 무시하기 (Untrack 아님)
+            - git update-index --assume-unchanged path/to/file
+        - 다시 변경사항 추적하기
+            - git update-index --no-assume-unchanged path/to/file
 
 10. Release 작성
     10.1 GitHub에서 제공하는 버전 패키지 + 문서화된 배포 페이지입니다.
