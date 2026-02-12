@@ -278,16 +278,16 @@ class ProformaService:
             raise ValueError(msg.SCENARIO_NOT_FOUND.format(scenario_id=scenario_id_val))
 
         # Effective Date를 Timezone Aware 객체로 변환
-        eff_date_str = header.get("effective_date", "")
-        effective_date = timezone.now()  # 기본값
+        eff_from_date_str = header.get("effective_from_date", "")
+        effective_from_date = timezone.now()  # 기본값
 
-        if eff_date_str:
+        if eff_from_date_str:
             try:
                 # 1. 문자열 -> Naive Datetime 변환 (YYYY-MM-DD)
                 # 입력값이 '2026-01-01' 형태라고 가정
-                dt = datetime.strptime(str(eff_date_str)[:10], "%Y-%m-%d")
+                dt = datetime.strptime(str(eff_from_date_str)[:10], "%Y-%m-%d")
                 # 2. Naive -> Aware Datetime 변환
-                effective_date = timezone.make_aware(dt)
+                effective_from_date = timezone.make_aware(dt)
             except ValueError:
                 pass  # 파싱 실패 시 기본값(Now) 사용
 
@@ -311,7 +311,7 @@ class ProformaService:
                 scenario=scenario_obj,
                 lane_code=lane_code,
                 proforma_name=proforma_name,
-                effective_date=effective_date,
+                effective_from_date=effective_from_date,
                 duration=Decimal(header.get("duration") or 0),
                 declared_capacity=header.get("capacity", ""),
                 declared_count=int(header.get("count") or 0),
@@ -321,18 +321,18 @@ class ProformaService:
                 calling_port_seq=int(row["no"]),
                 turn_port_info_code=row.get("turn_port_info_code", "N"),
                 pilot_in_hours=Decimal(row.get("pilot_in") or 0),
+                etb_day_number=int(row.get("etb_no") or 0),
                 etb_day_code=row.get("etb_day", ""),
                 etb_day_time=row.get("etb_time", ""),
-                etb_day_number=int(row.get("etb_no") or 0),
                 actual_work_hours=Decimal(row.get("work_hours") or 0),
+                etd_day_number=int(row.get("etd_no") or 0),
                 etd_day_code=row.get("etd_day", ""),
                 etd_day_time=row.get("etd_time", ""),
-                etd_day_number=int(row.get("etd_no") or 0),
                 pilot_out_hours=Decimal(row.get("pilot_out") or 0),
                 link_distance=int(float(row.get("dist") or 0)),
                 link_eca_distance=int(float(row.get("eca_dist") or 0)),
                 link_speed=Decimal(row.get("spd") or 0),
-                sea_hours=Decimal(row.get("sea_time") or 0),
+                sea_time_hours=Decimal(row.get("sea_time") or 0),
                 terminal_code=terminal_code,
                 created_by=user,
                 updated_by=user,
@@ -376,10 +376,10 @@ class ProformaService:
         header, rows = self.excel_manager.parse_excel(file_obj, ex_cfg.PROFORMA_CONFIG)
 
         # 2. 날짜 필드 후처리 (Excel datetime -> HTML input date string)
-        # Config에 'effective_date' 키가 있는지 확인하고 처리
-        if "effective_date" in header:
-            header["effective_date"] = self._format_date_for_input(
-                header["effective_date"]
+        # Config에 'effective_from_date' 키가 있는지 확인하고 처리
+        if "effective_from_date" in header:
+            header["effective_from_date"] = self._format_date_for_input(
+                header["effective_from_date"]
             )
 
         # 3. 데이터 후처리 (Default Value)
@@ -474,7 +474,7 @@ class ProformaService:
         # (1) SVCE_LANE_STD_YN
         # is_standard = 'N'
         # try:
-        #     eff_dt = datetime.strptime(str(header.get('effective_date', ''))[:10], '%Y-%m-%d')
+        #     eff_dt = datetime.strptime(str(header.get('effective_from_date', ''))[:10], '%Y-%m-%d')
         #     if datetime.now() >= eff_dt:
         #         is_standard = 'Y'
         # except:

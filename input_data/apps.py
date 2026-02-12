@@ -100,7 +100,7 @@ def add_db_comments(sender, **kwargs):
 
 def generate_table_definition(sender, **kwargs):
     """
-    마이그레이션 후 base 테이블 정의서를 Markdown 파일로 생성
+    마이그레이션 후 base 테이블 정의서를 csv 파일로 생성
     """
     app_config = kwargs.get("app_config")
     if app_config is None or app_config.name != "input_data":
@@ -152,6 +152,7 @@ def generate_table_definition(sender, **kwargs):
             for row in rows:
                 # row: (table_name, column_name, data_type, nullable, comment)
                 table_name, col_name, data_type, nullable, comment = row
+                data_type = _map_data_type(data_type)
 
                 # None 값을 빈 문자열로 변환
                 comment = comment if comment else ""
@@ -162,3 +163,14 @@ def generate_table_definition(sender, **kwargs):
 
     except Exception as e:
         print(msg.DOC_GEN_FAIL.format(error=str(e)))
+
+
+def _map_data_type(data_type):
+    if data_type.startswith("character varying"):
+        data_type = "string"
+    elif data_type == "integer":
+        data_type = "int"
+    elif data_type == "timestamp with time zone":
+        data_type = "datetime"
+
+    return data_type

@@ -1,4 +1,4 @@
-"base_year_month","nominal_capacity","port_stay_bunker_consumption","idling_bunker_consumption","pilot_inout_bunker_consumption"
+"base_year_month","vessel_capacity","port_stay_bunker_consumption","idling_bunker_consumption","pilot_inout_bunker_consumption"
 "202501",2500,0.320,0.000,1.200
 "202501",2510,0.320,0.000,1.200
 "202501",2520,0.320,0.000,1.200

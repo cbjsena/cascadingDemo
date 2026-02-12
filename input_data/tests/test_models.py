@@ -53,13 +53,13 @@ class TestProformaModels:
         설명: Proforma 데이터 생성 시 Scenario와 FK 연결 확인
         """
         # When
-        eff_date = timezone.make_aware(datetime(2026, 1, 1))
+        eff_from_date = timezone.make_aware(datetime(2026, 1, 1))
 
         pf = ProformaSchedule.objects.create(
             scenario=base_scenario,
             lane_code="TEST",
             proforma_name="PF_01",
-            effective_date=eff_date,
+            effective_from_date=eff_from_date,
             duration=10,
             declared_capacity="10k",
             declared_count=1,
@@ -90,7 +90,7 @@ class TestProformaModels:
             "scenario": base_scenario,
             "lane_code": "TEST",
             "proforma_name": "PF_01",
-            "effective_date": eff_date,
+            "effective_from_date": eff_date,
             "duration": 10,
             "declared_capacity": "10k",
             "declared_count": 1,

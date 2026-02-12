@@ -8,7 +8,7 @@ PROFORMA_DB_MAP = [
     ("scenario_id", "scenario_id"),
     ("VSL_SVCE_LANE_CD", "lane_code"),
     ("PF_SVCE_NR", "proforma_name"),
-    ("EFFCT_DATE", "effective_date"),
+    ("EFFCT_DATE", "effective_from_date"),
     # ("SVCE_LANE_STD_YN", "is_standard"),        # Logic 계산 필드
     ("SVCE_DUR_DAYS", "duration"),
     ("FRST_VSL_CLS_CD", "capacity"),

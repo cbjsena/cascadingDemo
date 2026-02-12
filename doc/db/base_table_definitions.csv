@@ -1,113 +1,109 @@
 ﻿[Base Data Table Definition]
-Generated At,2026-02-10 14:06:04
+Generated At,2026-02-12 05:00:39
 
 Table Name,Column Name,Data Type,Nullable,Description (Comment)
-base_bunker_consumption_port,base_year_month,character varying,NO,Base Year Month
-base_bunker_consumption_port,nominal_capacity,integer,NO,Nominal Capacity
-base_bunker_consumption_port,port_stay_bunker_consumption,numeric,NO,Port Stay Consumption
-base_bunker_consumption_port,idling_bunker_consumption,numeric,NO,Idling Consumption
-base_bunker_consumption_port,pilot_inout_bunker_consumption,numeric,NO,Pilot In/Out Consumption
-base_bunker_consumption_sea,base_year_month,character varying,NO,Base Year Month
-base_bunker_consumption_sea,nominal_capacity,integer,NO,Nominal Capacity
-base_bunker_consumption_sea,sea_speed,numeric,NO,Sea Speed
-base_bunker_consumption_sea,bunker_consumption,numeric,NO,Bunker Consumption
-base_bunker_price,base_year_month,character varying,NO,Base Year Month
-base_bunker_price,trade_code,character varying,NO,Trade Code
-base_bunker_price,lane_code,character varying,NO,Lane Code
-base_bunker_price,bunker_type,character varying,NO,Bunker Type
-base_bunker_price,bunker_price,numeric,NO,Bunker Price
-base_constraint_fixed_deployment,lane_code,character varying,NO,Lane Code
-base_constraint_fixed_deployment,vessel_code,character varying,NO,Vessel Code
-base_constraint_fixed_deployment,deployment_type,character varying,NO,Deployment Type
-base_constraint_fixed_deployment,remark,character varying,YES,Remark
-base_constraint_fixed_schedule_change,vessel_code,character varying,NO,Vessel Code
-base_constraint_fixed_schedule_change,port_code,character varying,NO,Port Code
-base_constraint_fixed_schedule_change,schedule_change_status_code,character varying,YES,Change Status
-base_constraint_fixed_schedule_change,eta,timestamp with time zone,NO,ETA
-base_constraint_fixed_schedule_change,remark,character varying,YES,Remark
-base_constraint_port,port_code,character varying,NO,Port Code
-base_constraint_port,terminal_code,character varying,NO,Terminal Code
-base_constraint_port,exclude_vessel_class,character varying,YES,Excluded Vessel Class
-base_cost_canal_fee,vessel_code,character varying,NO,Vessel Code
-base_cost_canal_fee,direction,character varying,NO,Direction
-base_cost_canal_fee,port_code,character varying,NO,Port Code
-base_cost_canal_fee,canal_fee,numeric,NO,Canal Fee
-base_cost_distance,from_port_code,character varying,NO,From Port Code
-base_cost_distance,to_port_code,character varying,NO,To Port Code
-base_cost_distance,distance,integer,NO,Distance
-base_cost_distance,eca_distance,integer,NO,ECA Distance
-base_cost_ts_cost,base_year_month,character varying,NO,Base Year Month
-base_cost_ts_cost,port_code,character varying,NO,Port Code
-base_cost_ts_cost,ts_cost,integer,NO,TS Cost
-base_schedule_long_range,lane_code,character varying,NO,Lane Code
-base_schedule_long_range,vessel_code,character varying,NO,Vessel Code
-base_schedule_long_range,voyage_number,character varying,NO,Voyage Number
-base_schedule_long_range,direction,character varying,NO,Direction
-base_schedule_long_range,start_port_berthing_year_week,character varying,NO,Start Port Berthing Year Week
-base_schedule_long_range,proforma_name,character varying,NO,Proforma Name
-base_schedule_long_range,port_code,character varying,NO,Port Code
-base_schedule_long_range,calling_port_indicator,character varying,NO,Calling Port Indicator Seq.
-base_schedule_long_range,calling_port_seq,integer,NO,Calling Port Seq.
-base_schedule_long_range,schedule_change_status_code,character varying,YES,Change Status
-base_schedule_long_range,eta,timestamp with time zone,YES,ETA
-base_schedule_long_range,etb,timestamp with time zone,YES,ETB
-base_schedule_long_range,etd,timestamp with time zone,YES,ETD
-base_schedule_long_range,terminal_code,character varying,YES,Terminal Code
-base_schedule_proforma,lane_code,character varying,NO,Lane Code
-base_schedule_proforma,proforma_name,character varying,NO,Proforma Name
-base_schedule_proforma,effective_date,timestamp with time zone,NO,Effective Date
-base_schedule_proforma,duration,numeric,NO,Duration
-base_schedule_proforma,declared_capacity,character varying,NO,Declared Capacity
-base_schedule_proforma,declared_count,integer,NO,Declared Count
-base_schedule_proforma,direction,character varying,NO,Direction
-base_schedule_proforma,port_code,character varying,NO,Port Code
-base_schedule_proforma,calling_port_indicator,character varying,NO,Calling Port Indicator Seq.
-base_schedule_proforma,calling_port_seq,integer,NO,Calling Port Seq.
-base_schedule_proforma,turn_port_info_code,character varying,NO,Turn Port Info
-base_schedule_proforma,pilot_in_hours,numeric,NO,Pilot In Hours
-base_schedule_proforma,etb_day_code,character varying,NO,ETB Day Code
-base_schedule_proforma,etb_day_time,character varying,NO,ETB Day Time
-base_schedule_proforma,etb_day_number,integer,NO,ETB Day Number
-base_schedule_proforma,actual_work_hours,numeric,NO,Actual Work Hours
-base_schedule_proforma,etd_day_code,character varying,NO,ETD Day Code
-base_schedule_proforma,etd_day_time,character varying,NO,ETD Day Time
-base_schedule_proforma,etd_day_number,integer,NO,ETD Day Number
-base_schedule_proforma,pilot_out_hours,numeric,NO,Pilot Out Hours
-base_schedule_proforma,link_distance,integer,NO,Link Distance
-base_schedule_proforma,link_eca_distance,integer,YES,Link ECA Distance
-base_schedule_proforma,link_speed,numeric,YES,Link Speed
-base_schedule_proforma,sea_hours,numeric,YES,Sea Hours
-base_schedule_proforma,terminal_code,character varying,NO,Terminal Code
-base_vessel_capacity,trade_code,character varying,NO,Trade Code
-base_vessel_capacity,lane_code,character varying,NO,Lane Code
-base_vessel_capacity,vessel_code,character varying,NO,Vessel Code
-base_vessel_capacity,voyage_number,character varying,NO,Voyage Number
-base_vessel_capacity,direction,character varying,NO,Direction
-base_vessel_capacity,teu_capacity,integer,NO,TEU Capacity
-base_vessel_capacity,reefer_capacity,integer,NO,Reefer Capacity
-base_vessel_charter_cost,vessel_code,character varying,NO,Vessel Code
-base_vessel_charter_cost,hire_from_date,timestamp with time zone,NO,Hire From Date
-base_vessel_charter_cost,hire_to_date,timestamp with time zone,NO,Hire To Date
-base_vessel_charter_cost,hire_rate,numeric,NO,Hire Rate
-base_vessel_info,vessel_code,character varying,NO,Vessel Code
-base_vessel_info,vessel_name,character varying,NO,Vessel Name
-base_vessel_info,nominal_capacity,integer,NO,Nominal Capacity
-base_vessel_info,own_yn,character varying,NO,Own YN
-base_vessel_info,delivery_port_code,character varying,YES,Delivery Port Code
-base_vessel_info,delivery_date,timestamp with time zone,YES,Delivery Date
-base_vessel_info,redelivery_port_code,character varying,YES,Redelivery Port Code
-base_vessel_info,redelivery_date,timestamp with time zone,YES,Redelivery Date
-base_vessel_info,next_dock_port_code,character varying,YES,Next Dock Port Code
-base_vessel_info,next_dock_in_date,timestamp with time zone,YES,Next Dock In Date
-base_vessel_info,next_dock_out_date,timestamp with time zone,YES,Next Dock Out Date
-base_vessel_info,built_port_code,character varying,YES,Built Port Code
-base_vessel_info,built_date,character varying,YES,Built Date
-base_week_period,created_at,timestamp with time zone,NO,Created At
-base_week_period,updated_at,timestamp with time zone,NO,Updated At
-base_week_period,base_year,integer,NO,Base Year
-base_week_period,base_week,integer,NO,Base Week
-base_week_period,base_month,integer,NO,Base Month
-base_week_period,week_start_date,timestamp with time zone,NO,Week Start
-base_week_period,week_end_date,timestamp with time zone,NO,Week End
-base_week_period,created_by_id,integer,YES,Created By
-base_week_period,updated_by_id,integer,YES,Updated By
+base_bunker_consumption_port,base_year_month,string,NO,Year and month used as the base period / YYYYMM
+base_bunker_consumption_port,vessel_capacity,int,NO,"Vessel Capacity (TEU), 1851 types"
+base_bunker_consumption_port,port_stay_bunker_consumption,numeric,NO,Hourly bunker consumption during port stay (Ton)
+base_bunker_consumption_port,idling_bunker_consumption,numeric,NO,Hourly bunker consumption during idling (Ton)
+base_bunker_consumption_port,pilot_inout_bunker_consumption,numeric,NO,Hourly bunker consumption during pilot in/out (Ton)
+base_bunker_consumption_sea,base_year_month,string,NO,Year and month used as the base period / YYYYMM
+base_bunker_consumption_sea,vessel_capacity,int,NO,"Vessel Capacity (TEU), 1851 types"
+base_bunker_consumption_sea,sea_speed,numeric,NO,"Speed (Knot), 13 types consisting of 0.5 difference from 14 to 20"
+base_bunker_consumption_sea,bunker_consumption,numeric,NO,Daily bunker consumption at sea (Ton)
+base_bunker_price,base_year_month,string,NO,Year and month used as the base period / YYYYMM
+base_bunker_price,trade_code,string,NO,Trade Code / 3 alpha
+base_bunker_price,lane_code,string,NO,Lane Code / 3 alphanum
+base_bunker_price,bunker_type,string,NO,"Bunker type {LSFO: Low Sulphur Fuel Oil, MGO: Marine Gas Oil}"
+base_bunker_price,bunker_price,numeric,NO,Bunker Price (USD per Ton)
+base_constraint_fixed_deployment,lane_code,string,NO,Lane Code / 3 alphanum
+base_constraint_fixed_deployment,vessel_code,string,NO,Vessel Code / 4 alphanum
+base_constraint_fixed_deployment,effective_from_date,datetime,NO,Effective date from which the deployment is applied.
+base_constraint_fixed_deployment,deployment_type,string,NO,"Indicates whether the vessel must be included in or excluded from the lane {I: Include, E: Exclude}"
+base_constraint_fixed_deployment,remark,string,YES,Remark
+base_constraint_fixed_schedule_change,vessel_code,string,NO,Vessel Code / 4 alphanum
+base_constraint_fixed_schedule_change,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
+base_constraint_fixed_schedule_change,schedule_change_status_code,string,YES,"Schedule Change Status {A: Ad hoc Call, I: Phase In, L: Vessel Slide, O: Phase Out, S: Port Omisson, R: Port Call Swap}"
+base_constraint_fixed_schedule_change,eta,datetime,NO,Estimated Time of Arrival
+base_constraint_fixed_schedule_change,remark,string,YES,Remark
+base_constraint_port,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
+base_constraint_port,terminal_code,string,NO,"Terminal Code (Port Code +2-digit number, e.g., KRPUS01)"
+base_constraint_port,exclude_vessel_class,string,YES,Maximum allowable vessel class size (TEU)
+base_cost_canal_fee,vessel_code,string,NO,Vessel Code / 4 alphanum
+base_cost_canal_fee,direction,string,NO,"Direction {W, E}"
+base_cost_canal_fee,port_code,string,NO,"Port Code where the canal is located {PAPCA, EGSCA}"
+base_cost_canal_fee,canal_fee,numeric,NO,Canal Transit Fee (USD)
+base_cost_distance,from_port_code,string,NO,From Port Code
+base_cost_distance,to_port_code,string,NO,To Port Code
+base_cost_distance,distance,int,NO,Port-to-Port Distance (NM)
+base_cost_distance,eca_distance,int,NO,Port-to-Port ECA Distance (NM)
+base_cost_ts_cost,base_year_month,string,NO,Year and month used as the base period / YYYYMM
+base_cost_ts_cost,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
+base_cost_ts_cost,ts_cost,int,NO,Transshipment Cost (USD)
+base_schedule_long_range,lane_code,string,NO,Lane Code / 3 alphanum
+base_schedule_long_range,vessel_code,string,NO,Vessel Code / 4 alphanum
+base_schedule_long_range,voyage_number,string,NO,Voyage Number / 4 numeric digits
+base_schedule_long_range,direction,string,NO,"Direction {W, E, S, N}"
+base_schedule_long_range,start_port_berthing_year_week,string,NO,Start Port Berthing Year Week
+base_schedule_long_range,proforma_name,string,NO,Proforma Name / 4 numeric digits
+base_schedule_long_range,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
+base_schedule_long_range,calling_port_indicator,string,NO,Port call order per port within a VVD
+base_schedule_long_range,calling_port_seq,int,NO,Port call sequence within the VVD
+base_schedule_long_range,schedule_change_status_code,string,YES,"Schedule Change Status {A: Ad hoc Call, I: Phase In, L: Vessel Slide, O: Phase Out, S: Port Omisson, R: Port Call Swap}"
+base_schedule_long_range,eta,datetime,YES,Estimated Time of Arrival
+base_schedule_long_range,etb,datetime,YES,Estimated Time of Berthing
+base_schedule_long_range,etd,datetime,YES,Estimated Time of Departure
+base_schedule_long_range,terminal_code,string,YES,"Terminal Code (Port Code + 2-digit number, e.g., KRPUS01)"
+base_schedule_proforma,lane_code,string,NO,Lane Code / 3 alphanum
+base_schedule_proforma,proforma_name,string,NO,Proforma Name / 4 numeric digits
+base_schedule_proforma,effective_from_date,datetime,NO,Effective date from which the proforma is applied. The proforma currently in use is set with a date six months prior.
+base_schedule_proforma,duration,numeric,NO,Total number of days from the ETB of the first port to the ETB of the last port
+base_schedule_proforma,declared_capacity,string,NO,"Declared vessel capacity (TEU) for the lane, Currently equal to vessel_capacity"
+base_schedule_proforma,declared_count,int,NO,Declared number of vessels for the lane
+base_schedule_proforma,direction,string,NO,"Direction {W, E, S, N}"
+base_schedule_proforma,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
+base_schedule_proforma,calling_port_indicator,string,NO,Port call order for each direction and port within the lane
+base_schedule_proforma,calling_port_seq,int,NO,Port call sequence within the lane
+base_schedule_proforma,turn_port_info_code,string,YES,Turning Port Indicator (Y/N) / Y: Create Virtual Port 
+base_schedule_proforma,pilot_in_hours,numeric,YES,Time from outer port to berth (Hour)
+base_schedule_proforma,etb_day_number,int,NO,Total number of days from the first port ETB to this ETB
+base_schedule_proforma,etb_day_code,string,NO,Day of week for ETB
+base_schedule_proforma,etb_day_time,string,NO,ETB time (HHMM)
+base_schedule_proforma,actual_work_hours,numeric,YES,Actual working time at the berth (hours)
+base_schedule_proforma,etd_day_number,int,YES,Total number of days from the first port ETB to this ETD
+base_schedule_proforma,etd_day_code,string,YES,Day of week for ETD
+base_schedule_proforma,etd_day_time,string,YES,ETD time (HHMM)
+base_schedule_proforma,pilot_out_hours,numeric,YES,Time from berth to outer port  (Hour)
+base_schedule_proforma,link_distance,int,YES,Port-to-Port Distance (NM)
+base_schedule_proforma,link_eca_distance,int,YES,Port-to-Port ECA Distance (NM)
+base_schedule_proforma,link_speed,numeric,YES,Port-to-Port Average Speed
+base_schedule_proforma,sea_time_hours,numeric,YES,"Sea Time (hours), Next port ETB − Current port ETD − Current port Pilot Out + Next port Pilot In"
+base_schedule_proforma,terminal_code,string,NO,"Terminal Code (Port Code + 2-digit number, e.g., KRPUS01)"
+base_vessel_capacity,trade_code,string,NO,Trade Code / 3 alpha
+base_vessel_capacity,lane_code,string,NO,Lane Code / 3 alphanum
+base_vessel_capacity,vessel_code,string,NO,Vessel Code / 4 alphanum
+base_vessel_capacity,voyage_number,string,NO,Voyage Number / 4 numeric digits
+base_vessel_capacity,direction,string,NO,"Direction {W, E, S, N}"
+base_vessel_capacity,vessel_capacity,int,NO,Vessel Capacity (TEU)
+base_vessel_capacity,reefer_capacity,int,NO,Max Reefer Containers (Plug Capacity)
+base_vessel_charter_cost,vessel_code,string,NO,Vessel Code / 4 alphanum
+base_vessel_charter_cost,hire_from_date,datetime,NO,From date for applying the hire cost
+base_vessel_charter_cost,hire_to_date,datetime,NO,To date for applying the hire cost
+base_vessel_charter_cost,hire_rate,numeric,NO,Hire Rate (USD)
+base_vessel_info,vessel_code,string,NO,Vessel Code / 4 alphanum
+base_vessel_info,vessel_name,string,NO,Vessel Name
+base_vessel_info,own_yn,string,NO,"Distinguish if it's own {O: Own, C: Charter}"
+base_vessel_info,delivery_port_code,string,YES,Delivery Port Code
+base_vessel_info,delivery_date,datetime,YES,Delivery Date
+base_vessel_info,redelivery_port_code,string,YES,Redelivery Port Code
+base_vessel_info,redelivery_date,datetime,YES,Redelivery Date
+base_vessel_info,next_dock_port_code,string,YES,Next Dock Port Code
+base_vessel_info,next_dock_in_date,datetime,YES,Next Dock In Date
+base_vessel_info,next_dock_out_date,datetime,YES,Next Dock Out Date
+base_vessel_info,built_port_code,string,YES,Built Port Code
+base_vessel_info,built_date,string,YES,Built Date
+base_week_period,base_year,int,NO,Base Year
+base_week_period,base_week,int,NO,Base Week
+base_week_period,base_month,int,NO,Base Month
+base_week_period,week_start_date,datetime,NO,Week Start
+base_week_period,week_end_date,datetime,NO,Week End

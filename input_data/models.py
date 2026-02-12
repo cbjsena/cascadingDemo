@@ -17,10 +17,10 @@ FULL_EMPTY_CHOICES = (("F", "Full"), ("E", "Empty"))
 BUNKER_TYPE_CHOICES = (("LSFO", "Low Sulphur Fuel Oil"), ("MGO", "Marine Gas Oil"))
 TURN_PORT_INFO_CD = (("Y", "Y"), ("N", "N"))
 DEPLOYMENT_TYPE_CHOICES = (
-    ("I", "Must Go (Include)"),
-    ("E", "Not Allowed (Exclude)"),
-    ("P", "Preferred"),
-    ("S", "Substitute"),
+    ("I", "Include"),
+    ("E", "Exclude"),
+    # ("P", "Preferred"),
+    # ("S", "Substitute"),
 )
 
 
@@ -38,13 +38,16 @@ class ScenarioInfo(CommonModel):
         max_length=255, null=True, blank=True, verbose_name="Description"
     )
     base_year_month = models.CharField(
-        max_length=6, null=True, blank=True, verbose_name="Base Year Month"
+        max_length=6,
+        null=True,
+        blank=True,
+        verbose_name="Year and month used as the base period / YYYYMM",
     )
     status = models.CharField(
         max_length=50,
         choices=SCENARIO_STATUS_CODE,
         default="T",
-        verbose_name="Scenario Status",
+        verbose_name="Scenario Status {T: TEST, N: Not used}",
     )
 
     class Meta:
@@ -75,57 +78,109 @@ class ScenarioBaseModel(CommonModel):
 # ==========================================
 # Group 1: Schedule
 # ==========================================
-
-
 # 1. Proforma Schedule
 class AbsProformaSchedule(models.Model):
     """Proforma Schedule 데이터 필드 (추상)"""
 
-    lane_code = models.CharField(max_length=10, verbose_name="Lane Code")
-    proforma_name = models.CharField(max_length=30, verbose_name="Proforma Name")
-    effective_date = models.DateTimeField(verbose_name="Effective Date")
+    lane_code = models.CharField(max_length=10, verbose_name="Lane Code / 3 alphanum")
+    proforma_name = models.CharField(
+        max_length=30, verbose_name="Proforma Name / 4 numeric digits"
+    )
+    effective_from_date = models.DateTimeField(
+        verbose_name="Effective date from which the proforma is applied. "
+        "The proforma currently in use is set with a date six months prior."
+    )
     duration = models.DecimalField(
-        max_digits=5, decimal_places=1, verbose_name="Duration"
+        max_digits=5,
+        decimal_places=1,
+        verbose_name="Total number of days from the ETB of the first port to the ETB of the last port",
     )
-    declared_capacity = models.CharField(max_length=5, verbose_name="Declared Capacity")
-    declared_count = models.IntegerField(verbose_name="Declared Count")
+    declared_capacity = models.CharField(
+        max_length=5,
+        verbose_name="Declared vessel capacity (TEU) for the lane, Currently equal to vessel_capacity",
+    )
+    declared_count = models.IntegerField(
+        verbose_name="Declared number of vessels for the lane"
+    )
     direction = models.CharField(
-        max_length=2, choices=DIRECTION_CHOICES, verbose_name="Direction"
+        max_length=2, choices=DIRECTION_CHOICES, verbose_name="Direction {W, E, S, N}"
     )
-    port_code = models.CharField(max_length=10, verbose_name="Port Code")
+    port_code = models.CharField(
+        max_length=10,
+        verbose_name="Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)",
+    )
     calling_port_indicator = models.CharField(
-        max_length=2, verbose_name="Calling Port Indicator Seq."
+        max_length=2,
+        verbose_name="Port call order for each direction and port within the lane",
     )
-    calling_port_seq = models.IntegerField(verbose_name="Calling Port Seq.")
+    calling_port_seq = models.IntegerField(
+        verbose_name="Port call sequence within the lane"
+    )
     turn_port_info_code = models.CharField(
-        max_length=3, choices=TURN_PORT_INFO_CD, verbose_name="Turn Port Info"
+        null=True,
+        max_length=3,
+        choices=TURN_PORT_INFO_CD,
+        verbose_name="Turning Port Indicator (Y/N) / Y: Create Virtual Port ",
     )
     pilot_in_hours = models.DecimalField(
-        max_digits=5, decimal_places=3, verbose_name="Pilot In Hours", default=3
+        null=True,
+        max_digits=5,
+        decimal_places=3,
+        verbose_name="Time from outer port to berth (Hour)",
+        default=3,
     )
-    etb_day_code = models.CharField(max_length=3, verbose_name="ETB Day Code")
-    etb_day_time = models.CharField(max_length=4, verbose_name="ETB Day Time")
-    etb_day_number = models.IntegerField(verbose_name="ETB Day Number")
+    etb_day_number = models.IntegerField(
+        verbose_name="Total number of days from the first port ETB to this ETB"
+    )
+    etb_day_code = models.CharField(max_length=3, verbose_name="Day of week for ETB")
+    etb_day_time = models.CharField(max_length=4, verbose_name="ETB time (HHMM)")
     actual_work_hours = models.DecimalField(
-        max_digits=5, decimal_places=3, verbose_name="Actual Work Hours", default=30
+        null=True,
+        max_digits=5,
+        decimal_places=3,
+        verbose_name="Actual working time at the berth (hours)",
+        default=30,
     )
-    etd_day_code = models.CharField(max_length=3, verbose_name="ETD Day Code")
-    etd_day_time = models.CharField(max_length=4, verbose_name="ETD Day Time")
-    etd_day_number = models.IntegerField(verbose_name="ETD Day Number")
+    etd_day_number = models.IntegerField(
+        null=True,
+        verbose_name="Total number of days from the first port ETB to this ETD",
+    )
+    etd_day_code = models.CharField(
+        null=True, max_length=3, verbose_name="Day of week for ETD"
+    )
+    etd_day_time = models.CharField(
+        null=True, max_length=4, verbose_name="ETD time (HHMM)"
+    )
     pilot_out_hours = models.DecimalField(
-        max_digits=5, decimal_places=3, verbose_name="Pilot Out Hours", default=3
+        null=True,
+        max_digits=5,
+        decimal_places=3,
+        verbose_name="Time from berth to outer port  (Hour)",
+        default=3,
     )
-    link_distance = models.IntegerField(verbose_name="Link Distance", default=0)
+
+    link_distance = models.IntegerField(
+        null=True, verbose_name="Distance to Next Port (NM)", default=0
+    )
     link_eca_distance = models.IntegerField(
-        null=True, verbose_name="Link ECA Distance", default=0
+        null=True, verbose_name="ECA Distance to Next Port (NM)", default=0
     )
     link_speed = models.DecimalField(
-        null=True, max_digits=5, decimal_places=3, verbose_name="Link Speed"
+        null=True,
+        max_digits=5,
+        decimal_places=3,
+        verbose_name="Average Speed to Next Port (knots)",
     )
-    sea_hours = models.DecimalField(
-        null=True, max_digits=5, decimal_places=3, verbose_name="Sea Hours"
+    sea_time_hours = models.DecimalField(
+        null=True,
+        max_digits=5,
+        decimal_places=3,
+        verbose_name="Sea Time (hours), Next port ETB − Current port ETD − Current port Pilot Out + Next port Pilot In",
     )
-    terminal_code = models.CharField(max_length=10, verbose_name="Terminal Code")
+    terminal_code = models.CharField(
+        max_length=10,
+        verbose_name="Terminal Code (Port Code + 2-digit number, e.g., KRPUS01)",
+    )
 
     class Meta:
         abstract = True
@@ -179,39 +234,53 @@ class ProformaSchedule(AbsProformaSchedule, ScenarioBaseModel):
 class AbsLongRangeSchedule(models.Model):
     """Long Range Schedule 데이터 필드 (추상)"""
 
-    lane_code = models.CharField(max_length=10, verbose_name="Lane Code")
-    vessel_code = models.CharField(max_length=10, verbose_name="Vessel Code")
-    voyage_number = models.CharField(max_length=20, verbose_name="Voyage Number")
+    lane_code = models.CharField(max_length=10, verbose_name="Lane Code / 3 alphanum")
+    vessel_code = models.CharField(
+        max_length=10, verbose_name="Vessel Code / 4 alphanum"
+    )
+    voyage_number = models.CharField(
+        max_length=20, verbose_name="Voyage Number / 4 numeric digits"
+    )
     direction = models.CharField(
-        max_length=2, choices=DIRECTION_CHOICES, verbose_name="Direction"
+        max_length=2, choices=DIRECTION_CHOICES, verbose_name="Direction {W, E, S, N}"
     )
     start_port_berthing_year_week = models.CharField(
         max_length=6, verbose_name="Start Port Berthing Year Week"
     )
-    proforma_name = models.CharField(max_length=30, verbose_name="Proforma Name")
-    port_code = models.CharField(max_length=10, verbose_name="Port Code")
-    calling_port_indicator = models.CharField(
-        max_length=2, verbose_name="Calling Port Indicator Seq."
+    proforma_name = models.CharField(
+        max_length=30, verbose_name="Proforma Name / 4 numeric digits"
     )
-    calling_port_seq = models.IntegerField(verbose_name="Calling Port Seq.")
+    port_code = models.CharField(
+        max_length=10,
+        verbose_name="Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)",
+    )
+    calling_port_indicator = models.CharField(
+        max_length=2, verbose_name="Port call order per port within a VVD"
+    )
+    calling_port_seq = models.IntegerField(
+        verbose_name="Port call sequence within the VVD"
+    )
     schedule_change_status_code = models.CharField(
         max_length=1,
         choices=SCHEDULE_CHANGE_STATUS_CODE_CHOICES,
         null=True,
         blank=True,
-        verbose_name="Change Status",
+        verbose_name="Schedule Change Status {A: Ad hoc Call, I: Phase In, L: Vessel Slide, O: Phase Out, S: Port Omisson, R: Port Call Swap}",
     )
     eta = models.DateTimeField(
-        null=True, blank=True, verbose_name="ETA"
+        null=True, blank=True, verbose_name="Estimated Time of Arrival"
     )
     etb = models.DateTimeField(
-        null=True, blank=True, verbose_name="ETB"
+        null=True, blank=True, verbose_name="Estimated Time of Berthing"
     )
     etd = models.DateTimeField(
-        null=True, blank=True, verbose_name="ETD"
+        null=True, blank=True, verbose_name="Estimated Time of Departure"
     )
     terminal_code = models.CharField(
-        max_length=10, null=True, blank=True, verbose_name="Terminal Code"
+        max_length=10,
+        null=True,
+        blank=True,
+        verbose_name="Terminal Code (Port Code + 2-digit number, e.g., KRPUS01)",
     )
 
     class Meta:
@@ -260,17 +329,19 @@ class LongRangeSchedule(AbsLongRangeSchedule, ScenarioBaseModel):
 # ==========================================
 # Group 2: Vessel
 # ==========================================
-
-
 # 3. Vessel Info
 class AbsVesselInfo(models.Model):
     """Vessel Info 데이터 필드 (추상)"""
 
-    vessel_code = models.CharField(max_length=10, verbose_name="Vessel Code")
+    vessel_code = models.CharField(
+        max_length=10, verbose_name="Vessel Code / 4 alphanum"
+    )
     vessel_name = models.CharField(max_length=50, verbose_name="Vessel Name")
-    nominal_capacity = models.IntegerField(verbose_name="Nominal Capacity")
+    # nominal_capacity = models.IntegerField(verbose_name="Nominal Capacity")
     own_yn = models.CharField(
-        max_length=1, choices=OWN_TYPE_CHOICES, verbose_name="Own YN"
+        max_length=1,
+        choices=OWN_TYPE_CHOICES,
+        verbose_name="Distinguish if it's own {O: Own, C: Charter}",
     )
     delivery_port_code = models.CharField(
         max_length=10, null=True, blank=True, verbose_name="Delivery Port Code"
@@ -337,12 +408,18 @@ class VesselInfo(AbsVesselInfo, ScenarioBaseModel):
 class AbsCharterCost(models.Model):
     """Charter Cost 데이터 필드 (추상)"""
 
-    vessel_code = models.CharField(max_length=4, verbose_name="Vessel Code")
+    vessel_code = models.CharField(
+        max_length=4, verbose_name="Vessel Code / 4 alphanum"
+    )
     # currency_code = models.CharField(max_length=3, verbose_name="Currency Code")
-    hire_from_date = models.DateTimeField(verbose_name="Hire From Date")
-    hire_to_date = models.DateTimeField(verbose_name="Hire To Date")
+    hire_from_date = models.DateTimeField(
+        verbose_name="From date for applying the hire cost"
+    )
+    hire_to_date = models.DateTimeField(
+        verbose_name="To date for applying the hire cost"
+    )
     hire_rate = models.DecimalField(
-        max_digits=15, decimal_places=6, verbose_name="Hire Rate"
+        max_digits=15, decimal_places=6, verbose_name="Hire Rate (USD)"
     )
 
     class Meta:
@@ -371,17 +448,27 @@ class CharterCost(AbsCharterCost, ScenarioBaseModel):
 
 # 5. Vessel Capacity
 class AbsVesselCapacity(models.Model):
-    """Vessel Capacity 데이터 필드 (추상)"""
+    """Vessel Capacity 데이터 필드 (추상)
+    선박 용량은 기본적으로 vessel 단위로 관리하나,
+    미래에는 lane, vvd 단위로 선박 용량 입력할 수 있으므로 컬럼 유지
+    해당 테이블의 vessel_capacity를 모델에서 사용
+    """
 
-    trade_code = models.CharField(max_length=10, verbose_name="Trade Code")
-    lane_code = models.CharField(max_length=10, verbose_name="Lane Code")
-    vessel_code = models.CharField(max_length=10, verbose_name="Vessel Code")
-    voyage_number = models.CharField(max_length=20, verbose_name="Voyage Number")
-    direction = models.CharField(
-        max_length=2, choices=DIRECTION_CHOICES, verbose_name="Direction"
+    trade_code = models.CharField(max_length=10, verbose_name="Trade Code / 3 alpha")
+    lane_code = models.CharField(max_length=10, verbose_name="Lane Code / 3 alphanum")
+    vessel_code = models.CharField(
+        max_length=10, verbose_name="Vessel Code / 4 alphanum"
     )
-    teu_capacity = models.IntegerField(verbose_name="TEU Capacity")
-    reefer_capacity = models.IntegerField(verbose_name="Reefer Capacity")
+    voyage_number = models.CharField(
+        max_length=20, verbose_name="Voyage Number / 4 numeric digits"
+    )
+    direction = models.CharField(
+        max_length=2, choices=DIRECTION_CHOICES, verbose_name="Direction {W, E, S, N}"
+    )
+    vessel_capacity = models.IntegerField(verbose_name="Vessel Capacity (TEU)")
+    reefer_capacity = models.IntegerField(
+        verbose_name="Max Reefer Containers (Plug Capacity)"
+    )
 
     class Meta:
         abstract = True
@@ -430,13 +517,18 @@ class VesselCapacity(AbsVesselCapacity, ScenarioBaseModel):
 class AbsCanalFee(models.Model):
     """Canal Fee 데이터 필드 (추상)"""
 
-    vessel_code = models.CharField(max_length=10, verbose_name="Vessel Code")
-    direction = models.CharField(
-        max_length=2, choices=DIRECTION_CHOICES, verbose_name="Direction"
+    vessel_code = models.CharField(
+        max_length=10, verbose_name="Vessel Code / 4 alphanum"
     )
-    port_code = models.CharField(max_length=10, verbose_name="Port Code")
+    direction = models.CharField(
+        max_length=2, choices=DIRECTION_CHOICES, verbose_name="Direction {W, E}"
+    )
+    port_code = models.CharField(
+        max_length=10,
+        verbose_name="Port Code where the canal is located {PAPCA, EGSCA}",
+    )
     canal_fee = models.DecimalField(
-        max_digits=15, decimal_places=6, verbose_name="Canal Fee"
+        max_digits=15, decimal_places=6, verbose_name="Canal Transit Fee (USD)"
     )
 
     class Meta:
@@ -472,8 +564,8 @@ class AbsDistance(models.Model):
 
     from_port_code = models.CharField(max_length=10, verbose_name="From Port Code")
     to_port_code = models.CharField(max_length=10, verbose_name="To Port Code")
-    distance = models.IntegerField(verbose_name="Distance")
-    eca_distance = models.IntegerField(verbose_name="ECA Distance")
+    distance = models.IntegerField(verbose_name="Port-to-Port Distance (NM)")
+    eca_distance = models.IntegerField(verbose_name="Port-to-Port ECA Distance (NM)")
 
     class Meta:
         abstract = True
@@ -506,10 +598,15 @@ class Distance(AbsDistance, ScenarioBaseModel):
 class AbsTSCost(models.Model):
     """TS Cost 데이터 필드 (추상)"""
 
-    base_year_month = models.CharField(max_length=6, verbose_name="Base Year Month")
-    port_code = models.CharField(max_length=10, verbose_name="Port Code")
+    base_year_month = models.CharField(
+        max_length=6, verbose_name="Year and month used as the base period / YYYYMM"
+    )
+    port_code = models.CharField(
+        max_length=10,
+        verbose_name="Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)",
+    )
     # currency_code = models.CharField(max_length=3, verbose_name="Currency Code")
-    ts_cost = models.IntegerField(verbose_name="TS Cost")
+    ts_cost = models.IntegerField(verbose_name="Transshipment Cost (USD)")
 
     class Meta:
         abstract = True
@@ -544,13 +641,21 @@ class TSCost(AbsTSCost, ScenarioBaseModel):
 class AbsBunkerConsumptionSea(models.Model):
     """Bunker Consumption Sea 데이터 필드 (추상)"""
 
-    base_year_month = models.CharField(max_length=6, verbose_name="Base Year Month")
-    nominal_capacity = models.IntegerField(verbose_name="Nominal Capacity")
+    base_year_month = models.CharField(
+        max_length=6, verbose_name="Year and month used as the base period / YYYYMM"
+    )
+    vessel_capacity = models.IntegerField(
+        verbose_name="Vessel Capacity (TEU), 1851 types"
+    )
     sea_speed = models.DecimalField(
-        max_digits=5, decimal_places=3, verbose_name="Sea Speed"
+        max_digits=5,
+        decimal_places=3,
+        verbose_name="Speed (Knot), 13 types consisting of 0.5 difference from 14 to 20",
     )
     bunker_consumption = models.DecimalField(
-        max_digits=25, decimal_places=13, verbose_name="Bunker Consumption"
+        max_digits=25,
+        decimal_places=13,
+        verbose_name="Daily bunker consumption at sea (Ton)",
     )
 
     class Meta:
@@ -563,7 +668,7 @@ class BaseBunkerConsumptionSea(AbsBunkerConsumptionSea):
     class Meta:
         verbose_name = "Base Daily bunker consumption by vessel size and speed at sea"
         db_table = "base_bunker_consumption_sea"
-        unique_together = (("base_year_month", "nominal_capacity", "sea_speed"),)
+        unique_together = (("base_year_month", "vessel_capacity", "sea_speed"),)
 
 
 class BunkerConsumptionSea(AbsBunkerConsumptionSea, ScenarioBaseModel):
@@ -575,7 +680,7 @@ class BunkerConsumptionSea(AbsBunkerConsumptionSea, ScenarioBaseModel):
         verbose_name = "Daily bunker consumption by vessel size and speed at sea"
         db_table = "sce_bunker_consumption_sea"
         unique_together = (
-            ("scenario", "base_year_month", "nominal_capacity", "sea_speed"),
+            ("scenario", "base_year_month", "vessel_capacity", "sea_speed"),
         )
 
 
@@ -583,16 +688,26 @@ class BunkerConsumptionSea(AbsBunkerConsumptionSea, ScenarioBaseModel):
 class AbsBunkerConsumptionPort(models.Model):
     """Bunker Consumption Port 데이터 필드 (추상)"""
 
-    base_year_month = models.CharField(max_length=6, verbose_name="Base Year Month")
-    nominal_capacity = models.IntegerField(verbose_name="Nominal Capacity")
+    base_year_month = models.CharField(
+        max_length=6, verbose_name="Year and month used as the base period / YYYYMM"
+    )
+    vessel_capacity = models.IntegerField(
+        verbose_name="Vessel Capacity (TEU), 1851 types"
+    )
     port_stay_bunker_consumption = models.DecimalField(
-        max_digits=5, decimal_places=3, verbose_name="Port Stay Consumption"
+        max_digits=5,
+        decimal_places=3,
+        verbose_name="Hourly bunker consumption during port stay (Ton)",
     )
     idling_bunker_consumption = models.DecimalField(
-        max_digits=5, decimal_places=3, verbose_name="Idling Consumption"
+        max_digits=5,
+        decimal_places=3,
+        verbose_name="Hourly bunker consumption during idling (Ton)",
     )
     pilot_inout_bunker_consumption = models.DecimalField(
-        max_digits=5, decimal_places=3, verbose_name="Pilot In/Out Consumption"
+        max_digits=5,
+        decimal_places=3,
+        verbose_name="Hourly bunker consumption during pilot in/out (Ton)",
     )
 
     class Meta:
@@ -605,7 +720,7 @@ class BaseBunkerConsumptionPort(AbsBunkerConsumptionPort):
     class Meta:
         verbose_name = "Base bunker consumption per hour by vessel size during port stay and idling"
         db_table = "base_bunker_consumption_port"
-        unique_together = (("base_year_month", "nominal_capacity"),)
+        unique_together = (("base_year_month", "vessel_capacity"),)
 
 
 class BunkerConsumptionPort(AbsBunkerConsumptionPort, ScenarioBaseModel):
@@ -614,23 +729,29 @@ class BunkerConsumptionPort(AbsBunkerConsumptionPort, ScenarioBaseModel):
     bunker_consumption_port_id = models.AutoField(primary_key=True)
 
     class Meta:
-        verbose_name = "bunker consumption per hour by vessel size during port stay and idling"
+        verbose_name = (
+            "bunker consumption per hour by vessel size during port stay and idling"
+        )
         db_table = "sce_bunker_consumption_port"
-        unique_together = (("scenario", "base_year_month", "nominal_capacity"),)
+        unique_together = (("scenario", "base_year_month", "vessel_capacity"),)
 
 
 # 3. Bunker Price
 class AbsBunkerPrice(models.Model):
     """Bunker Price 데이터 필드 (추상)"""
 
-    base_year_month = models.CharField(max_length=6, verbose_name="Base Year Month")
-    trade_code = models.CharField(max_length=10, verbose_name="Trade Code")
-    lane_code = models.CharField(max_length=10, verbose_name="Lane Code")
+    base_year_month = models.CharField(
+        max_length=6, verbose_name="Year and month used as the base period / YYYYMM"
+    )
+    trade_code = models.CharField(max_length=10, verbose_name="Trade Code / 3 alpha")
+    lane_code = models.CharField(max_length=10, verbose_name="Lane Code / 3 alphanum")
     bunker_type = models.CharField(
-        max_length=4, choices=BUNKER_TYPE_CHOICES, verbose_name="Bunker Type"
+        max_length=4,
+        choices=BUNKER_TYPE_CHOICES,
+        verbose_name="Bunker type {LSFO: Low Sulphur Fuel Oil, MGO: Marine Gas Oil}",
     )
     bunker_price = models.DecimalField(
-        max_digits=10, decimal_places=3, verbose_name="Bunker Price"
+        max_digits=10, decimal_places=3, verbose_name="Bunker Price (USD per Ton)"
     )
 
     class Meta:
@@ -671,13 +792,18 @@ class AbsFixedVesselDeployment(models.Model):
     특정 Lane에 특정 선박을 '반드시 투입(Include)'하거나 '투입 금지(Exclude)'합니다.
     """
 
-    lane_code = models.CharField(max_length=10, verbose_name="Lane Code")
-    vessel_code = models.CharField(max_length=20, verbose_name="Vessel Code")
+    lane_code = models.CharField(max_length=10, verbose_name="Lane Code / 3 alphanum")
+    vessel_code = models.CharField(
+        max_length=20, verbose_name="Vessel Code / 4 alphanum"
+    )
+    effective_from_date = models.DateTimeField(
+        verbose_name="Effective date from which the deployment is applied."
+    )
     deployment_type = models.CharField(
         max_length=1,
         choices=DEPLOYMENT_TYPE_CHOICES,
         default="I",
-        verbose_name="Deployment Type",
+        verbose_name="Indicates whether the vessel must be included in or excluded from the lane {I: Include, E: Exclude}",
     )
     remark = models.CharField(
         max_length=255, null=True, blank=True, verbose_name="Remark"
@@ -693,7 +819,7 @@ class BaseFixedVesselDeployment(AbsFixedVesselDeployment):
     class Meta:
         verbose_name = "Base Constraints for fixed vessel deployment on specific lanes"
         db_table = "base_constraint_fixed_deployment"
-        unique_together = (("lane_code", "vessel_code"),)
+        unique_together = (("lane_code", "vessel_code", "effective_from_date"),)
 
 
 class FixedVesselDeployment(AbsFixedVesselDeployment, ScenarioBaseModel):
@@ -704,7 +830,9 @@ class FixedVesselDeployment(AbsFixedVesselDeployment, ScenarioBaseModel):
     class Meta:
         verbose_name = "Constraints for fixed vessel deployment on specific lanes"
         db_table = "sce_constraint_fixed_deployment"
-        unique_together = (("scenario", "lane_code", "vessel_code"),)
+        unique_together = (
+            ("scenario", "lane_code", "vessel_code", "effective_from_date"),
+        )
 
     def __str__(self):
         type_str = self.get_deployment_type_display()
@@ -720,16 +848,21 @@ class AbsFixedScheduleChange(models.Model):
     특정 시점에 발생하는 Phase In / Phase Out / Omition 등을 관리합니다.
     """
 
-    vessel_code = models.CharField(max_length=20, verbose_name="Vessel Code")
-    port_code = models.CharField(max_length=10, verbose_name="Port Code")
+    vessel_code = models.CharField(
+        max_length=20, verbose_name="Vessel Code / 4 alphanum"
+    )
+    port_code = models.CharField(
+        max_length=10,
+        verbose_name="Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)",
+    )
     schedule_change_status_code = models.CharField(
         max_length=1,
         choices=SCHEDULE_CHANGE_STATUS_CODE_CHOICES,
         null=True,
         blank=True,
-        verbose_name="Change Status",
+        verbose_name="Schedule Change Status {A: Ad hoc Call, I: Phase In, L: Vessel Slide, O: Phase Out, S: Port Omisson, R: Port Call Swap}",
     )
-    eta = models.DateTimeField(verbose_name="ETA")
+    eta = models.DateTimeField(verbose_name="Estimated Time of Arrival")
     remark = models.CharField(
         max_length=255, null=True, blank=True, verbose_name="Remark"
     )
@@ -744,7 +877,9 @@ class BaseFixedScheduleChange(AbsFixedScheduleChange):
     class Meta:
         verbose_name = "Base Constraints for fixed schedule change on specific vessels"
         db_table = "base_constraint_fixed_schedule_change"
-        unique_together = (("vessel_code", "port_code", "schedule_change_status_code", "eta"),)
+        unique_together = (
+            ("vessel_code", "port_code", "schedule_change_status_code", "eta"),
+        )
 
 
 class FixedScheduleChange(AbsFixedScheduleChange, ScenarioBaseModel):
@@ -754,9 +889,15 @@ class FixedScheduleChange(AbsFixedScheduleChange, ScenarioBaseModel):
 
     class Meta:
         verbose_name = "Fixed Constraints for fixed schedule change on specific vessels"
-        db_table = "sce_constraint_schedule_change"
+        db_table = "sce_constraint_fixed_schedule_change"
         unique_together = (
-            ("scenario", "vessel_code", "port_code", "schedule_change_status_code", "eta"),
+            (
+                "scenario",
+                "vessel_code",
+                "port_code",
+                "schedule_change_status_code",
+                "eta",
+            ),
         )
 
     def __str__(self):
@@ -773,12 +914,20 @@ class AbsPortConstraint(models.Model):
     특정 항구(또는 터미널)에 들어갈 수 있는 선박의 크기를 제한합니다.
     """
 
-    port_code = models.CharField(max_length=10, verbose_name="Port Code")
+    port_code = models.CharField(
+        max_length=10,
+        verbose_name="Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)",
+    )
     terminal_code = models.CharField(
-        max_length=10, default="All", verbose_name="Terminal Code"
+        max_length=10,
+        default="All",
+        verbose_name="Terminal Code (Port Code +2-digit number, e.g., KRPUS01)",
     )
     exclude_vessel_class = models.CharField(
-        max_length=50, null=True, blank=True, verbose_name="Excluded Vessel Class"
+        max_length=50,
+        null=True,
+        blank=True,
+        verbose_name="Maximum allowable vessel class size (TEU)",
     )
 
     class Meta:
@@ -808,10 +957,10 @@ class PortConstraint(AbsPortConstraint, ScenarioBaseModel):
         return f"[{self.scenario.id}] {self.port_code} - {self.terminal_code} Limit"
 
 
-class BaseWeekPeriod(CommonModel):
-    base_year = models.IntegerField(verbose_name="Base Year")
-    base_week = models.IntegerField(verbose_name="Base Week")
-    base_month = models.IntegerField(verbose_name="Base Month")
+class BaseWeekPeriod(models.Model):
+    base_year = models.IntegerField(verbose_name="Base Year / YYYY")
+    base_week = models.IntegerField(verbose_name="Base Week / WK")
+    base_month = models.IntegerField(verbose_name="Base Month / MM")
     week_start_date = models.DateTimeField(verbose_name="Week Start")
     week_end_date = models.DateTimeField(verbose_name="Week End")
 
@@ -831,7 +980,7 @@ class BaseWeekPeriod(CommonModel):
 # # 3. Exchange Rate
 # class AbsExchangeRate(models.Model):
 #     """Exchange Rate 데이터 필드 (추상)"""
-#     base_year_month = models.CharField(max_length=6, verbose_name="Base Year Month")
+#     base_year_month = models.CharField(max_length=6, verbose_name="Year and month used as the base period / YYYYMM")
 #     currency_code = models.CharField(max_length=3, verbose_name="Currency Code")
 #     exchange_rate = models.DecimalField(max_digits=15, decimal_places=6, verbose_name="Exchange Rate")
 #
@@ -855,7 +1004,7 @@ class BaseWeekPeriod(CommonModel):
 #         unique_together = (("scenario", "base_year_month", "currency_code"),)
 # class OwnVesselCost(BaseModel):
 #     own_vessel_cost_id = models.AutoField(primary_key=True)
-#     base_year_month = models.CharField(max_length=6, verbose_name="Base Year Month")
+#     base_year_month = models.CharField(max_length=6, verbose_name="Year and month used as the base period / YYYYMM")
 #     slot_price = models.DecimalField(max_digits=5, decimal_places=3, verbose_name="Slot Price")
 #
 #     class Meta:
@@ -867,25 +1016,26 @@ class BaseWeekPeriod(CommonModel):
 #         return f"{self.base_year_month}"
 # class PortCharge(BaseModel):
 #     port_charge_id = models.AutoField(primary_key=True)
-#     base_year_month = models.CharField(max_length=6, verbose_name="Base Year Month")
-#     port_code = models.CharField(max_length=10, verbose_name="Port Code")
-#     currency_code = models.CharField(max_length=3, verbose_name="Currency Code")
+#     base_year_month = models.CharField(max_length=6, verbose_name="Year and month used as the base period / YYYYMM")
+#     port_code = models.CharField(max_length=10, verbose_name="Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)")
+##     currency_code = models.CharField(max_length=3, verbose_name="Currency Code")
 #     tonnage_port_yn = models.CharField(max_length=1, choices=YN_CHOICES, verbose_name="Tonnage Port YN")
-#     nominal_capacity = models.IntegerField(verbose_name="Nominal Capacity")
+#     vessel_class_capacity = models.IntegerField(verbose_name="Vessel class capacity (TEU) {4000, 6000, 8000, 10000, 13000, 20000}")
+
 #     port_charge = models.DecimalField(max_digits=15, decimal_places=6, verbose_name="Port Charge")
 #
 #     class Meta:
 #         verbose_name = "Port Charge"
 #         db_table = "cas_cost_port_charge"
-#         unique_together = (("scenario", "base_year_month", "port_code", "currency_code", "tonnage_port_yn", "nominal_capacity"),)
+#         unique_together = (("scenario", "base_year_month", "port_code", "tonnage_port_yn", "vessel_class_capacity"),)
 #
 #     def __str__(self):
-#         return f"{self.base_year_month} - {self.port_code}({self.currency_code}) - {self.nominal_capacity}"
+#         return f"{self.base_year_month} - {self.port_code}({self.currency_code}) - {self.vessel_class_capacity}"
 # class BunkeringPort(BaseModel):
 #     bunkering_port_id = models.AutoField(primary_key=True)
-#     base_year_month = models.CharField(max_length=6, verbose_name="Base Year Month")
-#     lane_code = models.CharField(max_length=10, verbose_name="Lane Code")
-#     bunker_type = models.CharField(max_length=4, choices=BUNKER_TYPE_CHOICES, verbose_name="Bunker Type")
+#     base_year_month = models.CharField(max_length=6, verbose_name="Year and month used as the base period / YYYYMM")
+#     lane_code = models.CharField(max_length=10, verbose_name="Lane Code / 3 alphanum")
+#     bunker_type = models.CharField(max_length=4, choices=BUNKER_TYPE_CHOICES, verbose_name="Bunker type (LSFO or MGO)")
 #     bunkering_port_code = models.CharField(max_length=10, verbose_name="Bunkering Port Code")
 #     bunkering_port_ratio = models.IntegerField(verbose_name="Bunkering Port Ratio")
 #
@@ -930,7 +1080,7 @@ class BaseWeekPeriod(CommonModel):
 #
 # class ETSBunkerConsumption(BaseModel):
 #     ets_bunker_consumption_id = models.AutoField(primary_key=True)
-#     bunker_type = models.CharField(max_length=4, choices=BUNKER_TYPE_CHOICES, verbose_name="Bunker Type")
+#     bunker_type = models.CharField(max_length=4, choices=BUNKER_TYPE_CHOICES, verbose_name="Bunker type (LSFO or MGO)")
 #     bunker_consumption = models.DecimalField(max_digits=5, decimal_places=3, verbose_name="Bunker Consumption")
 #
 #     class Meta:
@@ -945,12 +1095,12 @@ class BaseWeekPeriod(CommonModel):
 # class ETSEUA(BaseModel):
 #     """EU Allowance Price/Data"""
 #     ets_eua_id = models.AutoField(primary_key=True)
-#     trade_code = models.CharField(max_length=10, verbose_name="Trade Code")
-#     lane_code = models.CharField(max_length=10, verbose_name="Lane Code")
-#     vessel_code = models.CharField(max_length=10, verbose_name="Vessel Code")
-#     voyage_number = models.CharField(max_length=20, verbose_name="Voyage Number")
-#     direction = models.CharField(max_length=2, choices=DIRECTION_CHOICES, verbose_name="Direction")
-#     base_year_month = models.CharField(max_length=6, verbose_name="Base Year Month")
+#     trade_code = models.CharField(max_length=10, verbose_name="Trade Code / 3 alpha")
+#     lane_code = models.CharField(max_length=10, verbose_name="Lane Code / 3 alphanum")
+#     vessel_code = models.CharField(max_length=10, verbose_name="Vessel Code / 4 alphanum")
+#     voyage_number = models.CharField(max_length=20, verbose_name="Voyage Number / 4 numeric digits")
+#     direction = models.CharField(max_length=2, choices=DIRECTION_CHOICES, verbose_name="Direction {W, E, S, N}")
+#     base_year_month = models.CharField(max_length=6, verbose_name="Year and month used as the base period / YYYYMM")
 #     eu_allowance = models.DecimalField(max_digits=15, decimal_places=6, verbose_name="EU Allowance")
 #     euro_exchange_rate = models.DecimalField(max_digits=15, decimal_places=6, verbose_name="EURO Exchange Rate")
 #
@@ -966,8 +1116,8 @@ class BaseWeekPeriod(CommonModel):
 #
 # class FuelEU(BaseModel):
 #     fuel_eu_id = models.AutoField(primary_key=True)
-#     trade_code = models.CharField(max_length=10, verbose_name="Trade Code")
-#     lane_code = models.CharField(max_length=10, verbose_name="Lane Code")
+#     trade_code = models.CharField(max_length=10, verbose_name="Trade Code / 3 alpha")
+#     lane_code = models.CharField(max_length=10, verbose_name="Lane Code / 3 alphanum")
 #     base_year_week = models.CharField(max_length=6, verbose_name="Base Year Week")
 #     fuel_energy_content = models.IntegerField(verbose_name="Fuel Energy Content")
 #     ghg_penalty_rate = models.IntegerField(verbose_name="GHG Penalty Rate")
@@ -983,7 +1133,7 @@ class BaseWeekPeriod(CommonModel):
 #
 # class FuelEUBunker(BaseModel):
 #     fuel_eu_bunker_id = models.AutoField(primary_key=True)
-#     bunker_type = models.CharField(max_length=4, verbose_name="Bunker Type")
+#     bunker_type = models.CharField(max_length=4, verbose_name="Bunker type (LSFO or MGO)")
 #     ghg_intensity = models.DecimalField(max_digits=5, decimal_places=3, verbose_name="GHG Intensity")
 #     lower_calorific_value = models.DecimalField(max_digits=15, decimal_places=6, verbose_name="Lower Calorific Value")
 #

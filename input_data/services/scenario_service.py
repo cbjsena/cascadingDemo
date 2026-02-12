@@ -13,9 +13,9 @@ from input_data.models import (
     BaseCharterCost,
     # 3. Cost & Distance
     BaseDistance,
+    BaseFixedScheduleChange,
     # 6. Constraints
     BaseFixedVesselDeployment,
-    BaseFixedScheduleChange,
     BaseLongRangeSchedule,
     BasePortConstraint,
     # 1. Schedule
@@ -30,8 +30,8 @@ from input_data.models import (
     CanalFee,
     CharterCost,
     Distance,
-    FixedVesselDeployment,
     FixedScheduleChange,
+    FixedVesselDeployment,
     LongRangeSchedule,
     PortConstraint,
     ProformaSchedule,

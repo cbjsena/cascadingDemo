@@ -33,13 +33,13 @@ CREATE TABLE public.basic_constraint_fixed_deployment (
 	remark varchar(255) NULL,
 	CONSTRAINT basic_constraint_fixed_deployment_pkey PRIMARY KEY (scenario_id, lane_code, vessel_code)
 );
-CREATE TABLE public.cas_constraint_fixed_schedule_changet (
+CREATE TABLE public.constraint_fixed_schedule_change (
 	vessel_code varchar(20) NOT NULL,
-	event_type varchar(2) NOT NULL,
 	port_code varchar(10) NULL,
-	event_date timestamptz NOT NULL,
+	schedule_change_status_code varchar(1) NOT NULL,
+	eta timestamptz NOT NULL,
 	description varchar(255) NULL,
-	CONSTRAINT cas_constraint_fixed_schedule_changet_pkey PRIMARY KEY (vessel_code, event_type, port_code, event_date)
+	CONSTRAINT constraint_fixed_schedule_change_pkey PRIMARY KEY (vessel_code, port_code, schedule_change_status_code, eta)
 );
 
 -- ##################### cost	#####################
@@ -92,7 +92,7 @@ CREATE TABLE public.basic_master_week_period (
 CREATE TABLE public.basic_schedule_proforma(
 	lane_code varchar(10) NOT NULL,
 	proforma_name varchar(30) NOT NULL,
-	effective_date timestamptz NOT NULL,
+	effective_from_date timestamptz NOT NULL,
 	duration numeric(5, 1) NOT NULL,
 	declared_capacity varchar(5) NOT NULL,
 	declared_count int4 NOT NULL,
@@ -113,7 +113,7 @@ CREATE TABLE public.basic_schedule_proforma(
 	link_distance int4 NOT NULL,
 	link_eca_distance int4 NULL,
 	link_speed numeric(5, 3) NULL,
-	sea_hours numeric(5, 3) NULL,
+	sea_time_hours numeric(5, 3) NULL,
 	terminal_code varchar(10) NOT NULL,
 	CONSTRAINT basic_schedule_proforma_pkey PRIMARY KEY (lane_code, proforma_name, direction, calling_port_indicator,port_code)
 );

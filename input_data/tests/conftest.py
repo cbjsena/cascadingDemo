@@ -76,7 +76,7 @@ def scenario_with_data(db, user):
         scenario=scenario,
         lane_code="TEST_LANE",
         proforma_name="PF_DATA",
-        effective_date=timezone.now(),
+        effective_from_date=timezone.now(),
         duration=40.0,
         declared_capacity="10000",
         declared_count=1,

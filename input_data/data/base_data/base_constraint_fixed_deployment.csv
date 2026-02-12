@@ -1,2 +1,2 @@
-lane_code,vessel_code,deployment_type,remark
-AAA,TEST,E,Test
+lane_code,vessel_code,effective_from_date,deployment_type,remark
+AAA,TEST,2026/01/01 00:00:00,E,Test

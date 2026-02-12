@@ -182,24 +182,24 @@ class TestProformaView:
             "lane_code": "TEST",
             "proforma_name": "PF_SAVED",
             "duration": "10",
-            "effective_date": "2026-01-01",
+            "effective_from_date": "2026-01-01",
             "capacity": "14000",
             "count": "5",
             # Grid
             "no[]": ["1"],
-            "port_code[]": ["PUS"],
+            "port_code[]": ["KRPUS"],
             "direction[]": ["E"],
             "turn_port_info_code[]": ["N"],
             # ETB Info (etb_day_number는 Not Null)
+            "etb_no[]": ["0"],  # Service에서 etb_day_number로 매핑됨
             "etb_day[]": ["SUN"],
             "etb_time[]": ["0000"],
-            "etb_no[]": ["0"],  # Service에서 etb_day_number로 매핑됨
             # ETD Info (etd_day_number는 Not Null)
+            "etd_no[]": ["0"],  # Service에서 etd_day_number로 매핑됨
             "etd_day[]": ["SUN"],
             "etd_time[]": ["1200"],
-            "etd_no[]": ["0"],  # Service에서 etd_day_number로 매핑됨
             # [중요] Terminal Code는 Not Null이므로 반드시 값 전달
-            "terminal[]": ["PNC"],
+            "terminal[]": ["KRPUS01"],
             # Nullable Fields (값이 없으면 Service에서 0 또는 None 처리)
             "pilot_in[]": ["2.0"],
             "work_hours[]": ["12.0"],
@@ -225,11 +225,11 @@ class TestProformaView:
 
         # 3. 주요 필드 값 검증
         assert obj.scenario == base_scenario
-        assert obj.port_code == "PUS"
-        assert obj.terminal_code == "PNC"  # Terminal 저장 확인
+        assert obj.port_code == "KRPUS"
+        assert obj.terminal_code == "KRPUS01"
         assert obj.declared_capacity == "14000"
         # Timezone Aware 날짜 확인
-        assert obj.effective_date.strftime("%Y-%m-%d") == "2026-01-01"
+        assert obj.effective_from_date.strftime("%Y-%m-%d") == "2026-01-01"
 
     # ==========================================================================
     # 5. Export / Import / CSV

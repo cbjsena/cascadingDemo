@@ -27,10 +27,10 @@ class TestInitBaseData:
         base_dir, data_dir = temp_base_data_dir
 
         # 테스트용 CSV 작성 (BaseVesselInfo)
-        # 헤더: vessel_code,vessel_name,nominal_capacity,own_yn,delivery_date
-        csv_content = """vessel_code,vessel_name,nominal_capacity,own_yn,delivery_date
-TEST,Test Vessel,10000,O,2025/01/01 12:00:00
-TEST2,Test Vessel 2,20000,C,2025/02/01"""
+        # 헤더: vessel_code,vessel_name,own_yn,delivery_date
+        csv_content = """vessel_code,vessel_name,own_yn,delivery_date
+TEST,Test Vessel,O,2025/01/01 12:00:00
+TEST2,Test Vessel 2,C,2025/02/01"""
 
         csv_file = data_dir / "base_vessel_info.csv"
         csv_file.write_text(csv_content, encoding="utf-8-sig")
@@ -43,7 +43,7 @@ TEST2,Test Vessel 2,20000,C,2025/02/01"""
         assert BaseVesselInfo.objects.count() == 2
 
         obj1 = BaseVesselInfo.objects.get(vessel_code="TEST")
-        assert obj1.nominal_capacity == 10000
+        # assert obj1.nominal_capacity == 10000
         # Timezone Aware 변환 확인
         assert obj1.delivery_date.year == 2025
         assert obj1.delivery_date.month == 1
@@ -60,9 +60,9 @@ TEST2,Test Vessel 2,20000,C,2025/02/01"""
         """
         base_dir, data_dir = temp_base_data_dir
 
-        # nominal_capacity(Int)와 delivery_date(Date)를 비움
-        csv_content = """vessel_code,vessel_name,nominal_capacity,own_yn,delivery_date
-EMPTY,Empty Value Vessel,,O,"""
+        # vessel_name, own_yn 비움
+        csv_content = """vessel_code,vessel_name,own_yn,delivery_date
+EMPTY,EMPTY vessel,,,"""
 
         csv_file = data_dir / "base_vessel_info.csv"
         csv_file.write_text(csv_content, encoding="utf-8-sig")
@@ -71,9 +71,7 @@ EMPTY,Empty Value Vessel,,O,"""
             call_command("init_base_data")
 
         obj = BaseVesselInfo.objects.get(vessel_code="EMPTY")
-        # IntegerField 빈 값 -> 0 (모델 필드가 null=False라면) 또는 None (null=True라면)
-        # BaseVesselInfo.nominal_capacity는 현재 모델상 Not Null이므로 0으로 변환됨
-        assert obj.nominal_capacity == 0 or obj.nominal_capacity is None
+        # BaseVesselInfo.own_yn  현재 모델상 Not Null
         assert obj.delivery_date is None
 
     def test_row_error_handling(self, temp_base_data_dir, capsys):
@@ -82,11 +80,11 @@ EMPTY,Empty Value Vessel,,O,"""
         """
         base_dir, data_dir = temp_base_data_dir
 
-        # 2번째 행의 nominal_capacity에 문자가 들어감 (에러 유발)
-        csv_content = """vessel_code,vessel_name,nominal_capacity,own_yn
-OK,Normal Vessel,5000,O
-ERR,Error Vessel,INVALID,O
-OK2,Normal Vessel 2,6000,O"""
+        # 2번째 행의 vessel_code 없음 (에러 유발)
+        csv_content = """vessel_code,vessel_name,delivery_date
+OK,Normal Vessel,2026/01/01 00:00:00
+,Error Vessel, invalid_date
+OK2,Normal Vessel 2,2026/01/01 00:00:00"""
 
         csv_file = data_dir / "base_vessel_info.csv"
         csv_file.write_text(csv_content, encoding="utf-8-sig")
@@ -103,7 +101,7 @@ OK2,Normal Vessel 2,6000,O"""
         captured = capsys.readouterr()
         # "invalid literal for int()" 에러 메시지가 포함되어야 함
         assert "Row skipped" in captured.out or "Row skipped" in captured.err
-        assert "INVALID" in captured.out or "INVALID" in captured.err
+        assert "invalid_date" in captured.out or "INVALID" in captured.err
 
     def test_file_not_found(self, temp_base_data_dir, capsys):
         """
