@@ -70,12 +70,14 @@ def get_system_user():
         username="cascading",
         defaults={
             "email": "yukaris@cyberlogitec.com",
-            "is_active": False,
         },
     )
     if created:
+        user.is_active = True
+        user.is_staff = True
+        user.is_superuser = True
         user.set_password("qwer123$")
-        user.save(update_fields=["password"])
+        user.save()
 
     return user
 

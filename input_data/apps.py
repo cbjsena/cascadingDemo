@@ -1,4 +1,5 @@
 import csv
+import io
 import os
 
 from django.apps import AppConfig
@@ -101,6 +102,7 @@ def add_db_comments(sender, **kwargs):
 def generate_table_definition(sender, **kwargs):
     """
     마이그레이션 후 base 테이블 정의서를 csv 파일로 생성
+    기존 파일과 비교하여 변경사항이 있을 때만 갱신
     """
     app_config = kwargs.get("app_config")
     if app_config is None or app_config.name != "input_data":
@@ -108,15 +110,14 @@ def generate_table_definition(sender, **kwargs):
 
     # PostgreSQL이 아니면 스킵 (쿼리가 PG 전용)
     if connection.vendor != "postgresql":
-        # print(msg.DOC_GEN_SKIP)
+        print(msg.DOC_GEN_SKIP)
         return
 
-    # 저장 경로 설정: input_data/data/table_definitions.md
+    # 저장 경로 설정
     output_dir = os.path.join(settings.BASE_DIR, "doc", "db")
     output_file = os.path.join(output_dir, "base_table_definitions.csv")
 
-    if not os.path.exists(output_dir):
-        os.makedirs(output_dir)
+    os.makedirs(output_dir, exist_ok=True)
 
     try:
         print(msg.DOC_GEN_START)
@@ -128,36 +129,49 @@ def generate_table_definition(sender, **kwargs):
         if not rows:
             return
 
-        with open(output_file, "w", newline="", encoding="utf-8-sig") as f:
-            writer = csv.writer(f)
+        # 새 CSV 내용을 메모리에 생성
+        buffer = io.StringIO()
+        writer = csv.writer(buffer)
 
-            # 1. 문서 헤더 (생성 정보)
-            writer.writerow(["[Base Data Table Definition]"])
-            writer.writerow(
-                ["Generated At", timezone.now().strftime("%Y-%m-%d %H:%M:%S")]
-            )
-            writer.writerow([])  # 빈 줄
+        # 1. 문서 헤더 (생성 정보)
+        writer.writerow(["[Base Data Table Definition]"])
+        writer.writerow(
+            ["Generated At", timezone.now().strftime("%Y-%m-%d %H:%M:%S")]
+        )
+        writer.writerow([])
 
             # 2. 컬럼 헤더
-            headers = [
-                "Table Name",
-                "Column Name",
-                "Data Type",
-                "Nullable",
-                "Description (Comment)",
-            ]
-            writer.writerow(headers)
+        headers = [
+            "Table Name",
+            "Column Name",
+            "Data Type",
+            "Nullable",
+            "Description (Comment)",
+        ]
+        writer.writerow(headers)
 
-            # 3. 데이터 행 작성
-            for row in rows:
-                # row: (table_name, column_name, data_type, nullable, comment)
-                table_name, col_name, data_type, nullable, comment = row
-                data_type = _map_data_type(data_type)
+        # 3. 데이터 행 작성
+        for row in rows:
+            # row: (table_name, column_name, data_type, nullable, comment)
+            table_name, col_name, data_type, nullable, comment = row
+            data_type = _map_data_type(data_type)
+            comment = comment if comment else ""
+            writer.writerow([table_name, col_name, data_type, nullable, comment])
 
-                # None 값을 빈 문자열로 변환
-                comment = comment if comment else ""
+        new_content = buffer.getvalue()
 
-                writer.writerow([table_name, col_name, data_type, nullable, comment])
+        # 4. 기존 파일과 비교
+        if os.path.exists(output_file):
+            with open(output_file, "r", encoding="utf-8-sig") as f:
+                old_content = f.read()
+
+            if _remove_generated_line(old_content) == _remove_generated_line(new_content):
+                print("No changes detected. File not updated.")
+                return
+
+        # 5 변경 있을 때만 저장
+        with open(output_file, "w", encoding="utf-8-sig", newline="") as f:
+            f.write(new_content)
 
         print(msg.DOC_GEN_SUCCESS.format(path=output_file))
 
@@ -174,3 +188,15 @@ def _map_data_type(data_type):
         data_type = "datetime"
 
     return data_type
+
+
+def _remove_generated_line(content: str) -> str:
+    """
+    CSV 내용 중 'Generated At' 줄 제거
+    """
+    lines = content.splitlines()
+    filtered = [
+        line for line in lines
+        if not line.startswith("Generated At,")
+    ]
+    return "\n".join(filtered)
