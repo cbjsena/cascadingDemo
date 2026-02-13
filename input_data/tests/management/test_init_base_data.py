@@ -117,3 +117,15 @@ OK2,Normal Vessel 2,2026/01/01 00:00:00"""
         # 모든 Base 모델에 대해 File not found 메시지가 찍혀야 함 (하나라도 확인)
         # 메시지 포맷: [SKIP] base_vessel_info: File not found ...
         assert "[SKIP]" in captured.out
+
+    # def test_load_real_base_data(self):
+    #     """
+    #     디버그를 위한 실제 데이터 로드 및 날짜/숫자 파싱 확인
+    #     """
+    #     base_dir = Path(r"D:\dev\django\cascadingDemo")
+    #     data_dir = base_dir / "data" / "base"
+    #     data_dir.mkdir(parents=True, exist_ok=True)
+    #
+    #     # BASE_DIR을 임시 경로로 오버라이딩하여 커맨드 실행
+    #     with override_settings(BASE_DIR=base_dir):
+    #         call_command("init_base_data")

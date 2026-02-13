@@ -84,6 +84,7 @@ class Command(BaseCommand):
             # Bulk Create
             if data_list:
                 model.objects.bulk_create(data_list)
+                # debugInsert(data_list, model)
                 self.stdout.write(
                     self.style.SUCCESS(
                         msg.DONE_LOADING.format(table=table_name, count=len(data_list))
@@ -160,3 +161,40 @@ class Command(BaseCommand):
                     )
 
         return cleaned
+
+
+def debugInsert(data_list, model):
+    for obj in data_list:
+        try:
+            obj.save()
+        except Exception as e:
+            print("\n❌ ERROR ROW -----------------")
+            print("TABLE:", model._meta.db_table)
+
+            for field in obj._meta.fields:
+                value = getattr(obj, field.name)
+
+                print(f"{field.name} = {value}")
+
+                # DecimalField 범위 체크
+                from django.db.models import DecimalField
+
+                if isinstance(field, DecimalField) and value is not None:
+                    max_digits = field.max_digits
+                    decimal_places = field.decimal_places
+                    max_int_part = max_digits - decimal_places
+
+                    try:
+                        val = Decimal(value)
+                        int_part = val.copy_abs().quantize(1).adjusted() + 1
+                    except Exception:
+                        continue
+
+                    if int_part > max_int_part:
+                        print(
+                            f"⚠️  OVERFLOW FIELD: {field.name} "
+                            f"(max_digits={max_digits}, decimal_places={decimal_places})"
+                        )
+
+            print("ERROR:", e)
+            raise

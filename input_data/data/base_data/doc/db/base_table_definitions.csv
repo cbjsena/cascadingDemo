@@ -1,0 +1,6 @@
+﻿[Base Data Table Definition]
+Generated At,2026-02-12 23:42:14
+
+Table Name,Column Name,Data Type,Nullable,Description (Comment)
+base_test_table,col_1,varchar,NO,Test Desc
+base_test_table,col_2,int,YES,

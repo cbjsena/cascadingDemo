@@ -1,5 +1,5 @@
 ﻿[Base Data Table Definition]
-Generated At,2026-02-12 05:00:39
+Generated At,2026-02-13 05:04:02
 
 Table Name,Column Name,Data Type,Nullable,Description (Comment)
 base_bunker_consumption_port,base_year_month,string,NO,Year and month used as the base period / YYYYMM
@@ -23,7 +23,7 @@ base_constraint_fixed_deployment,deployment_type,string,NO,"Indicates whether th
 base_constraint_fixed_deployment,remark,string,YES,Remark
 base_constraint_fixed_schedule_change,vessel_code,string,NO,Vessel Code / 4 alphanum
 base_constraint_fixed_schedule_change,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
-base_constraint_fixed_schedule_change,schedule_change_status_code,string,YES,"Schedule Change Status {A: Ad hoc Call, I: Phase In, L: Vessel Slide, O: Phase Out, S: Port Omisson, R: Port Call Swap}"
+base_constraint_fixed_schedule_change,schedule_change_status_code,string,YES,"Schedule Change Status {A: Ad hoc Call, I: Phase In, L: Vessel Slide, O: Phase Out, S: Port Omission, R: Port Call Swap}"
 base_constraint_fixed_schedule_change,eta,datetime,NO,Estimated Time of Arrival
 base_constraint_fixed_schedule_change,remark,string,YES,Remark
 base_constraint_port,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
@@ -49,7 +49,7 @@ base_schedule_long_range,proforma_name,string,NO,Proforma Name / 4 numeric digit
 base_schedule_long_range,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
 base_schedule_long_range,calling_port_indicator,string,NO,Port call order per port within a VVD
 base_schedule_long_range,calling_port_seq,int,NO,Port call sequence within the VVD
-base_schedule_long_range,schedule_change_status_code,string,YES,"Schedule Change Status {A: Ad hoc Call, I: Phase In, L: Vessel Slide, O: Phase Out, S: Port Omisson, R: Port Call Swap}"
+base_schedule_long_range,schedule_change_status_code,string,YES,"Schedule Change Status {A: Ad hoc Call, I: Phase In, L: Vessel Slide, O: Phase Out, S: Port Omission, R: Port Call Swap}"
 base_schedule_long_range,eta,datetime,YES,Estimated Time of Arrival
 base_schedule_long_range,etb,datetime,YES,Estimated Time of Berthing
 base_schedule_long_range,etd,datetime,YES,Estimated Time of Departure
@@ -74,9 +74,9 @@ base_schedule_proforma,etd_day_number,int,YES,Total number of days from the firs
 base_schedule_proforma,etd_day_code,string,YES,Day of week for ETD
 base_schedule_proforma,etd_day_time,string,YES,ETD time (HHMM)
 base_schedule_proforma,pilot_out_hours,numeric,YES,Time from berth to outer port  (Hour)
-base_schedule_proforma,link_distance,int,YES,Port-to-Port Distance (NM)
-base_schedule_proforma,link_eca_distance,int,YES,Port-to-Port ECA Distance (NM)
-base_schedule_proforma,link_speed,numeric,YES,Port-to-Port Average Speed
+base_schedule_proforma,link_distance,int,YES,Distance to Next Port (NM)
+base_schedule_proforma,link_eca_distance,int,YES,ECA Distance to Next Port (NM)
+base_schedule_proforma,link_speed,numeric,YES,Average Speed to Next Port (knots)
 base_schedule_proforma,sea_time_hours,numeric,YES,"Sea Time (hours), Next port ETB − Current port ETD − Current port Pilot Out + Next port Pilot In"
 base_schedule_proforma,terminal_code,string,NO,"Terminal Code (Port Code + 2-digit number, e.g., KRPUS01)"
 base_vessel_capacity,trade_code,string,NO,Trade Code / 3 alpha
@@ -102,8 +102,8 @@ base_vessel_info,next_dock_in_date,datetime,YES,Next Dock In Date
 base_vessel_info,next_dock_out_date,datetime,YES,Next Dock Out Date
 base_vessel_info,built_port_code,string,YES,Built Port Code
 base_vessel_info,built_date,string,YES,Built Date
-base_week_period,base_year,int,NO,Base Year
-base_week_period,base_week,int,NO,Base Week
-base_week_period,base_month,int,NO,Base Month
+base_week_period,base_year,int,NO,Base Year / YYYY
+base_week_period,base_week,int,NO,Base Week / WK
+base_week_period,base_month,int,NO,Base Month / MM
 base_week_period,week_start_date,datetime,NO,Week Start
 base_week_period,week_end_date,datetime,NO,Week End

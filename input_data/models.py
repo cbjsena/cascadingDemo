@@ -10,7 +10,7 @@ SCHEDULE_CHANGE_STATUS_CODE_CHOICES = (
     ("I", "Phase In"),
     ("L", "Vessel Slide"),
     ("O", "Phase Out"),
-    ("S", "Port Omisson"),
+    ("S", "Port Omission"),
     ("R", "Port Call Swap"),
 )
 FULL_EMPTY_CHOICES = (("F", "Full"), ("E", "Empty"))
@@ -124,7 +124,7 @@ class AbsProformaSchedule(models.Model):
     )
     pilot_in_hours = models.DecimalField(
         null=True,
-        max_digits=5,
+        max_digits=8,
         decimal_places=3,
         verbose_name="Time from outer port to berth (Hour)",
         default=3,
@@ -136,7 +136,7 @@ class AbsProformaSchedule(models.Model):
     etb_day_time = models.CharField(max_length=4, verbose_name="ETB time (HHMM)")
     actual_work_hours = models.DecimalField(
         null=True,
-        max_digits=5,
+        max_digits=8,
         decimal_places=3,
         verbose_name="Actual working time at the berth (hours)",
         default=30,
@@ -153,7 +153,7 @@ class AbsProformaSchedule(models.Model):
     )
     pilot_out_hours = models.DecimalField(
         null=True,
-        max_digits=5,
+        max_digits=8,
         decimal_places=3,
         verbose_name="Time from berth to outer port  (Hour)",
         default=3,
@@ -167,13 +167,13 @@ class AbsProformaSchedule(models.Model):
     )
     link_speed = models.DecimalField(
         null=True,
-        max_digits=5,
+        max_digits=8,
         decimal_places=3,
         verbose_name="Average Speed to Next Port (knots)",
     )
     sea_time_hours = models.DecimalField(
         null=True,
-        max_digits=5,
+        max_digits=8,
         decimal_places=3,
         verbose_name="Sea Time (hours), Next port ETB − Current port ETD − Current port Pilot Out + Next port Pilot In",
     )
@@ -265,7 +265,7 @@ class AbsLongRangeSchedule(models.Model):
         choices=SCHEDULE_CHANGE_STATUS_CODE_CHOICES,
         null=True,
         blank=True,
-        verbose_name="Schedule Change Status {A: Ad hoc Call, I: Phase In, L: Vessel Slide, O: Phase Out, S: Port Omisson, R: Port Call Swap}",
+        verbose_name="Schedule Change Status {A: Ad hoc Call, I: Phase In, L: Vessel Slide, O: Phase Out, S: Port Omission, R: Port Call Swap}",
     )
     eta = models.DateTimeField(
         null=True, blank=True, verbose_name="Estimated Time of Arrival"
@@ -648,7 +648,7 @@ class AbsBunkerConsumptionSea(models.Model):
         verbose_name="Vessel Capacity (TEU), 1851 types"
     )
     sea_speed = models.DecimalField(
-        max_digits=5,
+        max_digits=8,
         decimal_places=3,
         verbose_name="Speed (Knot), 13 types consisting of 0.5 difference from 14 to 20",
     )
@@ -695,17 +695,17 @@ class AbsBunkerConsumptionPort(models.Model):
         verbose_name="Vessel Capacity (TEU), 1851 types"
     )
     port_stay_bunker_consumption = models.DecimalField(
-        max_digits=5,
+        max_digits=8,
         decimal_places=3,
         verbose_name="Hourly bunker consumption during port stay (Ton)",
     )
     idling_bunker_consumption = models.DecimalField(
-        max_digits=5,
+        max_digits=8,
         decimal_places=3,
         verbose_name="Hourly bunker consumption during idling (Ton)",
     )
     pilot_inout_bunker_consumption = models.DecimalField(
-        max_digits=5,
+        max_digits=8,
         decimal_places=3,
         verbose_name="Hourly bunker consumption during pilot in/out (Ton)",
     )
@@ -845,7 +845,7 @@ class FixedVesselDeployment(AbsFixedVesselDeployment, ScenarioBaseModel):
 class AbsFixedScheduleChange(models.Model):
     """Fixed Schedule Change 데이터 필드 (추상)
     [제약조건 2] 선박별 스케줄 변경 이벤트 (Point in Time)
-    특정 시점에 발생하는 Phase In / Phase Out / Omition 등을 관리합니다.
+    특정 시점에 발생하는 Phase In / Phase Out / Omission 등을 관리합니다.
     """
 
     vessel_code = models.CharField(
@@ -860,7 +860,7 @@ class AbsFixedScheduleChange(models.Model):
         choices=SCHEDULE_CHANGE_STATUS_CODE_CHOICES,
         null=True,
         blank=True,
-        verbose_name="Schedule Change Status {A: Ad hoc Call, I: Phase In, L: Vessel Slide, O: Phase Out, S: Port Omisson, R: Port Call Swap}",
+        verbose_name="Schedule Change Status {A: Ad hoc Call, I: Phase In, L: Vessel Slide, O: Phase Out, S: Port Omission, R: Port Call Swap}",
     )
     eta = models.DateTimeField(verbose_name="Estimated Time of Arrival")
     remark = models.CharField(
