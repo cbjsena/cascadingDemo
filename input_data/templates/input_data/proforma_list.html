@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}Proforma List - Cascading Opt{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-body bg-light">
+            <form method="get" action="{% url 'input_data:proforma_list' %}" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small">Scenario ID</label>
+                    <input type="text" name="scenario_id" class="form-control" 
+                           value="{{ search_params.scenario_id }}" placeholder="ex) 202601_BASE">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small">Lane Code</label>
+                    <input type="text" name="lane_code" class="form-control" 
+                           value="{{ search_params.lane_code }}" placeholder="ex) FP1">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-secondary w-100">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                </div>
+                <div class="col-md-1">
+                    <a href="{% url 'input_data:proforma_list' %}" class="btn btn-outline-secondary w-100" title="Reset">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center" style="width: 50px;">No</th>
+                            <th>Scenario ID</th>
+                            <th>Lane Code</th>
+                            <th>Proforma Name</th>
+                            <th>Effective From</th>
+                            <th class="text-end">Duration</th>
+                            <th class="text-center">Ports</th>
+                            <th>Last Updated</th>
+                            <th class="text-center" style="width: 100px;">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in proforma_list %}
+                        <tr>
+                            <td class="text-center">{{ forloop.counter }}</td>
+                            <td class="fw-bold text-primary">{{ item.scenario__id }}</td>
+                            <td><span class="badge bg-secondary">{{ item.lane_code }}</span></td>
+                            <td class="fw-bold">{{ item.proforma_name }}</td>
+
+                            <td>{{ item.effective_from_date|date:"Y-m-d" }}</td>
+
+                            <td class="text-end">{{ item.duration|floatformat:1 }} days</td>
+                            <td class="text-center">{{ item.port_count }}</td>
+                            <td class="small text-muted">{{ item.updated_at|date:"Y-m-d H:i" }}</td>
+                            <td class="text-center">
+                                <a href="{% url 'input_data:proforma_detail' %}?scenario_id={{ item.scenario__id }}&lane_code={{ item.lane_code }}&proforma_name={{ item.proforma_name }}"
+                                   class="btn btn-sm btn-outline-info">
+                                    <i class="bi bi-eye"></i> View
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-5 text-muted">
+                                <i class="bi bi-exclamation-circle fs-3 d-block mb-2"></i>
+                                No schedules found.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

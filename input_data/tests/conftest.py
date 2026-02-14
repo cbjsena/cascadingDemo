@@ -114,3 +114,44 @@ def distance_data(db, base_scenario):
         distance=500,
         eca_distance=100,
     )
+
+# =========================================================
+# Schedule Fixtures (New)
+# [Related Scenarios] PROFORMA_LIST_001, DETAIL_VIEW, EDIT_MODE
+# =========================================================
+
+@pytest.fixture
+def sample_schedule(db, base_scenario, user):
+    """
+    테스트용 단일 Proforma Schedule 데이터 (상세 조회용)
+    """
+    return ProformaSchedule.objects.create(
+        scenario=base_scenario,
+        lane_code="TEST_LANE",
+        proforma_name="PF_001",
+        effective_from_date=timezone.now(),
+        duration=14.0,
+        declared_capacity="5000",
+        declared_count=2,
+        direction="E",
+        port_code="KRPUS",
+        calling_port_indicator="1",
+        calling_port_seq=1,
+        turn_port_info_code="N",
+        pilot_in_hours=3.0,
+        etb_day_number=0,
+        etb_day_code="SUN",
+        etb_day_time="0900",
+        actual_work_hours=24.0,
+        etd_day_number=1,
+        etd_day_code="MON",
+        etd_day_time="1800",
+        pilot_out_hours=3.0,
+        link_distance=500,
+        link_eca_distance=0,
+        link_speed=20.0,
+        sea_time_hours=24.0,
+        terminal_code="PNC",
+        created_by=user,
+        updated_by=user
+    )

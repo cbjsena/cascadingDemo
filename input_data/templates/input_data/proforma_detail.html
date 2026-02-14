@@ -1,0 +1,130 @@
+{% extends "base.html" %}
+
+{% block title %}Proforma Detail - Cascading Opt{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h4">Proforma Schedule Detail</h2>
+        
+        <div class="btn-group">
+            <a href="{% url 'input_data:proforma_list' %}?scenario_id={{ header.scenario_id }}&lane_code={{ header.lane_code }}" class="btn btn-secondary">
+                <i class="bi bi-list"></i> Back to List
+            </a>
+            
+            {% if can_edit %}
+            <a href="{% url 'input_data:proforma_create' %}?scenario_id={{ header.scenario_id }}&lane_code={{ header.lane_code }}&proforma_name={{ header.proforma_name }}" class="btn btn-primary">
+                <i class="bi bi-pencil-square"></i> Edit
+            </a>
+            {% endif %}
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light fw-bold">Basic Information</div>
+        <div class="card-body bg-white">
+            <div class="row g-3">
+                <div class="col-md-2">
+                    <label class="small text-muted d-block">Scenario ID</label>
+                    <span class="fw-bold text-primary">{{ header.scenario_id }}</span>
+                </div>
+                <div class="col-md-1">
+                    <label class="small text-muted d-block">Lane</label>
+                    <span class="fw-bold">{{ header.lane_code }}</span>
+                </div>
+                <div class="col-md-2">
+                    <label class="small text-muted d-block">Proforma Name</label>
+                    <span class="fw-bold">{{ header.proforma_name }}</span>
+                </div>
+                <div class="col-md-2">
+                    <label class="small text-muted d-block">Effective Date</label>
+                    <span>{{ header.effective_from_date }}</span>
+                </div>
+                <div class="col-md-2">
+                    <label class="small text-muted d-block">Capacity / Count</label>
+                    <span>{{ header.capacity }} TEU / {{ header.count }} Vsls</span>
+                </div>
+                <div class="col-md-1">
+                    <label class="small text-muted d-block">Duration</label>
+                    <span class="badge bg-info text-dark">{{ header.duration }} Days</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-light fw-bold">Port Schedule</div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-bordered table-striped table-hover align-middle text-center mb-0 text-nowrap">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th>No.</th>
+                            <th>Port Code</th>
+                            <th>Dir</th>
+                            <th>Turn</th>
+                            <th>Pilot In</th>
+                            <th>ETB No</th>
+                            <th>ETB Day</th>
+                            <th>ETB Time</th>
+                            <th>Work Hrs</th>
+                            
+                            <th class="table-secondary">ETD No</th>
+                            <th class="table-secondary">ETD Day</th>
+                            <th class="table-secondary">ETD Time</th>
+                            
+                            <th>Pilot Out</th>
+                            <th>Dist</th>
+                            <th>ECA</th>
+                            <th>Speed</th>
+                            <th>Sea Time</th>
+                            <th>Terminal</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in rows %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            <td class="fw-bold">{{ row.port_code }}</td>
+                            <td>
+                                {% if row.direction == 'E' %}<span class="text-primary">E</span>
+                                {% elif row.direction == 'W' %}<span class="text-danger">W</span>
+                                {% else %}{{ row.direction }}{% endif %}
+                            </td>
+                            <td>
+                                {% if row.turn_port_info_code == 'Y' %}
+                                <span class="badge bg-warning text-dark">Y</span>
+                                {% else %}-{% endif %}
+                            </td>
+                            <td>{{ row.pilot_in }}</td>
+                            
+                            <td>{{ row.etb_no }}</td>
+                            <td class="fw-bold text-primary">{{ row.etb_day }}</td>
+                            <td>{{ row.etb_time }}</td>
+                            <td>{{ row.work_hours }}</td>
+                            
+                            <td class="table-secondary text-muted">{{ row.etd_no }}</td>
+                            <td class="table-secondary text-muted">{{ row.etd_day }}</td>
+                            <td class="table-secondary text-muted">{{ row.etd_time }}</td>
+                            
+                            <td>{{ row.pilot_out }}</td>
+                            <td>{{ row.dist }}</td>
+                            <td>{{ row.eca_dist }}</td>
+                            <td>{{ row.spd }}</td>
+                            <td>{{ row.sea_time }}</td>
+                            <td>{{ row.terminal }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="18" class="text-center py-5 text-muted">
+                                No schedule data available.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

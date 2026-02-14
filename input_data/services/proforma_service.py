@@ -266,7 +266,7 @@ class ProformaService:
         return self.calculate_schedule(rows, {"scenario_id": None})
 
     @transaction.atomic
-    def save_to_db(self, header, rows, user):
+    def save_schedule(self, header, rows, user):
         scenario_id_val = header.get("scenario_id")
         lane_code = header.get("lane_code")
         proforma_name = header.get("proforma_name")
@@ -291,21 +291,30 @@ class ProformaService:
             except ValueError:
                 pass  # 파싱 실패 시 기본값(Now) 사용
 
+        # 1. 기존 데이터 삭제 (Delete First)
         ProformaSchedule.objects.filter(
             scenario=scenario_obj, lane_code=lane_code, proforma_name=proforma_name
         ).delete()
 
+        # 2. 신규 데이터 생성 (Create New)
         new_schedules = []
+        indicator_map = {}
         for row in rows:
             if not row.get("port_code"):
                 continue
             port_cd = row["port_code"]
-            raw_terminal = row.get("terminal", "")
+            direction = row.get("direction", "E")
 
-            if not raw_terminal:
-                terminal_code = f"{port_cd}01"
-            else:
-                terminal_code = raw_terminal
+            # [로직 추가] 현재 행의 Port와 Direction 조합이 몇 번째 등장인지 계산
+            key = (port_cd, direction)
+            current_count = indicator_map.get(key, 0) + 1
+            indicator_map[key] = current_count
+
+            # indicator는 문자열 "1", "2"... 로 저장
+            calling_port_indicator = str(current_count)
+
+            raw_terminal = row.get("terminal", "")
+            terminal_code = raw_terminal if raw_terminal else f"{port_cd}01"
 
             schedule = ProformaSchedule(
                 scenario=scenario_obj,
@@ -317,7 +326,7 @@ class ProformaService:
                 declared_count=int(header.get("count") or 0),
                 port_code=port_cd,
                 direction=row.get("direction", "E"),
-                calling_port_indicator="1",
+                calling_port_indicator=calling_port_indicator,
                 calling_port_seq=int(row["no"]),
                 turn_port_info_code=row.get("turn_port_info_code", "N"),
                 pilot_in_hours=Decimal(row.get("pilot_in") or 0),
@@ -547,6 +556,60 @@ class ProformaService:
             writer.writerow(row_values)
 
         return output.getvalue()
+
+
+    def get_schedule_data(self, scenario_id, lane_code, proforma_name):
+        """
+        [DB -> View] 저장된 스케줄 데이터를 조회하여 화면용 Header/Rows 구조로 반환
+        """
+        qs = ProformaSchedule.objects.filter(
+            scenario_id=scenario_id,
+            lane_code=lane_code,
+            proforma_name=proforma_name
+        ).order_by("calling_port_seq")
+
+        if not qs.exists():
+            return {}, []
+
+        # 1. Header 구성 (첫 번째 Row 기준)
+        first_obj = qs.first()
+        header = {
+            "scenario_id": first_obj.scenario_id,
+            "lane_code": first_obj.lane_code,
+            "proforma_name": first_obj.proforma_name,
+            # input date value 포맷인 YYYY-MM-DD 문자열로 변환
+            "effective_from_date": first_obj.effective_from_date.strftime(
+                "%Y-%m-%d") if first_obj.effective_from_date else "",
+            "duration": first_obj.duration,
+            "capacity": first_obj.declared_capacity,
+            "count": first_obj.declared_count,
+        }
+
+        # 2. Rows 구성
+        rows = []
+        for obj in qs:
+            row = {
+                "port_code": obj.port_code,
+                "direction": obj.direction,
+                "turn_port_info_code": obj.turn_port_info_code,
+                "pilot_in": obj.pilot_in_hours,
+                "etb_no": obj.etb_day_number,
+                "etb_day": obj.etb_day_code,
+                "etb_time": obj.etb_day_time,
+                "work_hours": obj.actual_work_hours,
+                "etd_no": obj.etd_day_number,
+                "etd_day": obj.etd_day_code,
+                "etd_time": obj.etd_day_time,
+                "pilot_out": obj.pilot_out_hours,
+                "dist": obj.link_distance,
+                "eca_dist": obj.link_eca_distance,
+                "spd": obj.link_speed,
+                "sea_time": obj.sea_time_hours,
+                "terminal": obj.terminal_code,
+            }
+            rows.append(row)
+
+        return header, rows
 
     # --- Helper Methods ---
     def _create_default_row(self):

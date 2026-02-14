@@ -10,6 +10,8 @@ urlpatterns = [
     path("", views.input_home, name="input_home"),
     # Scenario 목록 전용 URL (반드시 동적 URL보다 위에 위치)
     path("scenarios/", views.scenario_list, name="scenario_list"),
+    path("proforma/list/", views.proforma_list, name="proforma_list"),
+    path("proforma/detail/", views.proforma_detail, name="proforma_detail"),
     path("scenarios/create/", views.scenario_create, name="scenario_create"),
     path(
         "scenarios/delete/<str:scenario_id>/",

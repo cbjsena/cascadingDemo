@@ -2,16 +2,18 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
+from django.db.models import Count, Max
+from django.urls import reverse
 
 from common import constants as const, messages as msg
 from common.menus import MENU_STRUCTURE
 from input_data.models import ScenarioInfo
 from input_data.services.proforma_service import ProformaService
-
+from input_data.models import ProformaSchedule
 
 @login_required
 def proforma_create(request):
-    """Proforma Schedule 생성 View"""
+    """Proforma Schedule 생성 및 수정 View"""
     service = ProformaService()
 
     # 초기 컨텍스트
@@ -25,14 +27,39 @@ def proforma_create(request):
         "current_model": "proforma_schedule",  # 현재 활성화된 메뉴 (선택사항)
     }
 
-    if request.method == "POST":
+    # =========================================================
+    # [1] GET 요청 처리: 데이터 조회 (Edit Mode)
+    # =========================================================
+    if request.method == "GET":
+        # URL 파라미터 수신 (예: ?scenario_id=202601&lane_code=KRP&...)
+        q_scenario = request.GET.get("scenario_id")
+        q_lane = request.GET.get("lane_code")
+        q_proforma = request.GET.get("proforma_name")
+
+        # 3가지 키가 모두 존재하면 DB 조회 (수정 모드 진입)
+        if q_scenario and q_lane and q_proforma:
+            try:
+                # Service에 구현된 조회 메서드 호출
+                fetched_header, fetched_rows = service.get_schedule_data(
+                    q_scenario, q_lane, q_proforma
+                )
+                context["header"] = fetched_header
+                context["rows"] = fetched_rows
+            except Exception as e:
+                # 조회 실패 시 에러 메시지 후 빈 폼 출력
+                messages.error(request, f"Failed to load schedule: {str(e)}")
+
+    # =========================================================
+    # [2] POST 요청 처리: 데이터 조작 (Save, Add Row, etc.)
+    # =========================================================
+    elif request.method == "POST":
         action = request.POST.get("action")
 
-        # 1. 파싱 (모든 액션 공통)
+        # 1. 화면 데이터 파싱 (모든 액션 공통)
         rows = service.parse_rows(request)
         header = service.parse_header(request)
 
-        # 2. 액션 처리
+        # 2. 액션별 로직 수행
         if action == "add_row":
             rows = service.add_row(rows, header.get("scenario_id"))
 
@@ -41,7 +68,7 @@ def proforma_create(request):
                 idx = int(request.POST.get("selected_index", -1))
                 rows = service.insert_row(rows, idx)
             except ValueError:
-                pass  # 인덱스 없음/오류 무시
+                pass
 
         elif action == "delete_row":
             indices = request.POST.getlist("row_check")
@@ -49,8 +76,9 @@ def proforma_create(request):
 
         elif action == "new":
             rows = []
-            # Header 정보는 유지할지 초기화할지 정책에 따름 (여기선 유지)
+            header = {}  # New 클릭 시 헤더도 초기화하는 것이 일반적임
             messages.info(request, msg.SCHEDULE_NEW_STARTED)
+            return redirect("input_data:proforma_create")  # 깔끔하게 리다이렉트
 
         elif action == "calculate":
             # [기능] 계산만 수행하고 화면 갱신
@@ -58,15 +86,19 @@ def proforma_create(request):
             messages.info(request, msg.SCHEDULE_CALCULATED)
 
         elif action == "save":
-            # TODO save
-            # [기능] 계산 수행 후 결과 저장
-            # 1. 데이터 정합성을 위해 저장 전 한 번 더 계산
+            # 데이터 정합성을 위해 저장 전 재계산
             rows = service.calculate_schedule(rows, header)
 
             try:
-                # 2. DB 저장
-                service.save_to_db(header, rows, request.user)
+                # DB 저장
+                service.save_schedule(header, rows, request.user)
                 messages.success(request, msg.SCHEDULE_SAVE_SUCCESS)
+
+                # [UX 개선] 저장 후, 계속 편집 모드로 남기 위해 GET 파라미터를 유지한 채 리다이렉트
+                # 이렇게 하면 저장 후에도 화면이 초기화되지 않고 방금 저장한 데이터를 다시 불러옵니다.
+                base_url = reverse("input_data:proforma_create")
+                query_string = f"?scenario_id={header.get('scenario_id')}&lane_code={header.get('lane_code')}&proforma_name={header.get('proforma_name')}"
+                return redirect(f"{base_url}{query_string}")
             except Exception as e:
                 messages.error(request, msg.SAVE_ERROR.format(error=str(e)))
 
@@ -84,12 +116,7 @@ def proforma_create(request):
                 excel_file,
                 content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
             )
-
-            # 파일명: Lane_ProformaName_Schedule.xlsx
-            lane = header.get("lane_code", "Lane")
-            pf_name = header.get("proforma_name", "Schedule")
-            filename = f"{lane}_{pf_name}_Proforma.xlsx"
-
+            filename = f"{header.get('lane_code', 'Lane')}_{header.get('proforma_name', 'Schedule')}.xlsx"
             response["Content-Disposition"] = f'attachment; filename="{filename}"'
             return response
 
@@ -106,18 +133,19 @@ def proforma_create(request):
 
             # 3. 응답 생성
             response = HttpResponse(csv_content, content_type="text/csv; charset=utf-8")
-
-            # 파일명: Lane_ProformaName_List.csv
-            lane = header.get("lane_code", "Lane")
-            pf_name = header.get("proforma_name", "Schedule")
-            filename = f"{lane}_{pf_name}_List.csv"
-
+            filename = f"{header.get('lane_code', 'Lane')}_{header.get('proforma_name', 'Schedule')}.csv"
             response["Content-Disposition"] = f'attachment; filename="{filename}"'
             return response
 
         elif action == "close":
-            return redirect("input_data:input_home")
+            # 수정 모드였다면 상세 화면으로, 아니면 홈으로 (또는 목록으로)
+            if header.get("scenario_id"):
+                base_url = reverse("input_data:proforma_detail")
+                query_string = f"?scenario_id={header.get('scenario_id')}&lane_code={header.get('lane_code')}&proforma_name={header.get('proforma_name')}"
+                return redirect(f"{base_url}{query_string}")
+            return redirect("input_data:proforma_list")
 
+        # POST 처리 후 변경된 데이터를 Context에 반영
         context["rows"] = rows
         context["header"] = header
 
@@ -191,3 +219,77 @@ def proforma_template_download(request):
     response["Content-Disposition"] = 'attachment; filename="Proforma_Template.xlsx"'
 
     return response
+
+
+@login_required
+def proforma_list(request):
+    """
+    Proforma Schedule 목록 조회 View (Read-Only)
+    """
+    # 1. 검색 파라미터 수신
+    scenario_id = request.GET.get("scenario_id", "")
+    lane_code = request.GET.get("lane_code", "")
+
+    # 2. 기본 쿼리셋
+    queryset = ProformaSchedule.objects.values(
+        "scenario__id", "lane_code", "proforma_name"
+    ).annotate(
+        effective_from_date=Max("effective_from_date"),
+        duration=Max("duration"),
+        port_count=Count("proforma_schedule_id"),
+        updated_at=Max("updated_at")
+    ).order_by("-updated_at", "scenario__id", "lane_code")
+
+    # 3. 필터링 적용 (icontains로 대소문자 구분 없이 부분 일치 검색)
+    if scenario_id:
+        queryset = queryset.filter(scenario__id__icontains=scenario_id)
+    if lane_code:
+        queryset = queryset.filter(lane_code__icontains=lane_code)
+
+    context = {
+        "menu_structure": MENU_STRUCTURE,
+        "current_group": "Schedule",
+        "current_model": "proforma_schedule",
+        "proforma_list": queryset,
+        "search_params": {
+            "scenario_id": scenario_id,
+            "lane_code": lane_code,
+        }
+    }
+    return render(request, "input_data/proforma_list.html", context)
+
+
+@login_required
+def proforma_detail(request):
+    """
+    Proforma Schedule 상세 조회 View (Read-Only)
+    """
+    service = ProformaService()
+
+    # 1. 파라미터 수신
+    q_scenario = request.GET.get("scenario_id")
+    q_lane = request.GET.get("lane_code")
+    q_proforma = request.GET.get("proforma_name")
+
+    # 2. 데이터 조회 (Service 재사용)
+    header = {}
+    rows = []
+
+    if q_scenario and q_lane and q_proforma:
+        header, rows = service.get_schedule_data(q_scenario, q_lane, q_proforma)
+    else:
+        # 파라미터가 없으면 목록으로 리다이렉트 또는 에러 처리
+        messages.error(request, "Invalid access to detail view.")
+        return redirect("input_data:proforma_list")
+
+    # 3. Context 구성
+    context = {
+        "menu_structure": MENU_STRUCTURE,
+        "current_group": "Schedule",
+        "current_model": "proforma_schedule",
+        "header": header,
+        "rows": rows,
+        # 권한 체크 로직을 위해 User 정보 전달 (Template에서 분기 처리 가능)
+        "can_edit": request.user.is_superuser,  # 예시: 슈퍼유저만 수정 가능
+    }
+    return render(request, "input_data/proforma_detail.html", context)

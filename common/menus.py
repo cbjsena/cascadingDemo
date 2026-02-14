@@ -1,9 +1,10 @@
 # common/menus.py (파일 생성 추천)
 MENU_STRUCTURE = {
     "Schedule": [
-        {"name": "Proforma Schedule", "key": "proforma_schedule"},
+        {"name": "Proforma Schedule", "key": "proforma_schedule", "url_name": "input_data:proforma_list"},
         {"name": "Long Range Schedule", "key": "long_range_schedule"},
     ],
+
     "Vessel": [
         {"name": "Vessel Info", "key": "vessel_info"},
         {"name": "Charter Cost", "key": "charter_cost"},
@@ -23,9 +24,10 @@ MENU_STRUCTURE = {
         # {"name": "Bunkering Port", "key": "bunkering_port"},
         {"name": "Bunker Price", "key": "bunker_price"},
     ],
-    "Fix Information": [
-        {"name": "Fix Lane Vessel", "key": "fix_lane_vessel"},
-        {"name": "Fix Vessel Schedule", "key": "fix_vessel_schedule"},
+    "Constraint": [
+        {"name": "Fix Lane Vessel", "key": "constraint_fixed_deployment"},
+        {"name": "Fix Vessel Schedule", "key": "constraint_fixed_schedule_change"},
+        {"name": "Constraint Port", "key": "constraint_port"},
     ],
     # "ETS & Fuel EU": [
     #     {"name": "ETS TS Port", "key": "ets_ts_port"},

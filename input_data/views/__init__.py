@@ -6,6 +6,8 @@ from .proforma import (  # noqa: F401
     proforma_export,
     proforma_template_download,
     proforma_upload,
+    proforma_list,
+    proforma_detail,
 )
 from .scenario import (  # noqa: F401
     create_base_scenario_view,

@@ -101,8 +101,14 @@
                             <ul class="nav flex-column sub-menu my-1">
                                 {% for item in items %}
                                 <li class="nav-item">
-                                    <a href="{% url 'input_data:input_list' group item.key %}"
-                                       class="nav-link {% if current_model == item.key %}active text-white bg-primary bg-opacity-50{% endif %}">
+                                    <a class="nav-link {% if current_model == item.key %}active{% endif %}"
+                                       href="{% if item.url_name %}
+                                                {% url item.url_name %}
+                                             {% else %}
+                                                {% url 'input_data:input_list' group item.key %}
+                                             {% endif %}">
+
+                                        <i class="bi bi-chevron-right"></i>
                                         {{ item.name }}
                                     </a>
                                 </li>

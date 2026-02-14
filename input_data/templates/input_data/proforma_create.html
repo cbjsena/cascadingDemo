@@ -26,6 +26,9 @@
         <h2 class="h4">Create Proforma Schedule</h2>
 
         <div class="btn-group" role="group">
+            <a href="{% url 'input_data:proforma_list' %}?scenario_id={{ header.scenario_id }}" class="btn btn-secondary">
+                <i class="bi bi-list"></i> Back to List
+            </a>
             <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal" data-bs-target="#uploadModal">
                 <i class="bi bi-upload"></i> Upload Excel
             </button>
