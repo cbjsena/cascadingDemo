@@ -4,61 +4,13 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
 
+from input_data.configs import MODEL_MAPPING, SCENARIO_CREATION_FILTERS
 from input_data.models import (
-    BaseBunkerConsumptionPort,
-    # 4. Bunker
-    BaseBunkerConsumptionSea,
-    BaseBunkerPrice,
-    BaseCanalFee,
-    BaseCharterCost,
-    # 3. Cost & Distance
-    BaseDistance,
-    BaseFixedScheduleChange,
-    # 6. Constraints
-    BaseFixedVesselDeployment,
-    BaseLongRangeSchedule,
-    BasePortConstraint,
-    # 1. Schedule
-    BaseProformaSchedule,
-    BaseTSCost,
-    BaseVesselCapacity,
-    # 2. Vessel
-    BaseVesselInfo,
-    BunkerConsumptionPort,
-    BunkerConsumptionSea,
-    BunkerPrice,
-    CanalFee,
-    CharterCost,
-    Distance,
-    FixedScheduleChange,
-    FixedVesselDeployment,
-    LongRangeSchedule,
-    PortConstraint,
-    ProformaSchedule,
     ScenarioInfo,
-    TSCost,
-    VesselCapacity,
     VesselInfo,
 )
 
 User = get_user_model()
-
-MODEL_MAPPING = [
-    (BaseProformaSchedule, ProformaSchedule),
-    (BaseLongRangeSchedule, LongRangeSchedule),
-    (BaseVesselInfo, VesselInfo),
-    (BaseCharterCost, CharterCost),
-    (BaseVesselCapacity, VesselCapacity),
-    (BaseDistance, Distance),
-    (BaseCanalFee, CanalFee),
-    (BaseTSCost, TSCost),
-    (BaseBunkerConsumptionSea, BunkerConsumptionSea),
-    (BaseBunkerConsumptionPort, BunkerConsumptionPort),
-    (BaseBunkerPrice, BunkerPrice),
-    (BaseFixedVesselDeployment, FixedVesselDeployment),
-    (BaseFixedScheduleChange, FixedScheduleChange),
-    (BasePortConstraint, PortConstraint),
-]
 
 
 @transaction.atomic
@@ -120,7 +72,14 @@ def create_scenario_from_base(target_id, description="Base Scenario", user=None)
     # 3. 데이터 복사 (Base -> Scenario)
     for base_model, sce_model in MODEL_MAPPING:
         table_name = sce_model._meta.db_table
-        base_objects = base_model.objects.all()
+        filter_kwargs = SCENARIO_CREATION_FILTERS.get(sce_model)
+
+        if filter_kwargs:
+            # 조건이 있는 경우 filter() 사용
+            base_objects = base_model.objects.filter(**filter_kwargs)
+        else:
+            # 조건이 없으면 전체 데이터 가져오기
+            base_objects = base_model.objects.all()
 
         if not base_objects.exists():
             result_summary[table_name] = 0
@@ -137,19 +96,18 @@ def create_scenario_from_base(target_id, description="Base Scenario", user=None)
             # Scenario FK 연결
             data["scenario"] = scenario
 
-            # [수정 사항 3] created_by / updated_by / timestamps 설정
-            # (bulk_create는 auto_now를 자동으로 처리하지 않을 수 있으므로 명시적 할당)
             if user:
                 data["created_by"] = user
                 data["updated_by"] = user
-
+            # (bulk_create는 auto_now를 자동으로 처리하지 않을 수 있으므로 명시적 할당)
             data["created_at"] = now
             data["updated_at"] = now
 
             new_objects.append(sce_model(**data))
 
         # Bulk Create 실행
-        sce_model.objects.bulk_create(new_objects)
+        if new_objects:
+            sce_model.objects.bulk_create(new_objects)
         result_summary[table_name] = len(new_objects)
 
     return scenario, result_summary
