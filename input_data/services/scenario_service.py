@@ -7,7 +7,6 @@ from django.utils import timezone
 from input_data.configs import MODEL_MAPPING, SCENARIO_CREATION_FILTERS
 from input_data.models import (
     ScenarioInfo,
-    VesselInfo,
 )
 
 User = get_user_model()

@@ -50,7 +50,11 @@
                             </td>
                             <td class="small text-muted">{{ scenario.created_at|date:"Y-m-d H:i" }}</td>
                             <td class="text-end pe-4">
-<!--                                <button class="btn btn-sm btn-outline-dark me-1" title="View Details"><i class="bi bi-eye"></i></button>-->
+                                <a href="{% url 'input_data:scenario_dashboard' scenario.id %}"
+                                   class="btn btn-sm btn-outline-primary"
+                                   title="View Dashboard">
+                                    <i class="bi bi-speedometer2"></i> Dash
+                                </a>
                                 <button type="button"
                                         class="btn btn-sm btn-outline-danger"
                                         data-bs-toggle="modal"

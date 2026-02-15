@@ -557,15 +557,12 @@ class ProformaService:
 
         return output.getvalue()
 
-
     def get_schedule_data(self, scenario_id, lane_code, proforma_name):
         """
         [DB -> View] 저장된 스케줄 데이터를 조회하여 화면용 Header/Rows 구조로 반환
         """
         qs = ProformaSchedule.objects.filter(
-            scenario_id=scenario_id,
-            lane_code=lane_code,
-            proforma_name=proforma_name
+            scenario_id=scenario_id, lane_code=lane_code, proforma_name=proforma_name
         ).order_by("calling_port_seq")
 
         if not qs.exists():
@@ -578,8 +575,11 @@ class ProformaService:
             "lane_code": first_obj.lane_code,
             "proforma_name": first_obj.proforma_name,
             # input date value 포맷인 YYYY-MM-DD 문자열로 변환
-            "effective_from_date": first_obj.effective_from_date.strftime(
-                "%Y-%m-%d") if first_obj.effective_from_date else "",
+            "effective_from_date": (
+                first_obj.effective_from_date.strftime("%Y-%m-%d")
+                if first_obj.effective_from_date
+                else ""
+            ),
             "duration": first_obj.duration,
             "capacity": first_obj.declared_capacity,
             "count": first_obj.declared_count,

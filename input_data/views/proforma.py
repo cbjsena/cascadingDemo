@@ -1,15 +1,15 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.db.models import Count, Max
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
-from django.db.models import Count, Max
 from django.urls import reverse
 
 from common import constants as const, messages as msg
 from common.menus import MENU_STRUCTURE
-from input_data.models import ScenarioInfo
+from input_data.models import ProformaSchedule, ScenarioInfo
 from input_data.services.proforma_service import ProformaService
-from input_data.models import ProformaSchedule
+
 
 @login_required
 def proforma_create(request):
@@ -231,14 +231,16 @@ def proforma_list(request):
     lane_code = request.GET.get("lane_code", "")
 
     # 2. 기본 쿼리셋
-    queryset = ProformaSchedule.objects.values(
-        "scenario__id", "lane_code", "proforma_name"
-    ).annotate(
-        effective_from_date=Max("effective_from_date"),
-        duration=Max("duration"),
-        port_count=Count("proforma_schedule_id"),
-        updated_at=Max("updated_at")
-    ).order_by("-updated_at", "scenario__id", "lane_code")
+    queryset = (
+        ProformaSchedule.objects.values("scenario__id", "lane_code", "proforma_name")
+        .annotate(
+            effective_from_date=Max("effective_from_date"),
+            duration=Max("duration"),
+            port_count=Count("proforma_schedule_id"),
+            updated_at=Max("updated_at"),
+        )
+        .order_by("-updated_at", "scenario__id", "lane_code")
+    )
 
     # 3. 필터링 적용 (icontains로 대소문자 구분 없이 부분 일치 검색)
     if scenario_id:
@@ -254,7 +256,7 @@ def proforma_list(request):
         "search_params": {
             "scenario_id": scenario_id,
             "lane_code": lane_code,
-        }
+        },
     }
     return render(request, "input_data/proforma_list.html", context)
 

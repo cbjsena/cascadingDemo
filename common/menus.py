@@ -1,10 +1,13 @@
 # common/menus.py (파일 생성 추천)
 MENU_STRUCTURE = {
     "Schedule": [
-        {"name": "Proforma Schedule", "key": "proforma_schedule", "url_name": "input_data:proforma_list"},
+        {
+            "name": "Proforma Schedule",
+            "key": "proforma_schedule",
+            "url_name": "input_data:proforma_list",
+        },
         {"name": "Long Range Schedule", "key": "long_range_schedule"},
     ],
-
     "Vessel": [
         {"name": "Vessel Info", "key": "vessel_info"},
         {"name": "Charter Cost", "key": "charter_cost"},

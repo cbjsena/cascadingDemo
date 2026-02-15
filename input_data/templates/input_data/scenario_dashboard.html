@@ -1,0 +1,137 @@
+{% extends "base.html" %}
+
+{% block title %}Scenario Dashboard - {{ scenario.id }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <div>
+            <h1 class="h2">
+                <i class="bi bi-speedometer2 text-primary"></i> Scenario Dashboard
+            </h1>
+            <p class="text-muted mb-0">
+                ID: <strong>{{ scenario.id }}</strong> | Base YM: {{ scenario.base_year_month }}
+            </p>
+        </div>
+        <div class="btn-toolbar mb-2 mb-md-0">
+            <a href="{% url 'input_data:scenario_list' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Back to List
+            </a>
+            <a href="{% url 'input_data:proforma_create' %}?scenario_id={{ scenario.id }}" class="btn btn-sm btn-primary ms-2">
+                <i class="bi bi-pencil-square"></i> Edit Schedules
+            </a>
+        </div>
+    </div>
+
+    <div class="row g-4 mb-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm border-start border-4 border-primary h-100">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase fw-bold">Total Lanes</div>
+                    <div class="d-flex align-items-center mt-2">
+                        <i class="bi bi-signpost-split fs-1 text-primary me-3"></i>
+                        <div>
+                            <span class="h2 fw-bold">{{ summary.total_lanes }}</span>
+                            <span class="text-muted"> Svcs</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-start border-4 border-success h-100">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase fw-bold">Required Vessels</div>
+                    <div class="d-flex align-items-center mt-2">
+                        <i class="bi bi-box-seam fs-1 text-success me-3"></i>
+                        <div>
+                            <span class="h2 fw-bold">{{ summary.total_vessels }}</span>
+                            <span class="text-muted"> Vsls</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm border-start border-4 border-info h-100">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase fw-bold">Total Capacity Deployed</div>
+                    <div class="d-flex align-items-center mt-2">
+                        <i class="bi bi-boxes fs-1 text-info me-3"></i>
+                        <div>
+                            <span class="h2 fw-bold">{{ summary.total_capacity|floatformat:0 }}</span>
+                            <span class="text-muted"> TEU</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-light fw-bold">
+            <i class="bi bi-table"></i> Lane-wise Deployment Plan
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-center">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-start ps-4">Lane Code</th>
+                            <th>Proforma Name</th>
+                            <th>Start Date</th>
+                            <th>Duration (Days)</th>
+                            <th>Ports</th>
+                            <th class="table-primary">Vessel Count</th>
+                            <th class="table-primary">Vessel Size (TEU)</th>
+                            <th>Total TEU</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in schedules %}
+                        <tr>
+                            <td class="text-start ps-4 fw-bold text-primary">{{ item.lane_code }}</td>
+                            <td>{{ item.proforma_name }}</td>
+                            <td>
+                                {% if item.start_date %}
+                                    {{ item.start_date|date:"Y-m-d" }}
+                                {% else %}
+                                    <span class="text-muted">-</span>
+                                {% endif %}
+                            </td>
+                            <td>{{ item.duration|floatformat:1 }}</td>
+                            <td>{{ item.ports_count }}</td>
+                            
+                            <td class="fw-bold bg-opacity-10 bg-primary">{{ item.declared_count }}</td>
+                            <td class="bg-opacity-10 bg-primary">{{ item.declared_capacity }}</td>
+                            
+                            <td class="text-muted">
+                                {% widthratio item.declared_count 1 item.declared_capacity %}
+                            </td>
+                            
+                            <td>
+                                <a href="{% url 'input_data:proforma_create' %}?scenario_id={{ scenario.id }}&lane_code={{ item.lane_code }}&proforma_name={{ item.proforma_name }}" 
+                                   class="btn btn-sm btn-outline-secondary" title="View Schedule">
+                                    <i class="bi bi-calendar-week"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-center py-5 text-muted">
+                                <i class="bi bi-info-circle fs-3 d-block mb-2"></i>
+                                No proforma schedules found for this scenario.<br>
+                                <a href="{% url 'input_data:proforma_create' %}?scenario_id={{ scenario.id }}" class="btn btn-sm btn-primary mt-2">
+                                    Create Schedule
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

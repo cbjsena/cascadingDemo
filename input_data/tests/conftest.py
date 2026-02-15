@@ -115,10 +115,12 @@ def distance_data(db, base_scenario):
         eca_distance=100,
     )
 
+
 # =========================================================
 # Schedule Fixtures (New)
 # [Related Scenarios] PROFORMA_LIST_001, DETAIL_VIEW, EDIT_MODE
 # =========================================================
+
 
 @pytest.fixture
 def sample_schedule(db, base_scenario, user):
@@ -153,5 +155,5 @@ def sample_schedule(db, base_scenario, user):
         sea_time_hours=24.0,
         terminal_code="PNC",
         created_by=user,
-        updated_by=user
+        updated_by=user,
     )

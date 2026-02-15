@@ -58,7 +58,6 @@ MODEL_MAPPING = [
 SCENARIO_CREATION_FILTERS = {
     # [요청사항 반영] VesselInfo는 코드가 'V0'로 시작하는 것만 복제
     VesselInfo: {"vessel_code__startswith": "V0"},
-
     # 예시: 특정 Lane만 복제하고 싶다면
     # ProformaSchedule: {"lane_code__in": ["FP1", "EC2"]},
 }

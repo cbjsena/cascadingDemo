@@ -1,4 +1,5 @@
 import io
+
 import openpyxl
 import pytest
 
@@ -64,7 +65,7 @@ class TestProformaReadViews:
             sea_time_hours=24.0,
             terminal_code="PNC",
             created_by=user,
-            updated_by=user
+            updated_by=user,
         )
 
         url = reverse("input_data:proforma_list")
@@ -88,7 +89,7 @@ class TestProformaReadViews:
         params = {
             "scenario_id": sample_schedule.scenario.id,
             "lane_code": sample_schedule.lane_code,
-            "proforma_name": sample_schedule.proforma_name
+            "proforma_name": sample_schedule.proforma_name,
         }
         response = auth_client.get(url, params)
 
@@ -118,7 +119,7 @@ class TestProformaReadViews:
         params = {
             "scenario_id": sample_schedule.scenario.id,
             "lane_code": sample_schedule.lane_code,
-            "proforma_name": sample_schedule.proforma_name
+            "proforma_name": sample_schedule.proforma_name,
         }
         response = auth_client.get(url, params)
 

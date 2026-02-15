@@ -135,12 +135,10 @@ def generate_table_definition(sender, **kwargs):
 
         # 1. 문서 헤더 (생성 정보)
         writer.writerow(["[Base Data Table Definition]"])
-        writer.writerow(
-            ["Generated At", timezone.now().strftime("%Y-%m-%d %H:%M:%S")]
-        )
+        writer.writerow(["Generated At", timezone.now().strftime("%Y-%m-%d %H:%M:%S")])
         writer.writerow([])
 
-            # 2. 컬럼 헤더
+        # 2. 컬럼 헤더
         headers = [
             "Table Name",
             "Column Name",
@@ -165,7 +163,9 @@ def generate_table_definition(sender, **kwargs):
             with open(output_file, "r", encoding="utf-8-sig") as f:
                 old_content = f.read()
 
-            if _remove_generated_line(old_content) == _remove_generated_line(new_content):
+            if _remove_generated_line(old_content) == _remove_generated_line(
+                new_content
+            ):
                 print("No changes detected. File not updated.")
                 return
 
@@ -195,8 +195,5 @@ def _remove_generated_line(content: str) -> str:
     CSV 내용 중 'Generated At' 줄 제거
     """
     lines = content.splitlines()
-    filtered = [
-        line for line in lines
-        if not line.startswith("Generated At,")
-    ]
+    filtered = [line for line in lines if not line.startswith("Generated At,")]
     return "\n".join(filtered)

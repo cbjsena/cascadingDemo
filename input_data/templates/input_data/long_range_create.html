@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Create LRS - Cascading Opt{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h4">Create Long Range Schedule</h2>
+    </div>
+
+    <form method="post" id="lrsForm">
+        {% csrf_token %}
+        
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light fw-bold">1. Select Proforma Source</div>
+            <div class="card-body">
+                <div class="row g-3 align-items-end">
+                    <div class="col-md-3">
+                        <label class="form-label small text-muted">Scenario ID</label>
+                        <select class="form-select" id="scenarioSelect" name="scenario_id" required>
+                            <option value="">Select Scenario</option>
+                            {% for scenario in scenarios %}
+                            <option value="{{ scenario.id }}">{{ scenario.id }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted">Lane Code</label>
+                        <input type="text" class="form-control" id="laneCode" name="lane_code" placeholder="e.g. KRP" required>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label small text-muted">Proforma Name</label>
+                        <input type="text" class="form-control" id="proformaName" name="proforma_name" placeholder="e.g. PF01" required>
+                    </div>
+                    <div class="col-md-2">
+                        <button type="button" class="btn btn-primary w-100" id="btnLoadProforma">
+                            <i class="bi bi-arrow-down-circle"></i> Load Info
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="settingsArea" style="display: none;">
+            
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light fw-bold">2. Global Settings</div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold">Required Vessels</label>
+                            <input type="text" class="form-control bg-light" id="requiredCount" readonly>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label fw-bold text-primary">Own Vessels Count</label>
+                            <input type="number" class="form-control" name="own_vessel_count" id="ownVesselCount" value="0" min="0">
+                            <div class="form-text">Number of own vessels to assign</div>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">LRS Start Date</label>
+                            <input type="date" class="form-control" name="apply_start_date" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label fw-bold">LRS End Date</label>
+                            <input type="date" class="form-control" name="apply_end_date" required>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card shadow-sm mb-4">
+                <div class="card-header bg-light fw-bold d-flex justify-content-between align-items-center">
+                    <span>3. Vessel Assignment</span>
+                    <span class="badge bg-secondary" id="slotInfoBadge">Slots: 0</span>
+                </div>
+                <div class="card-body p-0">
+                    <div class="table-responsive">
+                        <table class="table table-bordered table-hover text-center align-middle mb-0">
+                            <thead class="table-light">
+                                <tr>
+                                    <th style="width: 60px;">Seq</th>
+                                    <th>Vessel Name</th>
+                                    <th>Initial Start Date (First Port ETB)</th>
+                                    <th>Remarks</th>
+                                </tr>
+                            </thead>
+                            <tbody id="vesselTableBody">
+                                </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-end pb-5">
+                <button type="submit" class="btn btn-success btn-lg px-5">
+                    <i class="bi bi-check-circle"></i> Create LRS
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    document.getElementById('btnLoadProforma').addEventListener('click', function() {
+        const scenario = document.getElementById('scenarioSelect').value;
+        const lane = document.getElementById('laneCode').value;
+        const proforma = document.getElementById('proformaName').value;
+
+        if (!scenario || !lane || !proforma) {
+            alert("Please fill in all fields (Scenario, Lane, Proforma Name).");
+            return;
+        }
+
+        // Call API
+        const url = `{% url 'input_data:api_proforma_info' %}?scenario_id=${scenario}&lane_code=${lane}&proforma_name=${proforma}`;
+        
+        fetch(url)
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    // Show Settings Area
+                    document.getElementById('settingsArea').style.display = 'block';
+                    
+                    // Set Info
+                    const count = data.declared_count;
+                    document.getElementById('requiredCount').value = count;
+                    document.getElementById('slotInfoBadge').textContent = `Total Slots: ${count}`;
+                    
+                    // Generate Table Rows
+                    generateRows(count);
+                } else {
+                    alert("Error: " + data.message);
+                    document.getElementById('settingsArea').style.display = 'none';
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert("Failed to load proforma info.");
+            });
+    });
+
+    function generateRows(count) {
+        const tbody = document.getElementById('vesselTableBody');
+        tbody.innerHTML = ''; // Clear existing
+
+        for (let i = 1; i <= count; i++) {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+                <td>${i}</td>
+                <td>
+                    <input type="text" class="form-control" name="vessel_name[]" placeholder="Vessel Name">
+                </td>
+                <td>
+                    <input type="date" class="form-control" name="vessel_start_date[]">
+                </td>
+                <td>
+                    <span class="text-muted small">Slot ${i}</span>
+                </td>
+            `;
+            tbody.appendChild(tr);
+        }
+    }
+
+    // Optional: Auto-fill logic based on Own Vessel Count
+    // 자사 선박 수 입력 시 UI 강조 등의 효과를 줄 수 있음
+    document.getElementById('ownVesselCount').addEventListener('input', function() {
+        const ownCount = parseInt(this.value) || 0;
+        const rows = document.querySelectorAll('#vesselTableBody tr');
+        
+        rows.forEach((row, index) => {
+            const inputVessel = row.querySelector('input[name="vessel_name[]"]');
+            if (index < ownCount) {
+                inputVessel.classList.add('border-primary'); // Highlight
+                inputVessel.placeholder = `Own Vessel ${index + 1}`;
+            } else {
+                inputVessel.classList.remove('border-primary');
+                inputVessel.placeholder = "Charter / TBN";
+            }
+        });
+    });
+</script>
+{% endblock %}

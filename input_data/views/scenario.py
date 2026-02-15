@@ -5,6 +5,7 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.exceptions import FieldDoesNotExist
 from django.db import transaction
+from django.db.models import Count, Min
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
@@ -12,7 +13,7 @@ from django.views.decorators.http import require_POST
 
 from common import messages as msg
 from common.menus import MENU_STRUCTURE
-from input_data.models import ScenarioInfo
+from input_data.models import ProformaSchedule, ScenarioInfo
 from input_data.services.scenario_service import create_scenario_from_base
 
 
@@ -143,6 +144,73 @@ def create_base_scenario_view(request):
             {"status": "error", "message": msg.SAVE_ERROR.format(error=str(e))},
             status=500,
         )
+
+
+@login_required
+def scenario_dashboard(request, scenario_id):
+    """
+    [View] 시나리오 상세 대시보드
+    - Lane별 선박 투입 계획(Proforma) 요약 및 통계 제공
+    """
+    # Todo lrs 완성 이후 lrs에서 가져와서 보여주도록 수정(count 대비 실제 deploy된 선박, 용량, 첫 날짜)
+    # 1. 시나리오 조회 (없으면 404)
+    scenario = get_object_or_404(ScenarioInfo, id=scenario_id)
+
+    # 2. 스케줄 데이터 집계 (Group By Lane, Name)
+    # ProformaSchedule은 기항지(Port)별로 행이 생성되므로, 헤더 정보 기준으로 묶어야 함
+    schedules_qs = (
+        ProformaSchedule.objects.filter(scenario=scenario)
+        .values(
+            "lane_code",
+            "proforma_name",
+            "declared_capacity",
+            "declared_count",
+            "duration",
+        )
+        .annotate(
+            # 그룹별 집계 함수 적용
+            start_date=Min("effective_from_date"),  # 시작일 (데이터 중 가장 빠른 날짜)
+            port_count=Count("port_code"),  # 기항지 수
+        )
+        .order_by("lane_code", "proforma_name")
+    )
+
+    # 3. 전체 통계 계산 (Summary Calculation)
+    total_lanes = 0
+    total_vessels = 0
+    total_capacity = 0
+
+    # 템플릿에서 사용할 리스트 생성 및 통계 합산
+    schedules = []
+    for item in schedules_qs:
+        # 데이터 타입 안전 변환 (DB에 문자열이나 Null로 있을 경우 대비)
+        try:
+            cnt = int(item["declared_count"] or 0)
+            cap = float(item["declared_capacity"] or 0)
+        except (ValueError, TypeError):
+            cnt = 0
+            cap = 0.0
+
+        total_lanes += 1
+        total_vessels += cnt
+        total_capacity += cnt * cap  # (척수 * 선박크기) 누적
+
+        schedules.append(item)
+
+    # 4. Context 구성
+    context = {
+        "menu_structure": MENU_STRUCTURE,
+        "current_model": "scenario_list",  # 사이드바 메뉴 활성화 (Scenario List 하위 개념)
+        "scenario": scenario,
+        "schedules": schedules,
+        "summary": {
+            "total_lanes": total_lanes,
+            "total_vessels": total_vessels,
+            "total_capacity": total_capacity,
+        },
+    }
+
+    return render(request, "input_data/scenario_dashboard.html", context)
 
 
 def _clone_scenario_data(source_id, target_scenario):
