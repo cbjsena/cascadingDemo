@@ -13,18 +13,20 @@ from input_data.services.proforma_service import ProformaService
 
 @login_required
 def proforma_create(request):
-    """Proforma Schedule 생성 및 수정 View"""
+    """
+    Proforma Schedule 생성 및 수정 View
+    """
     service = ProformaService()
 
-    # 초기 컨텍스트
+    # 초기 컨텍스트 설정
     context = {
         "scenarios": ScenarioInfo.objects.all().order_by("-created_at"),
         "rows": [],
         "header": {},
         "days": const.DAYS,
         "menu_structure": MENU_STRUCTURE,
-        # "current_group": "Schedule",  # 사이드바에서 펼쳐놓을 그룹 (선택사항)
-        "current_model": "proforma_schedule",  # 현재 활성화된 메뉴 (선택사항)
+        "current_group": "Creation Data",  # 사이드바에서 펼쳐놓을 그룹 (선택사항)
+        "current_model": "proforma_create",  # 현재 활성화된 메뉴 (선택사항)
     }
 
     # =========================================================
@@ -61,6 +63,7 @@ def proforma_create(request):
 
         # 2. 액션별 로직 수행
         if action == "add_row":
+            # 행 추가 후 재계산
             rows = service.add_row(rows, header.get("scenario_id"))
 
         elif action == "insert_row":
@@ -75,10 +78,9 @@ def proforma_create(request):
             rows = service.delete_rows(rows, indices)
 
         elif action == "new":
-            rows = []
-            header = {}  # New 클릭 시 헤더도 초기화하는 것이 일반적임
+            # 화면 초기화 (리다이렉트)
             messages.info(request, msg.SCHEDULE_NEW_STARTED)
-            return redirect("input_data:proforma_create")  # 깔끔하게 리다이렉트
+            return redirect("input_data:proforma_create")
 
         elif action == "calculate":
             # [기능] 계산만 수행하고 화면 갱신
@@ -121,7 +123,7 @@ def proforma_create(request):
             return response
 
         elif action == "csv":
-            # Grid 형태의 CSV 다운로드
+            # DB Upload용 CSV 다운로드
 
             # 1. 계산 최신화
             rows = service.calculate_schedule(rows, header)
@@ -145,41 +147,34 @@ def proforma_create(request):
                 return redirect(f"{base_url}{query_string}")
             return redirect("input_data:proforma_list")
 
-        # POST 처리 후 변경된 데이터를 Context에 반영
+        # POST 처리 결과 Context 반영
         context["rows"] = rows
         context["header"] = header
+
+        # (선택) 계산 후 Summary 정보가 있다면 추가
+        # context["summary"] = service.calculate_summary(rows)
 
     return render(request, "input_data/proforma_create.html", context)
 
 
-@login_required
-def proforma_export(request):
-    # Export Logic Placeholder
-    messages.info(request, msg.FUNC_NOT_IMPLEMENTED.format(func_name="Export"))
-    return redirect("input_data:proforma_create")
-
-
-@login_required
-def proforma_csv(request):
-    # Export Logic Placeholder
-    messages.info(request, msg.FUNC_NOT_IMPLEMENTED.format(func_name="Csv"))
-    return redirect("input_data:proforma_csv")
-
 
 @login_required
 def proforma_upload(request):
+    """
+    엑셀 파일 업로드 처리 View
+    """
     if request.method == "POST" and request.FILES.get("excel_file"):
         excel_file = request.FILES["excel_file"]
         service = ProformaService()
 
         try:
-            # 1. 엑셀 파싱
+            # 1. 엑셀 파싱 및 기본 데이터 처리
             header, rows = service.upload_excel(excel_file)
 
             # 2. [신규] Summary 계산
             # summary = service.calculate_summary(rows)
 
-            # 3. Context에 summary 추가
+            # 3. Context 설정
             context = {
                 "scenarios": ScenarioInfo.objects.all().order_by("-created_at"),
                 "rows": rows,
@@ -187,7 +182,8 @@ def proforma_upload(request):
                 # "summary": summary,  # <--- 화면으로 전달
                 "days": const.DAYS,
                 "menu_structure": MENU_STRUCTURE,
-                "current_model": "proforma_schedule",
+                "current_group": "Creation Data",
+                "current_model": "proforma_create",
             }
 
             messages.success(request, msg.UPLOAD_SUCCESS)
@@ -274,14 +270,14 @@ def proforma_detail(request):
     q_proforma = request.GET.get("proforma_name")
 
     # 2. 데이터 조회 (Service 재사용)
-    header = {}
-    rows = []
-
     if q_scenario and q_lane and q_proforma:
-        header, rows = service.get_schedule_data(q_scenario, q_lane, q_proforma)
+        try:
+            header, rows = service.get_schedule_data(q_scenario, q_lane, q_proforma)
+        except Exception as e:
+            messages.error(request, msg.LOAD_ERROR.format(error=str(e)))
+            return redirect("input_data:proforma_list")
     else:
-        # 파라미터가 없으면 목록으로 리다이렉트 또는 에러 처리
-        messages.error(request, "Invalid access to detail view.")
+        messages.error(request, "Invalid parameters.")
         return redirect("input_data:proforma_list")
 
     # 3. Context 구성

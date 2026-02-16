@@ -140,7 +140,12 @@
                                 <td>
                                     <input type="checkbox" name="row_check" value="{{ forloop.counter0 }}">
                                 </td>
-                                <td>{{ forloop.counter }}</td>
+                                <td>
+                                    <input type="text" class="form-control form-control-sm border-0 bg-transparent text-center p-0"
+                                           name="port_seq[]"
+                                           value="{{ row.port_seq|default:forloop.counter }}"
+                                           readonly tabindex="-1">
+                                </td>
                                 <td><input type="text" class="form-control form-control-sm border-0 bg-transparent text-center p-0"
                                            name="port_code[]"
                                            value="{{ row.port_code }}">

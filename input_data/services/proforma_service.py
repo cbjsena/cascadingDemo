@@ -25,7 +25,7 @@ class ProformaService:
     """
 
     def __init__(self):
-        # ExcelManager 인스턴스 초기화
+        # 인스턴스 초기화
         self.excel_manager = ExcelManager()
         self.csv_manager = CsvManager()
 
@@ -42,14 +42,12 @@ class ProformaService:
         return header_data
 
     def parse_rows(self, request):
-        """
-        [리팩토링] Grid 역시 Config를 기반으로 동적 파싱 가능
-        """
-        # HTML name은 보통 name="key[]" 형태이므로 Config 키에 '[]'를 붙여서 가져옴
+        """역시 Config를 기반으로 Grid 동적 파싱 가능
+        HTML name은 보통 name="key[]" 형태이므로 Config 키에 '[]'를 붙여서 가져옴"""
         grid_data = {}
         row_count = 0
 
-        # 1. 모든 컬럼 데이터 리스트 추출
+        # 1. 컬럼별 리스트 추출
         for _, key, _ in ex_cfg.PROFORMA_CONFIG["grid_headers"]:
             values = request.POST.getlist(f"{key}[]")
             grid_data[key] = values
@@ -75,7 +73,7 @@ class ProformaService:
                     "sea_time",
                 ]:
                     row[key] = self._to_float(val)
-                elif key in ["no", "etb_no", "etd_no"]:
+                elif key in ["port_seq", "etb_no", "etd_no"]:
                     row[key] = int(val) if str(val).isdigit() else 0
                 else:
                     row[key] = val
@@ -85,26 +83,30 @@ class ProformaService:
 
     def calculate_schedule(self, rows, header_info):
         """
-        [수정된 로직]
-        1. Row 0: ETB 절대 시간 기준점 설정
-        2. Row 1~N:
-           - 사용자가 입력한 ETB Day/Time을 '절대 시간'으로 변환
-           - (현재 ETB - 이전 ETD - Pilots) = Sea Time 역산
-           - 이전 행의 Sea Time/Speed 업데이트
-           - 현재 행의 ETD = ETB + Work Hours 계산
+        [스케줄 계산 핵심 로직]
+        1. 기준점 설정: 첫 번째 행의 ETB Day/Time
+        2. Distance 조회: Current Port -> Next Port 거리 검색
+        3. ETB 계산: 사용자 입력 'etb_no'가 존재하고 유효(이전 ETD 이후)하면 우선 사용.
+           그렇지 않을 경우(시간 역전 등)에만 자동 보정 로직 수행.
+        4. Sea Time 역산 (Back-calculation):
+           - Formula: (Next ETB - Current ETD) - (Current Pilot Out + Next Pilot In)
+        5. Speed 계산:
+           - Formula: Distance / Sea Time
+        6. ETD 계산:
+           - Formula: Current ETB + Work Hours
         """
         scenario_id = header_info.get("scenario_id")
         if not rows:
             return rows
 
-        # [1] 기준점 설정 (Row 0)
+        # [1] 기준점(Anchor) 설정 (Row 0)
         start_day_str = rows[0].get("etb_day", "SUN")
         start_time_str = rows[0].get("etb_time", "0000")
         base_abs_hours = self._get_abs_hours_from_day_time(
             start_day_str, start_time_str
         )
 
-        # 현재 행의 도착 시간(ETB) 누적 변수
+        # 현재 행의 ETB 절대 시간 (누적값)
         # (Row 0은 기준점이므로 바로 설정)
         current_etb_abs = base_abs_hours
 
@@ -112,54 +114,78 @@ class ProformaService:
         for i in range(len(rows)):
             curr = rows[i]
 
-            # --- 2.0 거리 업데이트 (이전 로직 유지) ---
+            # ----------------------------------------------------------------
+            # Step A. Distance & ECA Distance 자동 검색 (Current -> Next)
+            # ----------------------------------------------------------------
             if i < len(rows) - 1:
                 next_row = rows[i + 1]
+                # 포트 코드가 변경되었거나 거리가 0일 때 재검색
+                # (항상 검색하여 최신화하려면 조건 제거)
                 if curr.get("port_code") and next_row.get("port_code"):
                     dist_obj = Distance.objects.filter(
                         scenario_id=scenario_id,
                         from_port_code=curr["port_code"],
                         to_port_code=next_row["port_code"],
                     ).first()
+
                     if dist_obj:
                         curr["dist"] = dist_obj.distance
                         curr["eca_dist"] = dist_obj.eca_distance
+                    else:
+                        # 거리가 없으면 0으로 초기화 (또는 기존 값 유지)
+                        curr["dist"] = 0
+                        curr["eca_dist"] = 0
 
-            # --- 2.1 ETB 확정 (사용자 입력 우선) ---
+            # ----------------------------------------------------------------
+            # Step B. ETB 확정 (사용자 입력 No 우선 적용)
+            # ----------------------------------------------------------------
             if i == 0:
                 # 첫 행은 기준점이므로 변경 없음
                 current_etb_abs = base_abs_hours
             else:
-                # [핵심 변경] 사용자가 입력한 ETB Day/Time을 해석하여 절대 시간 결정
+                # 사용자가 입력한 ETB Day/Time을 해석하여 절대 시간 결정
                 prev_row = rows[i - 1]
 
-                # 이전 행의 ETD 절대 시간 (이미 계산됨)
+                # 이전 항구의 ETD 절대 시간 가져오기
                 prev_etd_abs = self._get_abs_hours_from_row(
                     prev_row, "etd", base_abs_hours
                 )
 
-                # 사용자가 입력한 현재 행의 ETB 정보
-                user_day = curr.get("etb_day", const.DEFAULT_ETB_DAY)
+                # 사용자 입력값 가져오기
+                user_no = int(curr.get("etb_no") or 0)
                 user_time = curr.get("etb_time", const.DEFAULT_TIME)
 
-                # (1) 사용자 입력이 이전 ETD 이후의 가장 가까운 미래가 되도록 절대 시간 계산
-                candidate_etb_abs = self._resolve_next_etb(
-                    prev_etd_abs, user_day, user_time
+                # 1. 사용자가 입력한 etb_no 기반으로 절대 시간 계산
+                candidate_etb_abs = self._get_abs_hours_with_no(
+                    base_abs_hours, user_no, user_time
                 )
 
-                # 1-1 ETB No는 이전 행의 ETD No보다 작을 수 없다
-                # 사용자가 억지로 과거 시간을 입력했다면, 최소값(Prev ETD)으로 강제 조정
-                if candidate_etb_abs < prev_etd_abs:
-                    candidate_etb_abs = prev_etd_abs
+                # 2. 유효성 검증
+                # 사용자가 입력한 시간(Day 10)이 이전 ETD(Day 2)보다 미래라면 그대로 사용
+                # 만약 사용자가 실수로 과거(Day 1)를 입력했다면, 그때만 자동 로직(Resolve Next) 수행
+                if candidate_etb_abs >= prev_etd_abs:
+                    current_etb_abs = candidate_etb_abs
+                else:
+                    # 입력값이 논리적으로 불가능(과거)할 때 -> 요일 기반 자동 찾기 or Prev ETD로 보정
+                    # 여기서는 요일 기반으로 '가장 가까운 미래'를 찾아줌 (기존 로직 활용)
+                    user_day = curr.get("etb_day", const.DEFAULT_ETB_DAY)
+                    current_etb_abs = self._resolve_next_etb(
+                        prev_etd_abs, user_day, user_time
+                    )
 
-                current_etb_abs = candidate_etb_abs
+                    # 그래도 혹시 모르니 Min 값 보정
+                    if current_etb_abs < prev_etd_abs:
+                        current_etb_abs = prev_etd_abs
 
-                # (2) 역산: Sea Time = (현재 ETB - 이전 ETD) - Pilots
+                # ------------------------------------------------------------
+                # Step C. Sea Time & Speed 역산 (Previous Row Update)
+                # ------------------------------------------------------------
+                # Sea Time = (Berth to Berth) - (Prev Pilot Out) - (Curr Pilot In)
                 prev_pilot_out = self._to_float(prev_row.get("pilot_out", 0))
                 curr_pilot_in = self._to_float(curr.get("pilot_in", 0))
 
                 calc_sea_time = (
-                    current_etb_abs - prev_etd_abs - prev_pilot_out - curr_pilot_in
+                        current_etb_abs - prev_etd_abs - prev_pilot_out - curr_pilot_in
                 )
 
                 # 방어 코드: 시간이 역전된 경우 (즉, 사용자가 ETB를 ETD보다 과거로 입력함)
@@ -168,16 +194,20 @@ class ProformaService:
                     # 시간을 강제로 밀어버릴지, Sea Time을 0으로 두고 ETB를 수정할지 결정해야 함.
                     # 여기서는 "사용자 ETB 우선"이지만 물리적으로 불가능하면 Sea Time=0으로 둠.
 
-                # (3) 이전 행의 Sea Time 및 Speed 업데이트
+                # 이전 행(Leg)의 Sea Time 업데이트
                 prev_row["sea_time"] = round(calc_sea_time, 2)
 
+                # 이전 행(Leg)의 Speed 업데이트 (Speed = Dist / Time)
                 dist = self._to_float(prev_row.get("dist", 0))
                 if calc_sea_time > 0.01:
                     prev_row["spd"] = round(dist / calc_sea_time, 2)
                 else:
-                    prev_row["spd"] = 0
+                    prev_row["spd"] = 0.0
 
-            # --- 2.2 ETB 화면 표시 업데이트 ---
+            # ----------------------------------------------------------------
+            # Step D. 현재 행의 ETB 값(No, Day, Time) 갱신
+            # ----------------------------------------------------------------
+            # 계산된 절대 시간을 다시 No, Day, Time으로 변환하여 화면에 표시
             no, day, time = self._hours_to_display_format(
                 current_etb_abs, base_abs_hours
             )
@@ -185,9 +215,9 @@ class ProformaService:
             curr["etb_day"] = day
             curr["etb_time"] = time
 
-            # --- 2.3 ETD 계산 (ETB + Work Hours) ---
-            # ETD는 사용자가 입력하더라도 Work Hours가 우선권(Duration)을 가지는 경우가 많음
-            # 여기서는 ETB가 확정되었으므로 Work Hours를 더해 ETD를 재계산함
+            # ----------------------------------------------------------------
+            # Step E. 현재 행의 ETD 계산 (ETB + Work Hours)
+            # ----------------------------------------------------------------
             work_hours = self._to_float(curr.get("work_hours", 0))
             current_etd_abs = current_etb_abs + work_hours
 
@@ -197,12 +227,7 @@ class ProformaService:
             curr["etd_no"] = no
             curr["etd_day"] = day
             curr["etd_time"] = time
-
-            # (중요) 다음 루프를 위해 계산된 ETD 값을 Row에 임시 저장할 필요가 있을 수 있음
-            # 하지만 _hours_to_display_format으로 변환된 no/day/time을 다시 파싱하는 것보다
-            # current_etd_abs 변수를 활용하는 것이 좋으나,
-            # 위 루프 구조상 prev_row를 참조하므로 _get_abs_hours_from_row 헬퍼 사용
-
+            curr["port_seq"] = i + 1
         return rows
 
     def add_row(self, rows, scenario_id):
@@ -257,6 +282,7 @@ class ProformaService:
         return self.calculate_schedule(rows, {"scenario_id": None})
 
     def delete_rows(self, rows, indices):
+        """행 삭제"""
         if not indices:
             return rows
         indices = sorted([int(x) for x in indices], reverse=True)
@@ -267,6 +293,7 @@ class ProformaService:
 
     @transaction.atomic
     def save_schedule(self, header, rows, user):
+        """스케줄 DB 저장"""
         scenario_id_val = header.get("scenario_id")
         lane_code = header.get("lane_code")
         proforma_name = header.get("proforma_name")
@@ -279,7 +306,7 @@ class ProformaService:
 
         # Effective Date를 Timezone Aware 객체로 변환
         eff_from_date_str = header.get("effective_from_date", "")
-        effective_from_date = timezone.now()  # 기본값
+        effective_from_date = timezone.now()
 
         if eff_from_date_str:
             try:
@@ -302,6 +329,7 @@ class ProformaService:
         for row in rows:
             if not row.get("port_code"):
                 continue
+
             port_cd = row["port_code"]
             direction = row.get("direction", "E")
 
@@ -327,7 +355,7 @@ class ProformaService:
                 port_code=port_cd,
                 direction=row.get("direction", "E"),
                 calling_port_indicator=calling_port_indicator,
-                calling_port_seq=int(row["no"]),
+                calling_port_seq=int(row.get("port_seq") or 0),
                 turn_port_info_code=row.get("turn_port_info_code", "N"),
                 pilot_in_hours=Decimal(row.get("pilot_in") or 0),
                 etb_day_number=int(row.get("etb_no") or 0),
@@ -422,7 +450,7 @@ class ProformaService:
                     row[key] = self._to_float(row.get(key, 0))
 
                 # int 변환
-                for key in ["no", "etb_no", "etd_no"]:
+                for key in ["port_seq", "etb_no", "etd_no"]:
                     val = row.get(key, 0)
                     row[key] = int(val) if str(val).isdigit() else 0
 
@@ -476,18 +504,6 @@ class ProformaService:
 
         if not rows:
             return output.getvalue()
-
-        # ---------------------------------------------------------
-        # 2. 사전 계산 (Global Logic)
-        # ---------------------------------------------------------
-        # (1) SVCE_LANE_STD_YN
-        # is_standard = 'N'
-        # try:
-        #     eff_dt = datetime.strptime(str(header.get('effective_from_date', ''))[:10], '%Y-%m-%d')
-        #     if datetime.now() >= eff_dt:
-        #         is_standard = 'Y'
-        # except:
-        #     is_standard = 'N'
 
         # (2) STD_SVCE_SPD
         total_dist = sum(self._to_float(r.get("dist", 0)) for r in rows)
@@ -589,6 +605,7 @@ class ProformaService:
         rows = []
         for obj in qs:
             row = {
+                "port_seq": obj.calling_port_seq,
                 "port_code": obj.port_code,
                 "direction": obj.direction,
                 "turn_port_info_code": obj.turn_port_info_code,
@@ -614,6 +631,7 @@ class ProformaService:
     # --- Helper Methods ---
     def _create_default_row(self):
         return {
+            "port_seq": 0,
             "port_code": "",
             "direction": const.DEFAULT_DIRECTION,
             "turn_port_info_code": const.DEFAULT_TURN_INO,
@@ -784,3 +802,22 @@ class ProformaService:
         if len(s_val) >= 10:
             return s_val[:10]
         return s_val
+
+
+    # No와 Time을 이용해 절대 시간을 계산하는 메서드 추가
+    def _get_abs_hours_with_no(self, base_hours, no, time_str):
+        """
+        Base Hours(기준점)에 경과 일수(No)와 시간을 더해 절대 시간 반환
+        """
+        t_str = str(time_str).zfill(4)
+        h = int(t_str[:2])
+        m = int(t_str[2:])
+        time_part = h + (m / 60.0)
+
+        # Base의 '일(Day)' 부분 추출 (예: SUN 00:00이 기준이라면 0일)
+        base_days_part = math.floor(base_hours / 24.0)
+
+        # 전체 절대 일수 = Base 일수 + 사용자 입력 No
+        total_days = base_days_part + no
+
+        return (total_days * 24.0) + time_part

@@ -8,18 +8,19 @@ from django.urls import reverse
 from django.utils import timezone
 
 from input_data.models import Distance, ProformaSchedule
-
+from common import messages as msg
 
 @pytest.mark.django_db
 class TestProformaReadViews:
     """
     [그룹 1] 조회 관련 테스트
-    범위: 목록(List), 검색(Search), 상세(Detail), 생성화면 진입(Initial), 수정모드(Edit Load)
+    범위: 목록(List), 검색(Search), 상세(Detail), 생성화면 진입(Initial)
     """
 
     def test_proforma_list_view(self, auth_client, sample_schedule):
         """
         [PF_LIST_001] 목록 조회 테스트
+        Changed: 메뉴 그룹이 'Schedule'인지 확인
         """
         url = reverse("input_data:proforma_list")
         response = auth_client.get(url)
@@ -31,6 +32,9 @@ class TestProformaReadViews:
         proforma_list = response.context["proforma_list"]
         assert len(proforma_list) >= 1
         assert any(item["lane_code"] == "TEST_LANE" for item in proforma_list)
+
+        # [Check] 메뉴 그룹 확인
+        assert response.context["current_group"] == "Schedule"
 
     def test_proforma_list_search(self, auth_client, base_scenario, user):
         """
@@ -84,6 +88,7 @@ class TestProformaReadViews:
     def test_proforma_detail_view(self, auth_client, sample_schedule):
         """
         [PF_DETAIL_001] 상세 조회 테스트
+        Changed: 메뉴 그룹이 'Schedule'인지 확인
         """
         url = reverse("input_data:proforma_detail")
         params = {
@@ -98,11 +103,14 @@ class TestProformaReadViews:
 
         header = response.context["header"]
         assert header["lane_code"] == "TEST_LANE"
+        # [Check] 메뉴 그룹 확인
+        assert response.context["current_group"] == "Schedule"
         assert len(response.context["rows"]) == 1
 
     def test_proforma_view_initial(self, auth_client, base_scenario):
         """
         [PF_CREATE_001] 생성 화면 초기 진입
+        Changed: 메뉴 그룹이 'Creation Data'인지 확인
         """
         url = reverse("input_data:proforma_create")
         response = auth_client.get(url)
@@ -110,6 +118,10 @@ class TestProformaReadViews:
         assert response.status_code == 200
         assert len(response.context["rows"]) == 0
         assert "scenarios" in response.context
+
+        # [Check] 메뉴 그룹 확인
+        assert response.context["current_group"] == "Creation Data"
+        assert response.context["current_model"] == "proforma_create"
 
     def test_proforma_edit_mode_load(self, auth_client, sample_schedule):
         """
@@ -134,14 +146,12 @@ class TestProformaReadViews:
 @pytest.mark.django_db
 class TestProformaGridActions:
     """
-    [그룹 2] 그리드 조작 테스트
-    범위: 행 추가(Add), 삽입(Insert), 삭제(Delete), 초기화(New)
+    [그룹 2] 그리드 조작 (View Integration)
+    Controller가 Service를 잘 호출하는지 확인
     """
 
     def test_action_add_row(self, auth_client, base_scenario):
-        """
-        [PF_GRID_001] 최하단 행 추가
-        """
+        """[PF_GRID_001] 행 추가"""
         url = reverse("input_data:proforma_create")
         data = {
             "action": "add_row",
@@ -154,9 +164,7 @@ class TestProformaGridActions:
         assert rows[0]["etb_day"] == "SUN"  # Default Value
 
     def test_action_insert_row(self, auth_client, base_scenario):
-        """
-        [PF_GRID_002] 중간 행 삽입
-        """
+        """[PF_GRID_002] 행 삽입"""
         url = reverse("input_data:proforma_create")
         # A, B 사이에 삽입 요청
         data = {
@@ -214,118 +222,60 @@ class TestProformaGridActions:
 @pytest.mark.django_db
 class TestProformaCalculation:
     """
-    [그룹 3] 계산 로직 테스트
-    범위: 거리 데이터 연동, 단순 계산(Save 없음)
+    [그룹 3] 계산 및 저장 (View Integration)
     """
 
-    def test_data_distance_integration(self, auth_client, base_scenario):
+    def test_action_calculate(self, auth_client, base_scenario):
         """
-        [PF_CALC_001] 거리 데이터 자동 조회
-        """
-        Distance.objects.create(
-            scenario=base_scenario,
-            from_port_code="PUS",
-            to_port_code="TYO",
-            distance=500,
-            eca_distance=100,
-        )
-
-        url = reverse("input_data:proforma_create")
-        data = {
-            "action": "calculate",
-            "scenario_id": base_scenario.id,
-            "port_code[]": ["PUS", "TYO"],
-            "dist[]": ["0", "0"],
-            "etb_day[]": ["SUN", "MON"],
-            "etb_time[]": ["0000", "0000"],
-        }
-        response = auth_client.post(url, data)
-        rows = response.context["rows"]
-
-        assert float(rows[0]["dist"]) == 500
-        assert float(rows[0]["eca_dist"]) == 100
-
-    def test_action_calculate_only(self, auth_client, base_scenario):
-        """
-        [PF_CALC_002] 저장 없이 계산만 수행
+        [PF_CALC_001/002] 계산 요청
+        View가 Service를 호출해 계산된 rows를 반환하는지 확인
         """
         url = reverse("input_data:proforma_create")
         data = {
             "action": "calculate",
             "scenario_id": base_scenario.id,
             "port_code[]": ["A", "B"],
-            "dist[]": ["240", "0"],
-            "etb_day[]": ["SUN", "MON"],
-            "etb_time[]": ["0000", "0000"],  # 24h 차이
-            "pilot_in[]": ["0", "0"],
-            "pilot_out[]": ["0", "0"],
+            "etb_day[]": ["SUN", "MON"],  # 필수 데이터
+            "etb_time[]": ["0000", "0000"]
         }
         response = auth_client.post(url, data)
+        assert response.status_code == 200
+
         rows = response.context["rows"]
-
-        # 속도 계산 확인 (240NM / 24h = 10kts)
-        assert float(rows[0]["spd"]) == 10.0
-        # DB 저장 안됨 확인
-        assert ProformaSchedule.objects.count() == 0
-
-
-@pytest.mark.django_db
-class TestProformaPersistence:
-    """
-    [그룹 4] 데이터 영속성 테스트
-    범위: DB 저장 (Save)
-    """
+        assert len(rows) == 2
+        # 계산 결과 메시지 확인
+        messages = list(get_messages(response.wsgi_request))
+        assert any(msg.SCHEDULE_CALCULATED in str(m) for m in messages)
 
     def test_action_save_full(self, auth_client, base_scenario):
         """
-        [PF_SAVE_001] 계산 후 DB 저장 및 리다이렉트
+        [PF_SAVE_001] 저장 요청 및 리다이렉트
         """
         url = reverse("input_data:proforma_create")
         data = {
             "action": "save",
             "scenario_id": base_scenario.id,
-            "lane_code": "TEST",
-            "proforma_name": "PF_SAVED",
-            "duration": "10",
-            "effective_from_date": "2026-01-01",
-            "capacity": "14000",
-            "count": "5",
-            # Grid Data
-            "no[]": ["1"],
+            "lane_code": "TEST_SAVE",
+            "proforma_name": "PF_SAVE",
+            'effective_from_date': ['2026-01-01'],
+            "capacity":["5000"],
+            "count":["2"],
+            "duration": ["49"],
             "port_code[]": ["KRPUS"],
             "direction[]": ["E"],
-            "turn_port_info_code[]": ["N"],
-            "etb_no[]": ["0"],
-            "etb_day[]": ["SUN"],
-            "etb_time[]": ["0000"],
-            "etd_no[]": ["0"],
-            "etd_day[]": ["SUN"],
-            "etd_time[]": ["1200"],
-            "terminal[]": ["KRPUS01"],
-            # Nullable Fields
-            "pilot_in[]": ["2.0"],
-            "work_hours[]": ["12.0"],
-            "pilot_out[]": ["2.0"],
-            "dist[]": ["100"],
-            "spd[]": ["15.0"],
-            "sea_time[]": ["5.0"],
+            'pilot_in[]': ['2.000'],
+            'work_hours[]': ['2.000'],
+            'pilot_out[]': ['2.000'],
+            "etb_no[]": ["0"], "etb_day[]": ["SUN"], "etb_time[]": ["0000"],
+            "dist[]": ["0"]
         }
 
-        # follow=True로 리다이렉트까지 따라감
         response = auth_client.post(url, data, follow=True)
 
-        # 1. 메시지 확인
+        assert response.status_code == 200
         messages = list(get_messages(response.wsgi_request))
-        assert any("saved successfully" in str(m) for m in messages)
-
-        # 2. DB 저장 확인
-        assert ProformaSchedule.objects.count() == 1
-        obj = ProformaSchedule.objects.first()
-        assert obj.port_code == "KRPUS"
-        assert obj.effective_from_date.strftime("%Y-%m-%d") == "2026-01-01"
-
-        # 3. 리다이렉트 쿼리 스트링 확인 (UX: 계속 편집 모드 유지)
-        assert "lane_code=TEST" in response.request["QUERY_STRING"]
+        assert any(msg.SCHEDULE_SAVE_SUCCESS in str(m) for m in messages)
+        assert ProformaSchedule.objects.filter(lane_code="TEST_SAVE").exists()
 
 
 @pytest.mark.django_db

@@ -26,7 +26,7 @@ PROFORMA_CONFIG = {
     },
     # Grid Headers: (헤더명, 파싱키, 컬럼인덱스)
     "grid_headers": [
-        ("No.", "no", 1),
+        ("No.", "port_seq", 1),
         ("Port\nCode", "port_code", 2),
         ("Direction", "direction", 3),
         ("Turning\nPort Info", "turn_port_info_code", 4),
@@ -47,7 +47,7 @@ PROFORMA_CONFIG = {
     ],
     # Grid 첫 번째 행 예시 값
     "grid_examples": {
-        "no": 1,
+        "port_seq": 1,
         "port_code": "KRPUS",
         "direction": "E",
         "turn_port_info_code": "N",

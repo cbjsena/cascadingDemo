@@ -39,14 +39,13 @@ urlpatterns = [
         "proforma/template/", views.proforma_template_download, name="proforma_template"
     ),
 
-    path("lrs/create/", views.long_range_create, name="long_range_create"),
+    path("long_range/create/", views.long_range_create, name="long_range_create"),
 
     # API
     path("api/distance/", views.get_port_distance, name="api_get_distance"),
 
-    path(
-        "api/proforma-info/", views.get_proforma_info, name="api_proforma_info"
-    ),
+    path("api/proforma/options/", views.get_proforma_options, name="api_proforma_options"),
+    path("api/proforma/info/", views.get_proforma_info, name="api_proforma_info"),
 
     # AJAX용
     # Input List (Common)

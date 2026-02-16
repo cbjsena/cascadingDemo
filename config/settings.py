@@ -60,9 +60,10 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "rest_framework",  # api 구축용
+    'debug_toolbar',    # debug
+    "rest_framework",   # api 구축용
     "drf_spectacular",  # API 문서 자동 생성 도구
-    "simple_history",  # audit logging
+    "simple_history",   # audit logging
     # Custom Apps
     "common",
     "input_data.apps.InputDataConfig",
@@ -82,6 +83,11 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # AuthenticationMiddleware 이후에 와야 request.user에 접근 가능
     "simple_history.middleware.HistoryRequestMiddleware",
+    'debug_toolbar.middleware.DebugToolbarMiddleware',
+]
+
+INTERNAL_IPS = [
+    "127.0.0.1",
 ]
 
 ROOT_URLCONF = "config.urls"

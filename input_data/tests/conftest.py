@@ -4,6 +4,8 @@ from django.contrib.auth.models import User
 from django.utils import timezone
 
 from input_data.models import Distance, ProformaSchedule, ScenarioInfo
+from input_data.services.proforma_service import ProformaService
+
 
 # =========================================================
 # User & Client Fixtures
@@ -48,7 +50,7 @@ def base_scenario(db, user):
     return ScenarioInfo.objects.create(
         id="TEST_SCENARIO_001",
         description="Base Test Scenario",
-        base_year_month="202601",
+        base_year_month="202602",
         status="T",  # Default Status
         created_by=user,
         updated_by=user,
@@ -65,7 +67,7 @@ def scenario_with_data(db, user):
     scenario = ScenarioInfo.objects.create(
         id="SCENARIO_WITH_DATA",
         description="Scenario for Cascade Test",
-        base_year_month="202601",
+        base_year_month="202602",
         status="T",
         created_by=user,
         updated_by=user,
@@ -157,3 +159,8 @@ def sample_schedule(db, base_scenario, user):
         created_by=user,
         updated_by=user,
     )
+
+@pytest.fixture
+def service():
+    """ProformaService 인스턴스"""
+    return ProformaService()

@@ -14,7 +14,7 @@ PROFORMA_DB_MAP = [
     ("direction", "direction"),
     ("port_code", "port_code"),
     ("calling_port_indicator", "clg_seq"),  # Logic 계산 필드 (Sequence)
-    ("calling_port_seq", "no"),
+    ("calling_port_seq", "port_seq"),
     ("turn_port_info_code", "turn_port_info_code"),
     ("pilot_in_hours", "pilot_in"),
     ("etb_day_number", "etb_no"),
