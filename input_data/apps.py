@@ -4,7 +4,8 @@ import os
 
 from django.apps import AppConfig
 from django.conf import settings
-from django.db import connection
+from django.contrib.auth import get_user_model
+from django.db import connection, transaction
 from django.db.models.signals import post_migrate
 from django.utils import timezone
 
@@ -41,6 +42,8 @@ class InputDataConfig(AppConfig):
         post_migrate.connect(add_db_comments, sender=self)
         # 2. 테이블 정의서 문서 생성
         post_migrate.connect(generate_table_definition, sender=self)
+        # 3. 슈퍼 유저 생성
+        post_migrate.connect(create_default_superuser, sender=self)
 
 
 def add_db_comments(sender, **kwargs):
@@ -178,6 +181,39 @@ def generate_table_definition(sender, **kwargs):
     except Exception as e:
         print(msg.DOC_GEN_FAIL.format(error=str(e)))
 
+
+def create_default_superuser(sender, **kwargs):
+    """
+    migrate 실행 후 자동으로 슈퍼유저를 생성하는 콜백 함수
+    """
+    # 모델을 함수 내부에서 import해야 App Registry 로딩 순서 문제를 방지할 수 있습니다.
+    from django.contrib.auth import get_user_model
+
+    User = get_user_model()
+
+    username = "cascading"
+    email = "yukaris@cyberlogitec.com"
+    password = "qwer123$"
+
+    # 계정이 없을 때만 생성 (get_or_create 사용 안 함 - 비밀번호 설정 때문)
+    if not User.objects.filter(username=username).exists():
+        print(f"\n[Auto-Setup] Creating default superuser '{username}'...")
+
+        try:
+            User.objects.create_superuser(
+                username=username,
+                email=email,
+                password=password,
+                # create_superuser는 기본적으로 is_staff, is_superuser=True임
+                # 명시적으로 필요한 경우 추가 설정:
+                # is_active=True
+            )
+            print(f"[Auto-Setup] Superuser '{username}' created successfully.")
+        except Exception as e:
+            print(f"[Auto-Setup] Failed to create superuser: {e}")
+    else:
+        # (선택사항) 이미 존재하면 로그 출력 생략 가능
+        pass
 
 def _map_data_type(data_type):
     if data_type.startswith("character varying"):
