@@ -14,7 +14,7 @@ MENU_STRUCTURE = {
         },
     ],
     "Master Data": [
-        {"name": "Distance", "key": "distance"},
+
         {"name": "Lane Info", "key": "lane_info", "url_name": None},
         {"name": "Port Info", "key": "port_info", "url_name": None},
         # ... 기타 항목들 ...
@@ -34,6 +34,7 @@ MENU_STRUCTURE = {
     ],
     "Cost": [
         {"name": "Canal Fee", "key": "canal_fee"},
+        {"name": "Distance", "key": "distance"},
         {"name": "TS Cost", "key": "ts_cost"},
         # {"name": "Exchange Rate", "key": "exchange_rate"},
         # {"name": "Own Vessel Cost", "key": "own_vessel_cost"},

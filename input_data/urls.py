@@ -28,20 +28,27 @@ urlpatterns = [
     ),
     # Proforma Schedule  - views/proforma.py 에 정의된 함수들
     path("proforma/list/", views.proforma_list, name="proforma_list"),
+
     path("proforma/detail/", views.proforma_detail, name="proforma_detail"),
+
     path("proforma/create/", views.proforma_create, name="proforma_create"),
-    path("proforma/export/", views.proforma_export, name="proforma_export"),
-    path("proforma/csv/", views.proforma_csv, name="proforma_csv"),
+
     path("proforma/upload/", views.proforma_upload, name="proforma_upload"),
+
     path(
         "proforma/template/", views.proforma_template_download, name="proforma_template"
     ),
+
     path("lrs/create/", views.long_range_create, name="long_range_create"),
+
     # API
     path("api/distance/", views.get_port_distance, name="api_get_distance"),
+
     path(
         "api/proforma-info/", views.get_proforma_info, name="api_proforma_info"
-    ),  # AJAX용
+    ),
+
+    # AJAX용
     # Input List (Common)
     # 동적 데이터 조회: /input/schedule/proforma/ 등 형태
     # 상단에 위치하면 안됨(다른 URL과 충돌 가능성)

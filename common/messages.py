@@ -7,6 +7,7 @@ PERMISSION_DENIED = "You do not have permission to perform this action."
 LOGIN_REQUIRED = "Please login to access this page."
 FUNC_NOT_IMPLEMENTED = "{func_name} function not implemented yet."
 SAVE_ERROR = "Failed to save: {error}"
+LOAD_ERROR = "Failed to save: {error}"
 DATA_NOT_FOUND = "Data not found."
 
 # ==========================================
@@ -70,3 +71,15 @@ DOC_GEN_START = "Generating table definition document (PostgreSQL only)..."
 DOC_GEN_SKIP = "Skipping document generation (Not PostgreSQL)."
 DOC_GEN_SUCCESS = "Table definition saved to '{path}'."
 DOC_GEN_FAIL = "Failed to generate table definition: {error}"
+
+# ------------------------------------------------------------------------------
+# Auto Setup Messages (Console Output)
+# ------------------------------------------------------------------------------
+AUTO_SETUP_SUPERUSER_START = "\n[Auto-Setup] Creating default superuser '{username}'..."
+AUTO_SETUP_SUPERUSER_SUCCESS = "[Auto-Setup] Superuser '{username}' created successfully."
+AUTO_SETUP_SUPERUSER_EXIST = "[Auto-Setup] Superuser '{username}' already exists. Skipping."
+AUTO_SETUP_SUPERUSER_FAILED = "[Auto-Setup] Failed to create superuser: {error}"
+
+AUTO_SETUP_COMMAND_START = "\n[Auto-Setup] Running management command '{command}'..."
+AUTO_SETUP_COMMAND_SUCCESS = "[Auto-Setup] Command '{command}' completed successfully."
+AUTO_SETUP_COMMAND_FAILED = "[Auto-Setup] Failed to run command '{command}': {error}"

@@ -5,13 +5,12 @@
 # Data Key는 Service에서 계산된 Context 딕셔너리의 키와 일치해야 합니다.
 
 PROFORMA_DB_MAP = [
-    ("scenario_id", "scenario_id"),
     ("lane_code", "lane_code"),
     ("proforma_name", "proforma_name"),
     ("effective_from_date", "effective_from_date"),
     ("duration", "duration"),
-    ("capacity", "capacity"),
-    ("count", "count"),
+    ("declared_capacity", "capacity"),
+    ("declared_count", "count"),
     ("direction", "direction"),
     ("port_code", "port_code"),
     ("calling_port_indicator", "clg_seq"),  # Logic 계산 필드 (Sequence)

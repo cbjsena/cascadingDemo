@@ -1,36 +1,17 @@
 import csv
 import io
 import os
+import sys
 
 from django.apps import AppConfig
 from django.conf import settings
-from django.contrib.auth import get_user_model
-from django.db import connection, transaction
+from django.core.management import call_command
+from django.db import connection
 from django.db.models.signals import post_migrate
 from django.utils import timezone
 
 from common import messages as msg
-
-# PostgreSQL 전용
-TABLE_DEF_QUERY = """
-SELECT
-    c.table_name      AS table_name,
-    c.column_name     AS column_name,
-    c.data_type       AS data_type,
-    c.is_nullable     AS nullable,
-    pgd.description   AS comment
-FROM information_schema.columns c
-LEFT JOIN pg_catalog.pg_statio_all_tables st
-       ON c.table_schema = st.schemaname
-      AND c.table_name   = st.relname
-LEFT JOIN pg_catalog.pg_description pgd
-       ON pgd.objoid = st.relid
-      AND pgd.objsubid = c.ordinal_position
-WHERE c.table_schema = 'public'
-  AND c.table_name  LIKE 'base%%'  -- Django raw query에서 %는 %%로 이스케이프 필요
-  AND c.column_name != 'id'
-ORDER BY c.table_name, c.ordinal_position;
-"""
+from input_data.queries import TABLE_DEF_QUERY_POSTGRESQL
 
 
 class InputDataConfig(AppConfig):
@@ -38,12 +19,19 @@ class InputDataConfig(AppConfig):
     name = "input_data"
 
     def ready(self):
-        # 1. DB 코멘트 업데이트
-        post_migrate.connect(add_db_comments, sender=self)
-        # 2. 테이블 정의서 문서 생성
-        post_migrate.connect(generate_table_definition, sender=self)
-        # 3. 슈퍼 유저 생성
-        post_migrate.connect(create_default_superuser, sender=self)
+        # 1. 테스트 환경인지 감지
+        is_testing = 'pytest' in sys.modules or (len(sys.argv) > 1 and sys.argv[1] == 'test')
+
+        # 2. 테스트가 아닐 때만 자동화 로직(Signal) 연결
+        if not is_testing:
+            # 1. DB 코멘트 업데이트
+            post_migrate.connect(add_db_comments, sender=self)
+            # 2. 테이블 정의서 문서 생성
+            post_migrate.connect(generate_table_definition, sender=self)
+            # 4. 초기 슈퍼 유저 입력
+            post_migrate.connect(create_default_superuser, sender=self)
+            # 4. 초기 데이터 입력
+            post_migrate.connect(run_init_base_data, sender=self)
 
 
 def add_db_comments(sender, **kwargs):
@@ -126,7 +114,7 @@ def generate_table_definition(sender, **kwargs):
         print(msg.DOC_GEN_START)
 
         with connection.cursor() as cursor:
-            cursor.execute(TABLE_DEF_QUERY)
+            cursor.execute(TABLE_DEF_QUERY_POSTGRESQL)
             rows = cursor.fetchall()
 
         if not rows:
@@ -197,7 +185,7 @@ def create_default_superuser(sender, **kwargs):
 
     # 계정이 없을 때만 생성 (get_or_create 사용 안 함 - 비밀번호 설정 때문)
     if not User.objects.filter(username=username).exists():
-        print(f"\n[Auto-Setup] Creating default superuser '{username}'...")
+        print(msg.AUTO_SETUP_SUPERUSER_START.format(username=username))
 
         try:
             User.objects.create_superuser(
@@ -208,12 +196,31 @@ def create_default_superuser(sender, **kwargs):
                 # 명시적으로 필요한 경우 추가 설정:
                 # is_active=True
             )
-            print(f"[Auto-Setup] Superuser '{username}' created successfully.")
+            print(msg.AUTO_SETUP_SUPERUSER_SUCCESS.format(username=username))
         except Exception as e:
-            print(f"[Auto-Setup] Failed to create superuser: {e}")
+            print(msg.AUTO_SETUP_SUPERUSER_FAILED.format(error=e))
     else:
-        # (선택사항) 이미 존재하면 로그 출력 생략 가능
-        pass
+        print(msg.AUTO_SETUP_SUPERUSER_EXIST.format(username=username))
+
+
+def run_init_base_data(sender, **kwargs):
+    """
+    migrate 완료 후 'init_base_data' 커맨드를 자동으로 실행하는 함수
+    """
+    # plan 매개변수가 있는 경우(특정 마이그레이션만 실행 시) 등을 방지하기 위해
+    # 실제 마이그레이션이 수행되었을 때만 실행하도록 조건 추가 가능하지만,
+    # 보통은 post_migrate 시점에 매번 체크해도 무방합니다.
+    command_name = 'init_base_data'
+    print(msg.AUTO_SETUP_COMMAND_START.format(command=command_name))
+
+    try:
+        call_command(command_name)
+        # (선택) 성공 로그
+        print(msg.AUTO_SETUP_COMMAND_SUCCESS.format(command=command_name))
+    except Exception as e:
+        print(msg.AUTO_SETUP_COMMAND_FAILED.format(command=command_name, error=e))
+
+
 
 def _map_data_type(data_type):
     if data_type.startswith("character varying"):
