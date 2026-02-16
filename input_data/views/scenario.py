@@ -12,6 +12,7 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from common import messages as msg
+from common.constants import DEFAULT_BASE_YEAR_MONTH
 from common.menus import MENU_STRUCTURE
 from input_data.models import ProformaSchedule, ScenarioInfo
 from input_data.services.scenario_service import create_scenario_from_base
@@ -118,10 +119,10 @@ def create_base_scenario_view(request):
         # (Fetch API 사용 시 body, Form submit 시 POST dict)
         if request.content_type == "application/json":
             data = json.loads(request.body)
-            target_id = data.get("scenario_id", "202601_BASE")
+            target_id = data.get("scenario_id", DEFAULT_BASE_YEAR_MONTH)
             description = data.get("description", "Base Scenario created from Web")
         else:
-            target_id = request.POST.get("scenario_id", "202601_BASE")
+            target_id = request.POST.get("scenario_id", DEFAULT_BASE_YEAR_MONTH)
             description = request.POST.get(
                 "description", "Base Scenario created from Web"
             )

@@ -117,9 +117,9 @@ class AbsProformaSchedule(models.Model):
         verbose_name="Port call sequence within the lane"
     )
     turn_port_info_code = models.CharField(
-        null=True,
         max_length=3,
         choices=TURN_PORT_INFO_CD,
+        default="N",
         verbose_name="Turning Port Indicator (Y/N) / Y: Create Virtual Port ",
     )
     pilot_in_hours = models.DecimalField(

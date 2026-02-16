@@ -124,7 +124,7 @@
                 <div class="card-body">
                     <h5 class="card-title">Create Default Scenario</h5>
                     <p class="card-text text-muted">
-                        Initialize or Reset <strong>202601_BASE</strong> from Master Data.
+                        Initialize or Reset <strong>{{ default_scenario_id }}</strong> from Master Data.
                     </p>
                     <button id="btn-create-base" class="btn btn-primary">
                         <i class="fas fa-database"></i> Run Creation
@@ -152,7 +152,7 @@
         if (btnCreateBase) {
             btnCreateBase.addEventListener('click', function() {
                 // 1. 실행 확인 (데이터 삭제 경고)
-                if (!confirm("Are you sure you want to create '202601_BASE'?\nExisting data for this scenario will be deleted.")) {
+                if (!confirm("Are you sure you want to create '{{ default_scenario_id }}'?\nExisting data for this scenario will be deleted.")) {
                     return;
                 }
 
@@ -169,7 +169,7 @@
                         'X-CSRFToken': '{{ csrf_token }}' // Django CSRF Token 필수
                     },
                     body: JSON.stringify({
-                        'scenario_id': '202601_BASE',
+                        'scenario_id': '{{ default_scenario_id }}',
                         'description': 'Base Scenario (Initialized from Dashboard)'
                     })
                 })

@@ -1,6 +1,7 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 
+from common.constants import DEFAULT_SCENARIO_ID
 from common.menus import MENU_STRUCTURE
 from input_data.models import ScenarioInfo
 
@@ -21,5 +22,6 @@ def input_home(request):
         "total_scenarios": total_scenarios,
         "recent_scenarios": recent_scenarios,
         "last_update": last_update,
+        "default_scenario_id": DEFAULT_SCENARIO_ID,
     }
     return render(request, "input_data/input_home.html", context)

@@ -42,7 +42,7 @@
         - csv 파일명은 모델명과 동일해야 함 (예: BasicBunkerPrice.csv -> BasicBunkerPrice 모델)
         - 로그 색깔 안나오면 끝에 --force-color 추가
     5.7 default id 생성
-        - python manage.py create_default_scenario --scenario_id "202601_BASE"
+        - python manage.py create_default_scenario --scenario_id "BASE_SCENARIO"
 
 7. 서버 실행
     7.1 개발 서버를 실행하여 웹 애플리케이션을 확인

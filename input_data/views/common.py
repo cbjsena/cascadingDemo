@@ -3,6 +3,7 @@ from django.http import JsonResponse
 from django.shortcuts import render
 from django.views.decorators.http import require_GET
 
+from common.constants import DEFAULT_SCENARIO_ID
 from common.menus import MENU_STRUCTURE
 from input_data.models import Distance
 
@@ -17,6 +18,7 @@ def input_list(request, group_name, model_name):
         "current_group": group_name,
         "current_model": model_name,
         "page_title": model_name.replace("_", " ").title(),
+        "default_scenario_id": DEFAULT_SCENARIO_ID,
     }
     return render(request, "input_data/input_list.html", context)
 

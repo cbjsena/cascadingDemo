@@ -1,6 +1,7 @@
 from django.core.management.base import BaseCommand
 
 from common import messages as msg
+from common.constants import DEFAULT_SCENARIO_ID
 from input_data.services.scenario_service import create_scenario_from_base
 
 
@@ -8,7 +9,7 @@ class Command(BaseCommand):
     help = "Create a default scenario from Base data"
 
     def add_arguments(self, parser):
-        parser.add_argument("--scenario_id", type=str, default="202601_BASE")
+        parser.add_argument("--scenario_id", type=str, default=DEFAULT_SCENARIO_ID)
 
     def handle(self, *args, **kwargs):
         target_id = kwargs["scenario_id"]

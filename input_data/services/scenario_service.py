@@ -4,6 +4,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
 
+from common.constants import DEFAULT_BASE_YEAR_MONTH
 from input_data.configs import MODEL_MAPPING, SCENARIO_CREATION_FILTERS
 from input_data.models import (
     ScenarioInfo,
@@ -38,11 +39,8 @@ def create_scenario_from_base(target_id, description="Base Scenario", user=None)
     """
     Base 데이터를 복사하여 새로운 시나리오를 생성하는 서비스 함수.
     - user: 이 작업을 수행한 사용자 (created_by에 저장)
-    - base_year_month: 202601 고정
     """
 
-    # [수정 사항 1] Base Year Month 202601 적용
-    BASE_YEAR_MONTH = "202601"
     now = timezone.now()
 
     if user is None:
@@ -56,7 +54,7 @@ def create_scenario_from_base(target_id, description="Base Scenario", user=None)
     scenario = ScenarioInfo(
         id=target_id,
         description=description,
-        base_year_month=BASE_YEAR_MONTH,
+        base_year_month=DEFAULT_BASE_YEAR_MONTH,
         status="T",
     )
 

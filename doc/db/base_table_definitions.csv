@@ -1,5 +1,5 @@
 ﻿[Base Data Table Definition]
-Generated At,2026-02-15 13:08:45
+Generated At,2026-02-16 04:02:24
 
 Table Name,Column Name,Data Type,Nullable,Description (Comment)
 base_bunker_consumption_port,base_year_month,string,NO,Year and month used as the base period / YYYYMM
@@ -64,7 +64,7 @@ base_schedule_proforma,direction,string,NO,"Direction {W, E, S, N}"
 base_schedule_proforma,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
 base_schedule_proforma,calling_port_indicator,string,NO,Port call order for each direction and port within the lane
 base_schedule_proforma,calling_port_seq,int,NO,Port call sequence within the lane
-base_schedule_proforma,turn_port_info_code,string,YES,Turning Port Indicator (Y/N) / Y: Create Virtual Port 
+base_schedule_proforma,turn_port_info_code,string,NO,Turning Port Indicator (Y/N) / Y: Create Virtual Port 
 base_schedule_proforma,pilot_in_hours,numeric,YES,Time from outer port to berth (Hour)
 base_schedule_proforma,etb_day_number,int,NO,Total number of days from the first port ETB to this ETB
 base_schedule_proforma,etb_day_code,string,NO,Day of week for ETB

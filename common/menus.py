@@ -1,5 +1,24 @@
 # common/menus.py (파일 생성 추천)
 MENU_STRUCTURE = {
+    # 1. 생성 관련 메뉴 그룹
+    "Creation Data": [
+        {
+            "name": "Proforma Schedule",
+            "url_name": "input_data:proforma_list",  # 리스트 화면으로 연결
+            "key": "proforma_schedule",
+        },
+        {
+            "name": "Long Range Schedule",
+            "url_name": "input_data:long_range_create",  # 생성 화면으로 연결
+            "key": "long_range_schedule",
+        },
+    ],
+    "Master Data": [
+        {"name": "Distance", "key": "distance"},
+        {"name": "Lane Info", "key": "lane_info", "url_name": None},
+        {"name": "Port Info", "key": "port_info", "url_name": None},
+        # ... 기타 항목들 ...
+    ],
     "Schedule": [
         {
             "name": "Proforma Schedule",
@@ -15,11 +34,10 @@ MENU_STRUCTURE = {
     ],
     "Cost": [
         {"name": "Canal Fee", "key": "canal_fee"},
-        {"name": "Distance", "key": "distance"},
-        {"name": "Exchange Rate", "key": "exchange_rate"},
+        {"name": "TS Cost", "key": "ts_cost"},
+        # {"name": "Exchange Rate", "key": "exchange_rate"},
         # {"name": "Own Vessel Cost", "key": "own_vessel_cost"},
         # {"name": "Port Charge", "key": "port_charge"},
-        {"name": "TS Cost", "key": "ts_cost"},
     ],
     "Bunker": [
         {"name": "Bunker Consumption Sea", "key": "bunker_consumption_sea"},

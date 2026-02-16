@@ -31,7 +31,7 @@ def proforma_create(request):
     # [1] GET 요청 처리: 데이터 조회 (Edit Mode)
     # =========================================================
     if request.method == "GET":
-        # URL 파라미터 수신 (예: ?scenario_id=202601&lane_code=KRP&...)
+        # URL 파라미터 수신 (예: ?scenario_id=2026021501&lane_code=KRP&...)
         q_scenario = request.GET.get("scenario_id")
         q_lane = request.GET.get("lane_code")
         q_proforma = request.GET.get("proforma_name")

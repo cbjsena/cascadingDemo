@@ -87,7 +87,9 @@
                            role="button"
                            aria-expanded="{% if current_group == group %}true{% else %}false{% endif %}">
                             <span>
-                                {% if group == "Schedule" %}<i class="bi bi-calendar-week me-2"></i>
+                                {% if group == "Creation Data" %} <i class="bi bi-pencil-square me-2"></i>
+                                {% elif group == "Master Data" %} <i class="bi bi-database me-2"></i>
+                                {% elif group == "Schedule" %}<i class="bi bi-calendar-week me-2"></i>
                                 {% elif group == "Vessel" %}<i class="bi bi-globe me-2"></i>
                                 {% elif group == "Cost" %}<i class="bi bi-cash-coin me-2"></i>
                                 {% elif group == "Bunker" %}<i class="bi bi-fuel-pump me-2"></i>
