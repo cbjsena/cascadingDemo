@@ -20,20 +20,45 @@
                         <select class="form-select" id="scenarioSelect" name="scenario_id" required>
                             <option value="">Select Scenario</option>
                             {% for scenario in scenarios %}
-                            <option value="{{ scenario.id }}">{{ scenario.id }}</option>
+                            <option value="{{ scenario.id }}"
+                                {% if preserved_data.scenario_id == scenario.id %}selected{% endif %}>
+                                {{ scenario.id }}
+                            </option>
                             {% endfor %}
                         </select>
                     </div>
-                    <div class="col-md-2">
+
+                    <div class="col-md-3">
                         <label class="form-label small text-muted">Lane Code</label>
-                        <input type="text" class="form-control" id="laneCode" name="lane_code" placeholder="e.g. KRP" required>
+                        <select class="form-select" id="laneSelect" name="lane_code" required
+                                {% if not is_error_state %}disabled{% endif %}>
+                            <option value="">Select Lane</option>
+                            {% for opt in lane_options %}
+                            <option value="{{ opt }}"
+                                {% if preserved_data.lane_code == opt %}selected{% endif %}>
+                                {{ opt }}
+                            </option>
+                            {% endfor %}
+                        </select>
                     </div>
-                    <div class="col-md-2">
+
+                    <div class="col-md-3">
                         <label class="form-label small text-muted">Proforma Name</label>
-                        <input type="text" class="form-control" id="proformaName" name="proforma_name" placeholder="e.g. PF01" required>
+                        <select class="form-select" id="proformaSelect" name="proforma_name" required
+                                {% if not is_error_state %}disabled{% endif %}>
+                            <option value="">Select Proforma</option>
+                            {% for opt in proforma_options %}
+                            <option value="{{ opt }}"
+                                {% if preserved_data.proforma_name == opt %}selected{% endif %}>
+                                {{ opt }}
+                            </option>
+                            {% endfor %}
+                        </select>
                     </div>
-                    <div class="col-md-2">
-                        <button type="button" class="btn btn-primary w-100" id="btnLoadProforma">
+
+                    <div class="col-md-3">
+                        <button type="button" class="btn btn-primary w-100" id="btnLoadProforma"
+                                {% if not is_error_state %}disabled{% endif %}>
                             <i class="bi bi-arrow-down-circle"></i> Load Info
                         </button>
                     </div>
@@ -41,29 +66,36 @@
             </div>
         </div>
 
-        <div id="settingsArea" style="display: none;">
-            
+        <div id="settingsArea" style="display: {% if is_error_state %}block{% else %}none{% endif %};">
+
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-light fw-bold">2. Global Settings</div>
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-2">
                             <label class="form-label fw-bold">Required Vessels</label>
-                            <input type="text" class="form-control bg-light" id="requiredCount" readonly>
+                            <input type="text" class="form-control bg-light" id="requiredCount" readonly
+                                   value="{{ restored_rows|length|default:'' }}">
                         </div>
                         <div class="col-md-2">
-                            <label class="form-label fw-bold text-primary">Own Vessels Count</label>
-                            <input type="number" class="form-control" name="own_vessel_count" id="ownVesselCount" value="0" min="0">
-                            <div class="form-text">Number of own vessels to assign</div>
+                            <label class="form-label fw-bold text-primary">Own Vessels</label>
+                            <input type="number" class="form-control" name="own_vessel_count" id="ownVesselCount" min="0"
+                                   value="{{ preserved_data.own_vessel_count|default:'0' }}">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold">LRS Start Date</label>
-                            <input type="date" class="form-control" name="apply_start_date" required>
+                            <label class="form-label fw-bold text-success">LRS Start Date</label>
+                            <input type="date" class="form-control" id="lrsStartDate" name="apply_start_date" required
+                                   value="{{ preserved_data.apply_start_date|default:'' }}">
+                            <div class="form-text text-success" id="startDayHint">
+                                {% if is_error_state %}Reload info to see day{% else %}Select date to generate rows{% endif %}
+                            </div>
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold">LRS End Date</label>
-                            <input type="date" class="form-control" name="apply_end_date" required>
+                            <input type="date" class="form-control" name="apply_end_date" required
+                                   value="{{ preserved_data.apply_end_date|default:'' }}">
                         </div>
+                        <input type="hidden" id="pfFirstDay" value="">
                     </div>
                 </div>
             </div>
@@ -71,28 +103,75 @@
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-light fw-bold d-flex justify-content-between align-items-center">
                     <span>3. Vessel Assignment</span>
-                    <span class="badge bg-secondary" id="slotInfoBadge">Slots: 0</span>
+                    <span class="badge bg-secondary" id="slotInfoBadge">
+                        {% if is_error_state %}Total Slots: {{ restored_rows|length }}{% else %}Slots: 0{% endif %}
+                    </span>
                 </div>
                 <div class="card-body p-0">
                     <div class="table-responsive">
                         <table class="table table-bordered table-hover text-center align-middle mb-0">
                             <thead class="table-light">
                                 <tr>
-                                    <th style="width: 60px;">Seq</th>
-                                    <th>Vessel Name</th>
+                                    <th style="width: 50px;">Seq</th>
+                                    <th style="width: 80px;">Own Check</th>
+                                    <th style="width: 200px;">Vessel Code</th>
+                                    <th style="width: 120px;">Capacity</th>
                                     <th>Initial Start Date (First Port ETB)</th>
-                                    <th>Remarks</th>
+                                    <th style="width: 150px;">Lane Code</th>
                                 </tr>
                             </thead>
                             <tbody id="vesselTableBody">
-                                </tbody>
+                                {% if restored_rows %}
+                                    {% for row in restored_rows %}
+                                    <tr class="{% if row.is_checked %}table-info{% endif %}">
+                                        <td>{{ row.seq }}</td>
+                                        <td>
+                                            <div class="form-check d-flex justify-content-center">
+                                                <input class="form-check-input own-vessel-check" type="checkbox"
+                                                       value="{{ forloop.counter0 }}" style="transform: scale(1.3);"
+                                                       {% if row.is_checked %}checked{% endif %}>
+                                            </div>
+                                        </td>
+                                        <td>
+                                            <select class="form-select vessel-select"
+                                                    {% if not row.is_checked %}disabled{% endif %}>
+                                                <option value="">Select Vessel</option>
+                                                {% for v in vessel_list %}
+                                                <option value="{{ v.vessel_code }}" data-cap="{{ v.max_cap }}"
+                                                    {% if row.vessel_code == v.vessel_code %}selected{% endif %}>
+                                                    {{ v.vessel_code }}
+                                                </option>
+                                                {% endfor %}
+                                            </select>
+                                            <input type="hidden" name="vessel_code[]" class="vessel-code-hidden"
+                                                   value="{{ row.vessel_code|default:'TBN' }}">
+                                        </td>
+                                        <td>
+                                            <input type="text" class="form-control bg-light text-end" name="vessel_capacity[]"
+                                                   value="{{ row.capacity }}" readonly tabindex="-1">
+                                        </td>
+                                        <td>
+                                            <input type="date" class="form-control" name="vessel_start_date[]"
+                                                   value="{{ row.start_date }}" readonly tabindex="-1">
+                                        </td>
+                                        <td>
+                                            <input type="text" class="form-control" name="lane_code_list[]"
+                                                   value="{{ row.lane_code }}" placeholder="">
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr><td colspan="6" class="text-muted">Select LRS Start Date to generate rows...</td></tr>
+                                {% endif %}
+                            </tbody>
                         </table>
                     </div>
                 </div>
             </div>
 
             <div class="d-flex justify-content-end pb-5">
-                <button type="submit" class="btn btn-success btn-lg px-5">
+                <button type="submit" class="btn btn-success btn-lg px-5" id="btnCreateLRS"
+                        {% if not is_error_state %}disabled{% endif %}>
                     <i class="bi bi-check-circle"></i> Create LRS
                 </button>
             </div>
@@ -101,82 +180,303 @@
 </div>
 
 <script>
-    document.getElementById('btnLoadProforma').addEventListener('click', function() {
-        const scenario = document.getElementById('scenarioSelect').value;
-        const lane = document.getElementById('laneCode').value;
-        const proforma = document.getElementById('proformaName').value;
+    // --- Constants & Variables ---
+    const API_OPTIONS_URL = "{% url 'input_data:api_proforma_options' %}";
+    const API_INFO_URL = "{% url 'input_data:api_proforma_info' %}";
+    const API_VESSEL_LIST_URL = "{% url 'input_data:api_vessel_list' %}";
+    const API_VESSEL_LANE_CHECK_URL = "{% url 'input_data:api_vessel_lane_check' %}";
 
-        if (!scenario || !lane || !proforma) {
-            alert("Please fill in all fields (Scenario, Lane, Proforma Name).");
-            return;
+    // 요일 매핑 (Proforma Day Code -> JS Date Day Index)
+    const DAY_MAP = { "SUN": 0, "MON": 1, "TUE": 2, "WED": 3, "THU": 4, "FRI": 5, "SAT": 6 };
+
+    // 시나리오의 선박 정보 캐싱 [{'vessel_code':.., 'max_cap':..}]
+    let vesselDataList = [];
+
+    // DOM Elements
+    const scenarioSelect = document.getElementById('scenarioSelect');
+    const laneSelect = document.getElementById('laneSelect');
+    const proformaSelect = document.getElementById('proformaSelect');
+    const loadBtn = document.getElementById('btnLoadProforma');
+    const settingsArea = document.getElementById('settingsArea');
+    const ownVesselInput = document.getElementById('ownVesselCount');
+    const lrsStartDateInput = document.getElementById('lrsStartDate');
+    const createBtn = document.getElementById('btnCreateLRS');
+
+    // [중요] 서버에서 에러 복구 시 넘겨준 vessel_list가 있다면 JS 변수에 초기화
+    {% if vessel_list %}
+        vesselDataList = [
+            {% for v in vessel_list %}
+                { "vessel_code": "{{ v.vessel_code }}", "max_cap": "{{ v.max_cap }}" },
+            {% endfor %}
+        ];
+    {% endif %}
+
+    // --- 1. Cascade Select Logic ---
+    scenarioSelect.addEventListener('change', function() {
+        const scenarioId = this.value;
+        resetSelect(laneSelect, "Select Lane");
+        resetSelect(proformaSelect, "Select Proforma");
+        loadBtn.disabled = true;
+
+        if (scenarioId) {
+            // 1-1. Load Lanes
+            fetch(`${API_OPTIONS_URL}?scenario_id=${scenarioId}`)
+                .then(res => res.json())
+                .then(data => { populateSelect(laneSelect, data.options); laneSelect.disabled = false; });
+
+            // 1-2. Load Vessel List for Assignment
+            fetch(`${API_VESSEL_LIST_URL}?scenario_id=${scenarioId}`)
+                .then(res => res.json())
+                .then(data => {
+                    vesselDataList = data.vessels || [];
+                });
+        } else {
+            laneSelect.disabled = true; proformaSelect.disabled = true;
         }
+    });
 
-        // Call API
-        const url = `{% url 'input_data:api_proforma_info' %}?scenario_id=${scenario}&lane_code=${lane}&proforma_name=${proforma}`;
-        
-        fetch(url)
-            .then(response => response.json())
+    laneSelect.addEventListener('change', function() {
+        const scenarioId = scenarioSelect.value;
+        const laneCode = this.value;
+        resetSelect(proformaSelect, "Select Proforma");
+        loadBtn.disabled = true;
+
+        if (laneCode) {
+            fetch(`${API_OPTIONS_URL}?scenario_id=${scenarioId}&lane_code=${laneCode}`)
+                .then(res => res.json())
+                .then(data => { populateSelect(proformaSelect, data.options); proformaSelect.disabled = false; });
+        } else {
+            proformaSelect.disabled = true;
+        }
+    });
+
+    proformaSelect.addEventListener('change', function() {
+        loadBtn.disabled = !this.value;
+    });
+
+    // --- 2. Load Info Logic ---
+    loadBtn.addEventListener('click', function() {
+        const scenario = scenarioSelect.value;
+        const lane = laneSelect.value;
+        const proforma = proformaSelect.value;
+        if (!scenario || !lane || !proforma) return;
+
+        fetch(`${API_INFO_URL}?scenario_id=${scenario}&lane_code=${lane}&proforma_name=${proforma}`)
+            .then(res => res.json())
             .then(data => {
                 if (data.status === 'success') {
-                    // Show Settings Area
-                    document.getElementById('settingsArea').style.display = 'block';
-                    
-                    // Set Info
-                    const count = data.declared_count;
-                    document.getElementById('requiredCount').value = count;
-                    document.getElementById('slotInfoBadge').textContent = `Total Slots: ${count}`;
-                    
-                    // Generate Table Rows
-                    generateRows(count);
+                    settingsArea.style.display = 'block';
+
+                    // Set Global Settings Info
+                    document.getElementById('requiredCount').value = data.declared_count;
+                    document.getElementById('slotInfoBadge').textContent = `Total Slots: ${data.declared_count}`;
+
+                    // Proforma Start Day
+                    document.getElementById('pfFirstDay').value = data.first_port_day;
+                    document.getElementById('startDayHint').textContent = `Proforma starts on: ${data.first_port_day}`;
+
+                    // 초기화
+                    lrsStartDateInput.value = "";
+                    ownVesselInput.value = 0;
+                    document.getElementById('vesselTableBody').innerHTML = '<tr><td colspan="6" class="text-muted">Select LRS Start Date to generate rows...</td></tr>';
+                    validateCreateButton();
+
                 } else {
                     alert("Error: " + data.message);
-                    document.getElementById('settingsArea').style.display = 'none';
+                    settingsArea.style.display = 'none';
                 }
-            })
-            .catch(error => {
-                console.error('Error:', error);
-                alert("Failed to load proforma info.");
             });
     });
 
-    function generateRows(count) {
-        const tbody = document.getElementById('vesselTableBody');
-        tbody.innerHTML = ''; // Clear existing
+    // --- 3. Row Generation Logic ---
+    lrsStartDateInput.addEventListener('change', function() {
+        const inputDateStr = this.value; // YYYY-MM-DD
+        const targetDayStr = document.getElementById('pfFirstDay').value; // e.g. "TUE"
+        const requiredCount = parseInt(document.getElementById('requiredCount').value) || 0;
 
-        for (let i = 1; i <= count; i++) {
+        if (!inputDateStr || !targetDayStr || requiredCount <= 0) return;
+
+        // 1. 기준 시작 날짜 계산
+        const inputDate = new Date(inputDateStr);
+        const targetDayIdx = DAY_MAP[targetDayStr];
+        const currentDayIdx = inputDate.getDay();
+
+        let diff = targetDayIdx - currentDayIdx;
+        if (diff < 0) {
+            diff += 7;
+        }
+
+        const baseDate = new Date(inputDate);
+        baseDate.setDate(inputDate.getDate() + diff);
+
+        // 2. Vessel Select Options 미리 생성
+        let vesselOptionsHtml = '<option value="">Select Vessel</option>';
+        vesselDataList.forEach(v => {
+            vesselOptionsHtml += `<option value="${v.vessel_code}" data-cap="${v.max_cap}">${v.vessel_code}</option>`;
+        });
+
+        // 3. 행 생성
+        const tbody = document.getElementById('vesselTableBody');
+        tbody.innerHTML = '';
+
+        for (let i = 0; i < requiredCount; i++) {
+            // 1주일 간격 날짜
+            const rowDate = new Date(baseDate);
+            rowDate.setDate(baseDate.getDate() + (i * 7));
+            const dateStr = rowDate.toISOString().split('T')[0];
+
             const tr = document.createElement('tr');
             tr.innerHTML = `
-                <td>${i}</td>
+                <td>${i + 1}</td>
                 <td>
-                    <input type="text" class="form-control" name="vessel_name[]" placeholder="Vessel Name">
+                    <div class="form-check d-flex justify-content-center">
+                        <input class="form-check-input own-vessel-check" type="checkbox" value="${i}" style="transform: scale(1.3);">
+                    </div>
                 </td>
                 <td>
-                    <input type="date" class="form-control" name="vessel_start_date[]">
+                    <select class="form-select vessel-select" disabled>
+                        ${vesselOptionsHtml}
+                    </select>
+                    <input type="hidden" name="vessel_code[]" class="vessel-code-hidden" value="TBN">
                 </td>
                 <td>
-                    <span class="text-muted small">Slot ${i}</span>
+                    <input type="text" class="form-control bg-light text-end" name="vessel_capacity[]" readonly tabindex="-1">
+                </td>
+                <td>
+                    <input type="date" class="form-control" name="vessel_start_date[]" value="${dateStr}" readonly tabindex="-1">
+                </td>
+                <td>
+                    <input type="text" class="form-control" name="lane_code_list[]" placeholder="">
                 </td>
             `;
             tbody.appendChild(tr);
         }
+
+        // 4. 이벤트 연결
+        attachRowEvents();
+        validateCreateButton();
+    });
+
+    // --- 4. Event Handling (Checkbox, Select) ---
+    function attachRowEvents() {
+        // A. Checkbox Logic
+        document.querySelectorAll('.own-vessel-check').forEach(cb => {
+            cb.addEventListener('change', function() {
+                const tr = this.closest('tr');
+                const select = tr.querySelector('.vessel-select');
+                const hiddenInput = tr.querySelector('.vessel-code-hidden');
+                const capInput = tr.querySelector('input[name="vessel_capacity[]"]');
+
+                if (this.checked) {
+                    // Own Check: Enable Select
+                    select.disabled = false;
+                    tr.classList.add('table-info'); // Highlight
+
+                    // Sync Value (if already selected) or Reset
+                    hiddenInput.value = select.value || "";
+                } else {
+                    // Uncheck: Disable & Reset
+                    select.disabled = true;
+                    select.value = "";
+                    tr.classList.remove('table-info');
+
+                    // Set to TBN / Clear Capacity
+                    hiddenInput.value = "TBN";
+                    capInput.value = "";
+                }
+                validateCreateButton();
+            });
+        });
+
+        // B. Select Logic (Change -> Update Hidden & Capacity)
+        document.querySelectorAll('.vessel-select').forEach(sel => {
+            sel.addEventListener('change', function() {
+                const tr = this.closest('tr');
+                const hiddenInput = tr.querySelector('.vessel-code-hidden');
+                const capInput = tr.querySelector('input[name="vessel_capacity[]"]');
+                const laneInput = tr.querySelector('input[name="lane_code_list[]"]'); // Lane Code Input
+
+                // 1. Update Hidden Value (Vessel Code)
+                const vCode = this.value;
+                hiddenInput.value = vCode;
+
+                // 2. Update Capacity (Auto-fill)
+                const selectedOption = this.options[this.selectedIndex];
+                const capacity = selectedOption.getAttribute('data-cap') || '';
+                capInput.value = capacity;
+
+                // 3. [신규] Check Existing Lane Code
+                if (vCode) {
+                    const scenarioId = document.getElementById('scenarioSelect').value;
+                    const lrsStart = document.getElementById('lrsStartDate').value;
+                    // LRS End Date도 필요함 (Global Settings의 값을 가져옴)
+                    const lrsEnd = document.getElementsByName('apply_end_date')[0].value;
+
+                    if (scenarioId && lrsStart && lrsEnd) {
+                        const url = `${API_VESSEL_LANE_CHECK_URL}?scenario_id=${scenarioId}&vessel_code=${vCode}&start_date=${lrsStart}&end_date=${lrsEnd}`;
+
+                        fetch(url)
+                            .then(res => res.json())
+                            .then(data => {
+                                // 값이 있으면 채우고, 없으면 기존 입력 유지하거나 빈값(여기선 빈값 처리 혹은 유지 선택)
+                                // "선택된 기간 안에 존재하면 표시"이므로, 존재할 때만 덮어씌움
+                                if (data.lane_code) {
+                                    laneInput.value = data.lane_code;
+                                    // 시각적 효과 (Optional)
+                                    laneInput.classList.add('bg-warning', 'bg-opacity-10');
+                                    setTimeout(() => laneInput.classList.remove('bg-warning', 'bg-opacity-10'), 1000);
+                                } else {
+                                    // 기존에 값이 있었는데 다른 배를 선택해서 스케줄이 없다면?
+                                    // -> 보통은 초기화하는 게 맞음.
+                                    laneInput.value = "";
+                                }
+                            })
+                            .catch(err => console.error("Lane check failed:", err));
+                    }
+                } else {
+                    // 선박 선택 해제 시 Lane Code도 초기화
+                    laneInput.value = "";
+                }
+            });
+        });
     }
 
-    // Optional: Auto-fill logic based on Own Vessel Count
-    // 자사 선박 수 입력 시 UI 강조 등의 효과를 줄 수 있음
-    document.getElementById('ownVesselCount').addEventListener('input', function() {
-        const ownCount = parseInt(this.value) || 0;
-        const rows = document.querySelectorAll('#vesselTableBody tr');
-        
-        rows.forEach((row, index) => {
-            const inputVessel = row.querySelector('input[name="vessel_name[]"]');
-            if (index < ownCount) {
-                inputVessel.classList.add('border-primary'); // Highlight
-                inputVessel.placeholder = `Own Vessel ${index + 1}`;
-            } else {
-                inputVessel.classList.remove('border-primary');
-                inputVessel.placeholder = "Charter / TBN";
-            }
-        });
+    // --- 5. Validation Logic ---
+    ownVesselInput.addEventListener('input', validateCreateButton);
+
+    function validateCreateButton() {
+        const targetOwnCount = parseInt(ownVesselInput.value) || 0;
+        const checkboxes = document.querySelectorAll('.own-vessel-check:checked');
+        const checkedCount = checkboxes.length;
+
+        // Target Own Count와 Check Count가 일치할 때만 버튼 활성화
+        if (targetOwnCount >= 0 && targetOwnCount === checkedCount) {
+            createBtn.disabled = false;
+        } else {
+            createBtn.disabled = true;
+        }
+    }
+
+    // --- 6. Initialization (For Error Recovery) ---
+    window.addEventListener('DOMContentLoaded', (event) => {
+        // 에러 상태로 로드되어 테이블이 이미 렌더링된 경우 이벤트 다시 연결
+        if (document.querySelector('.own-vessel-check')) {
+            attachRowEvents();
+            validateCreateButton();
+        }
     });
+
+    // --- Helpers ---
+    function resetSelect(element, placeholder) {
+        element.innerHTML = `<option value="">${placeholder}</option>`;
+        element.disabled = true;
+    }
+    function populateSelect(element, options) {
+        options.forEach(opt => {
+            const option = document.createElement('option');
+            option.value = opt; option.textContent = opt;
+            element.appendChild(option);
+        });
+    }
 </script>
 {% endblock %}

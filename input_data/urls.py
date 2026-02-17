@@ -45,8 +45,12 @@ urlpatterns = [
     path("api/distance/", views.get_port_distance, name="api_get_distance"),
 
     path("api/proforma/options/", views.get_proforma_options, name="api_proforma_options"),
+
     path("api/proforma/info/", views.get_proforma_info, name="api_proforma_info"),
 
+    path("api/vessel/list/", views.get_vessel_list, name="api_vessel_list"),
+
+    path("api/vessel/lane/check/", views.get_vessel_lane_check, name="api_vessel_lane_check"), # 신규
     # AJAX용
     # Input List (Common)
     # 동적 데이터 조회: /input/schedule/proforma/ 등 형태
