@@ -15,7 +15,8 @@ from common import (
 )
 from common.utils.csv_manager import CsvManager
 from common.utils.excel_manager import ExcelManager
-from input_data.models import Distance, ProformaSchedule, ScenarioInfo
+from input_data.models import ProformaSchedule, ScenarioInfo
+from input_data.services.common_service import get_distance_between_ports
 
 
 class ProformaService:
@@ -122,19 +123,14 @@ class ProformaService:
                 # 포트 코드가 변경되었거나 거리가 0일 때 재검색
                 # (항상 검색하여 최신화하려면 조건 제거)
                 if curr.get("port_code") and next_row.get("port_code"):
-                    dist_obj = Distance.objects.filter(
-                        scenario_id=scenario_id,
-                        from_port_code=curr["port_code"],
-                        to_port_code=next_row["port_code"],
-                    ).first()
+                    dist, eca_dist = get_distance_between_ports(
+                        scenario_id=header_info['scenario_id'],
+                        origin=curr.get("port_code"),
+                        destination=next_row.get("port_code")
+                    )
 
-                    if dist_obj:
-                        curr["dist"] = dist_obj.distance
-                        curr["eca_dist"] = dist_obj.eca_distance
-                    else:
-                        # 거리가 없으면 0으로 초기화 (또는 기존 값 유지)
-                        curr["dist"] = 0
-                        curr["eca_dist"] = 0
+                    curr["dist"] = dist
+                    curr["eca_dist"] = eca_dist
 
             # ----------------------------------------------------------------
             # Step B. ETB 확정 (사용자 입력 No 우선 적용)

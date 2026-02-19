@@ -160,7 +160,68 @@ def sample_schedule(db, base_scenario, user):
         updated_by=user,
     )
 
+
+@pytest.fixture
+def pf_complex_data(db, base_scenario, user):
+    """
+    복합 로직 테스트를 위한 Proforma 데이터
+    - Port A (Seq 1): Head Y (가상 포트 생성 대상)
+    - Port B (Seq 2): N
+    - Port C (Seq 3): Tail Y (로직상 가상 포트 생성 안 함)
+    """
+    common_data = {
+        "scenario": base_scenario,
+        "lane_code": "TEST_LANE",
+        "proforma_name": "PF_COMPLEX",
+        "effective_from_date": timezone.now(),
+        "duration": 14.0, # Round Trip 14일
+        "declared_capacity": "5000",
+        "declared_count": 2,
+        "direction": "E",
+        "created_by": user,
+        "updated_by": user,
+        "pilot_in_hours": 1.0,
+        "actual_work_hours": 10.0,
+    }
+
+    # 1. Start Port (Head Y)
+    ProformaSchedule.objects.create(
+        **common_data,
+        port_code="PORT_A",
+        calling_port_seq=1,
+        turn_port_info_code="Y", # Head Virtual O
+        etb_day_number=0,
+        etd_day_number=0.5,
+    )
+
+    # 2. Middle Port (N)
+    ProformaSchedule.objects.create(
+        **common_data,
+        port_code="PORT_B",
+        calling_port_seq=2,
+        turn_port_info_code="N",
+        etb_day_number=2,
+        etd_day_number=2.5,
+    )
+
+    # 3. End Port (Tail Y) -> 마지막 포트이므로 Y여도 Virtual X
+    ProformaSchedule.objects.create(
+        **common_data,
+        port_code="PORT_C",
+        calling_port_seq=3,
+        turn_port_info_code="Y",
+        etb_day_number=5,
+        etd_day_number=5.5,
+    )
+
+    return base_scenario
+
 @pytest.fixture
 def service():
     """ProformaService 인스턴스"""
     return ProformaService()
+
+@pytest.fixture
+def lrs_service():
+    from input_data.services.long_range_service import LongRangeService
+    return LongRangeService()

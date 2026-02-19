@@ -67,7 +67,7 @@ INSTALLED_APPS = [
     # Custom Apps
     "common",
     "input_data.apps.InputDataConfig",
-    "external_api",
+    "api",
 ]
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",

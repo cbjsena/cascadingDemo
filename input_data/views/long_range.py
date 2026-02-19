@@ -95,120 +95,51 @@ def long_range_create(request):
 
     return render(request, "input_data/long_range_create.html", context)
 
-@login_required
-@require_GET
-def get_proforma_options(request):
-    """
-    [AJAX] 동적 셀렉트 박스를 위한 옵션 데이터 반환
-    Mode 1: Scenario ID -> Lane Code List
-    Mode 2: Scenario ID + Lane Code -> Proforma Name List
-    """
-    scenario_id = request.GET.get("scenario_id")
-    lane_code = request.GET.get("lane_code")
-
-    data = {"options": []}
-
-    if scenario_id:
-        if not lane_code:
-            # Mode 1: Get Lane Codes
-            lanes = ProformaSchedule.objects.filter(scenario_id=scenario_id) \
-                .values_list('lane_code', flat=True).distinct().order_by('lane_code')
-            data["options"] = list(lanes)
-        else:
-            # Mode 2: Get Proforma Names
-            pfs = ProformaSchedule.objects.filter(scenario_id=scenario_id, lane_code=lane_code) \
-                .values_list('proforma_name', flat=True).distinct().order_by('proforma_name')
-            data["options"] = list(pfs)
-
-    return JsonResponse(data)
-
 
 @login_required
-@require_GET
-def get_proforma_info(request):
+def long_range_list(request):
     """
-    [AJAX] 선택된 Proforma의 상세 정보(선박 수, Duration,첫 번째 포트의 요일(etb_day_code) 등) 반환
+    Long Range Schedule 목록 조회 및 검색
     """
+    # 1. 검색 파라미터
     scenario_id = request.GET.get("scenario_id")
     lane_code = request.GET.get("lane_code")
     proforma_name = request.GET.get("proforma_name")
-
-    try:
-        pf_first = ProformaSchedule.objects.filter(
-            scenario_id=scenario_id, lane_code=lane_code, proforma_name=proforma_name,calling_port_seq=1
-        ).first()
-
-        if pf_first:
-            data = {
-                "status": "success",
-                "declared_count": pf_first.declared_count,
-                "declared_capacity": pf_first.declared_capacity,
-                "duration": pf_first.duration,
-                "first_port_day": pf_first.etb_day_code
-            }
-        else:
-            data = {"status": "error", "message": "Proforma not found."}
-
-    except Exception as e:
-        data = {"status": "error", "message": str(e)}
-
-    return JsonResponse(data)
-
-
-@login_required
-@require_GET
-def get_vessel_list(request):
-    """
-    [AJAX] 선택된 시나리오의 가용 선박 목록 및 Max Capacity 조회
-    Table: sce_vessel_capacity (Model: VesselCapacity)
-    """
-    scenario_id = request.GET.get("scenario_id")
-
-    data = {"vessels": []}
-
-    if scenario_id:
-        # 해당 시나리오에 존재하는 vessel_code 별로 그룹화하여 max capacity 조회
-        # .values('vessel_code') -> GROUP BY vessel_code
-        qs = (VesselCapacity.objects.filter(scenario_id=scenario_id).values('vessel_code').annotate(max_cap=Max('vessel_capacity')).order_by('vessel_code'))
-
-        data["vessels"] = list(qs)  # [{'vessel_code': 'V001', 'max_cap': 10000}, ...]
-
-    return JsonResponse(data)
-
-
-@login_required
-@require_GET
-def get_vessel_lane_check(request):
-    """
-    [AJAX] 특정 선박이 지정된 기간 내에 이미 스케줄이 있는지 확인
-    - 존재하면 해당 Lane Code 반환
-    """
-    scenario_id = request.GET.get("scenario_id")
     vessel_code = request.GET.get("vessel_code")
-    start_date = request.GET.get("start_date") # YYYY-MM-DD
-    end_date = request.GET.get("end_date")     # YYYY-MM-DD
 
-    data = {"lane_code": ""}
+    # 2. 기본 쿼리셋
+    lrs_qs = LongRangeSchedule.objects.none()
 
-    if scenario_id and vessel_code and start_date and end_date:
-        # 해당 기간 내에 ETB가 포함되는 스케줄이 있는지 조회
-        # (혹은 ETA, ETD 기준 등 비즈니스 로직에 맞춰 조정 가능. 여기선 ETB 기준)
-        qs = LongRangeSchedule.objects.filter(
-            scenario_id=scenario_id,
-            vessel_code=vessel_code,
-            etb__date__gte=start_date,
-            etb__date__lte=end_date
-        ).order_by('etb')
+    # 시나리오는 필수 (또는 기본 구조상 최상위 필터)
+    if scenario_id:
+        lrs_qs = LongRangeSchedule.objects.filter(scenario_id=scenario_id)
 
-        qs = LongRangeSchedule.objects.filter(
-            scenario_id=scenario_id,
-            vessel_code=vessel_code,
-            etb__date__gte=start_date,
-            etb__date__lte=end_date
-        )
-        print(f"--- [DEBUG] Generated SQL: {qs.query}")
-        if qs.exists():
-            # 가장 빠른 스케줄의 Lane Code 반환
-            data["lane_code"] = qs.first().lane_code
+        if lane_code:
+            lrs_qs = lrs_qs.filter(lane_code=lane_code)
 
-    return JsonResponse(data)
+        if proforma_name:
+            lrs_qs = lrs_qs.filter(proforma_name=proforma_name)
+
+        # Vessel Code 검색 (부분 일치 허용)
+        if vessel_code:
+            lrs_qs = lrs_qs.filter(vessel_code__icontains=vessel_code)
+
+        # 정렬: Voyage -> Seq
+        lrs_qs = lrs_qs.order_by("vessel_code", "voyage_number", "direction", "calling_port_seq")
+
+    context = {
+        "menu_structure": MENU_STRUCTURE,
+        "current_group": "Schedule",
+        "current_model": "long_range_list",
+        "scenarios": ScenarioInfo.objects.all().order_by("-created_at"),
+        "lrs_list": lrs_qs,
+        # 검색 상태 유지용
+        "search_params": {
+            "scenario_id": scenario_id,
+            "lane_code": lane_code,
+            "proforma_name": proforma_name,
+            "vessel_code": vessel_code,
+        }
+    }
+
+    return render(request, "input_data/long_range_list.html", context)

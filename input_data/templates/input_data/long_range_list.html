@@ -1,0 +1,222 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Long Range Schedule List{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h4">Long Range Schedule List</h2>
+        
+        {% if search_params.scenario_id and search_params.lane_code and search_params.proforma_name %}
+        <a href="{% url 'input_data:long_range_create' %}?scenario_id={{ search_params.scenario_id }}&lane_code={{ search_params.lane_code }}&proforma_name={{ search_params.proforma_name }}" 
+           class="btn btn-primary">
+            <i class="bi bi-pencil-square"></i> Edit (Go to Create)
+        </a>
+        {% endif %}
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light fw-bold">Search Filter</div>
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-2">
+                    <label class="form-label small text-muted">Scenario ID</label>
+                    <select class="form-select" id="scenarioSelect" name="scenario_id">
+                        <option value="">Select Scenario</option>
+                        {% for scenario in scenarios %}
+                        <option value="{{ scenario.id }}" {% if search_params.scenario_id == scenario.id %}selected{% endif %}>
+                            {{ scenario.id }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <label class="form-label small text-muted">Lane Code</label>
+                    <select class="form-select" id="laneSelect" name="lane_code" {% if not search_params.scenario_id %}disabled{% endif %}>
+                        <option value="">Select Lane</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Proforma Name</label>
+                    <select class="form-select" id="proformaSelect" name="proforma_name" {% if not search_params.lane_code %}disabled{% endif %}>
+                        <option value="">Select Proforma</option>
+                    </select>
+                </div>
+
+                <div class="col-md-3">
+                    <label class="form-label small text-muted">Vessel Code</label>
+                    <select class="form-select" id="vesselSelect" name="vessel_code" {% if not search_params.scenario_id %}disabled{% endif %}>
+                        <option value="">Select Vessel</option>
+                    </select>
+                </div>
+
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-secondary w-100">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-body p-0">
+            <div class="table-responsive" style="max-height: 600px;">
+                <table class="table table-bordered table-hover text-center align-middle mb-0 table-sm">
+                    <thead class="table-light sticky-top">
+                        <tr>
+                            <th>Vessel</th>
+                            <th>Voyage</th>
+                            <th>Dir</th>
+                            <th>Port</th>
+                            <th>Ind</th>
+                            <th>Terminal</th>
+                            <th>ETA</th>
+                            <th>ETB</th>
+                            <th>ETD</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for row in lrs_list %}
+                        <tr>
+                            <td class="fw-bold">{{ row.vessel_code }}</td>
+                            <td>{{ row.voyage_number }}</td>
+                            <td>
+                                <span class="badge {% if row.direction == 'E' %}bg-primary{% elif row.direction == 'W' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                                    {{ row.direction }}
+                                </span>
+                            </td>
+                            <td class="fw-bold">{{ row.port_code }}</td>
+                            <td>{{ row.calling_port_indicator }}</td>
+                            <td class="small text-muted">{{ row.terminal_code|default:"-" }}</td>
+                            <td>{{ row.eta|date:"Y-m-d H:i" }}</td>
+                            <td class="table-info">{{ row.etb|date:"Y-m-d H:i" }}</td>
+                            <td>{{ row.etd|date:"Y-m-d H:i" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="9" class="text-muted py-5">
+                                {% if search_params.scenario_id %}
+                                    No schedule data found.
+                                {% else %}
+                                    Please search to view schedules.
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="{% static 'js/common_api.js' %}"></script>
+
+<script>
+    // 1. API URL 정의 (Django Template 태그는 HTML 파일 내에서만 작동)
+    const API_URLS = {
+        options: "{% url 'api:proforma_options' %}", // Lane, Proforma 공용
+        vessel_options: "{% url 'api:vessel_options' %}"
+    };
+
+    // 2. DOM 요소 및 초기 데이터
+    const els = {
+        scenario: document.getElementById('scenarioSelect'),
+        lane: document.getElementById('laneSelect'),
+        proforma: document.getElementById('proformaSelect'),
+        vessel: document.getElementById('vesselSelect')
+    };
+
+    const initData = {
+        lane: "{{ search_params.lane_code|default:'' }}",
+        proforma: "{{ search_params.proforma_name|default:'' }}",
+        vessel: "{{ search_params.vessel_code|default:'' }}"
+    };
+
+    // 3. [핵심] 안전한 데이터 페칭 및 UI 렌더링 함수
+    function fetchAndFill(url, targetSelect, placeholder, selectedValue = null) {
+        targetSelect.disabled = true; // 통신 중 비활성화
+
+        fetch(url)
+            .then(res => res.json())
+            .then(data => {
+                // 데이터가 존재할 때만 활성화
+                if (data.options && data.options.length > 0) {
+                    let html = `<option value="">${placeholder}</option>`;
+                    data.options.forEach(opt => {
+                        const selected = (opt === selectedValue) ? "selected" : "";
+                        html += `<option value="${opt}" ${selected}>${opt}</option>`;
+                    });
+                    targetSelect.innerHTML = html;
+                    targetSelect.disabled = false;
+                } else {
+                    // 데이터가 없으면 명시적으로 표시하고 비활성화 유지
+                    targetSelect.innerHTML = `<option value="">No Data</option>`;
+                    targetSelect.disabled = true;
+                }
+            })
+            .catch(err => {
+                console.error("Fetch Error:", err);
+                targetSelect.innerHTML = `<option value="">Error</option>`;
+            });
+    }
+
+    // 4. 초기화 로직 (검색 후 값 유지)
+    window.addEventListener('DOMContentLoaded', () => {
+        if (els.scenario.value) {
+            const sid = els.scenario.value;
+
+            // Lane 로드 & 초기값 세팅
+            CommonApi.loadLanes(API_URLS.options, sid, els.lane, () => {
+                if (initData.lane) {
+                    els.lane.value = initData.lane;
+                    // Lane 세팅 후 Proforma 로드
+                    CommonApi.loadProformas(API_URLS.options, sid, initData.lane, els.proforma, () => {
+                        if(initData.proforma) els.proforma.value = initData.proforma;
+                    });
+                }
+            });
+
+            // Vessel Options 로드 & 초기값 세팅
+            CommonApi.loadVesselOptions(API_URLS.vessel_options, sid, initData.lane, els.vessel, () => {
+                if(initData.vessel) els.vessel.value = initData.vessel;
+            });
+        }
+    });
+
+    // 5. 이벤트 리스너 (매우 간결해짐)
+    els.scenario.addEventListener('change', function() {
+        const sid = this.value;
+
+        // 하위 Select 초기화
+        CommonApi.resetSelect(els.lane, "Select Lane");
+        CommonApi.resetSelect(els.proforma, "Select Proforma");
+        CommonApi.resetSelect(els.vessel, "Select Vessel");
+
+        if (sid) {
+            CommonApi.loadLanes(API_URLS.options, sid, els.lane);
+            CommonApi.loadVesselOptions(API_URLS.vessel_options, sid, null, els.vessel); // 전체 선박
+        }
+    });
+
+    els.lane.addEventListener('change', function() {
+        const sid = els.scenario.value;
+        const lane = this.value;
+
+        CommonApi.resetSelect(els.proforma, "Select Proforma");
+        CommonApi.resetSelect(els.vessel, "Select Vessel");
+
+        if (lane) {
+            CommonApi.loadProformas(API_URLS.options, sid, lane, els.proforma);
+            CommonApi.loadVesselOptions(API_URLS.vessel_options, sid, lane, els.vessel); // Lane 필터링
+        } else {
+            // Lane 선택 해제 시 전체 선박으로 복구
+            CommonApi.loadVesselOptions(API_URLS.vessel_options, sid, null, els.vessel);
+        }
+    });
+</script>
+{% endblock %}

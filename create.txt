@@ -10,7 +10,7 @@
     3.2. 최적화 데모 기능 앱을 생성
         - python manage.py startapp input_data
         - python manage.py startapp common
-        - python manage.py startapp external_api
+        - python manage.py startapp api
 4. PostgreSQL 데이터베이스 연결 설정
     4.1 .env.local에 DATABASES 설정
     4.2 config/settings.py에 Installed apps에 생성 앱 추가

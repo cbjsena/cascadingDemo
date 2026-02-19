@@ -25,7 +25,11 @@ MENU_STRUCTURE = {
             "key": "proforma_schedule",
             "url_name": "input_data:proforma_list",
         },
-        {"name": "Long Range Schedule", "key": "long_range_schedule"},
+        {
+            "name": "Long Range Schedule",
+            "key": "long_range_schedule",
+            "url_name": "input_data:long_range_list",
+        },
     ],
     "Vessel": [
         {"name": "Vessel Info", "key": "vessel_info"},

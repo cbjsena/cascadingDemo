@@ -192,10 +192,9 @@ class LongRangeService:
 
         # 디버깅 출력 방식 변경 (Dict 접근 -> Dot 접근)
         print(f"Total objects to create: {len(new_lrs_list)}")
-        for lrs in new_lrs_list:  # 너무 많으니 앞 5개만 출력 for lrs in new_lrs_list[:5]:
-            # lrs['port_code'] (X) -> lrs.port_code (O)
-            print(
-                f"Vessel: {lrs.vessel_code}/ {lrs.voyage_number}{lrs.direction}/  {lrs.port_code}")
+        # for lrs in new_lrs_list:  # 너무 많으니 앞 5개만 출력 for lrs in new_lrs_list[:5]:
+        #     print(
+        #         f"Vessel: {lrs.vessel_code}/ {lrs.voyage_number}{lrs.direction}/  {lrs.port_code}")
 
         # 6. Bulk Create
         if new_lrs_list:

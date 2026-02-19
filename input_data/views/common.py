@@ -23,21 +23,3 @@ def input_list(request, group_name, model_name):
     return render(request, "input_data/input_list.html", context)
 
 
-@login_required
-@require_GET
-def get_port_distance(request):
-    """[API] 포트 거리 조회"""
-    origin = request.GET.get("origin")
-    destination = request.GET.get("destination")
-    scenario_id = request.GET.get("scenario_id")
-
-    distance = 0
-    try:
-        obj = Distance.objects.filter(
-            scenario_id=scenario_id, from_port_code=origin, to_port_code=destination
-        ).first()
-        if obj:
-            distance = obj.distance
-    except Exception:
-        pass
-    return JsonResponse({"distance": distance})

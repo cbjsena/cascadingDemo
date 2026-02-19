@@ -26,7 +26,7 @@ urlpatterns = [
     path(
         "", RedirectView.as_view(url="/input/", permanent=True)
     ),  # 루트 접속 시 input으로 이동
-    path("external-api/v1/", include("external_api.urls")),  # API 서버 엔드포인트
+    path("api/", include("api.urls")),  # API 서버 엔드포인트, api/proforma/options/ 형태로 접근됨
 ]
 
 if settings.DEBUG:
