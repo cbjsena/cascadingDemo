@@ -1,8 +1,10 @@
 from datetime import timedelta
+
 from django.db import transaction
 from django.utils import timezone
-from input_data.models import LongRangeSchedule, ProformaSchedule, ScenarioInfo
+
 from common import messages as msg
+from input_data.models import LongRangeSchedule, ProformaSchedule, ScenarioInfo
 
 
 class LongRangeService:
@@ -27,7 +29,13 @@ class LongRangeService:
         vessel_start_dates = post_data.getlist("vessel_start_date[]")
 
         # Validation
-        if not (scenario_id and lane_code and proforma_name and start_date_str and end_date_str):
+        if not (
+            scenario_id
+            and lane_code
+            and proforma_name
+            and start_date_str
+            and end_date_str
+        ):
             raise ValueError("Missing required fields.")
 
         try:
@@ -36,9 +44,11 @@ class LongRangeService:
             raise ValueError(msg.SCENARIO_NOT_FOUND)
 
         # 2. Base Proforma Fetching
-        proforma_rows = list(ProformaSchedule.objects.filter(
-            scenario=scenario, lane_code=lane_code, proforma_name=proforma_name
-        ).order_by("calling_port_seq"))
+        proforma_rows = list(
+            ProformaSchedule.objects.filter(
+                scenario=scenario, lane_code=lane_code, proforma_name=proforma_name
+            ).order_by("calling_port_seq")
+        )
 
         if not proforma_rows:
             raise ValueError("Proforma Schedule not found.")
@@ -92,7 +102,9 @@ class LongRangeService:
             # -------------------------------------------------------------
             while True:
                 # 현재 항차의 기준 시작 시간 (첫 포트 ETB 기준)
-                curr_voy_start_dt = v_base_dt + timedelta(days=(voyage_num - 1) * round_trip_days)
+                curr_voy_start_dt = v_base_dt + timedelta(
+                    days=(voyage_num - 1) * round_trip_days
+                )
 
                 # 항차 종료 여부 체크 (대략적인 체크)
                 if curr_voy_start_dt.date() > lrs_end_date:
@@ -129,9 +141,11 @@ class LongRangeService:
 
                     # 기준점으로부터의 총 경과일
                     total_delta_days = (
-                            (voyage_num - 1) * round_trip_days  # 현재 항차 시작점
-                            + (seq_voy_offset * round_trip_days)  # 가상 포트 오프셋 (이전/다음 항차)
-                            + pf_elapsed_days  # 프로포마 내 위치
+                        (voyage_num - 1) * round_trip_days  # 현재 항차 시작점
+                        + (
+                            seq_voy_offset * round_trip_days
+                        )  # 가상 포트 오프셋 (이전/다음 항차)
+                        + pf_elapsed_days  # 프로포마 내 위치
                     )
 
                     # ETB 계산
@@ -144,7 +158,7 @@ class LongRangeService:
 
                     # ETA, ETD 계산
                     pilot_in = float(pf_obj.pilot_in_hours or 0)
-                    work_hours = float(pf_obj.actual_work_hours or 0)
+                    # work_hours = float(pf_obj.actual_work_hours or 0)
                     # ETA = ETB - PilotIn
                     real_eta = real_etb - timedelta(hours=pilot_in)
                     # ETD = ETB + WorkHours (간소화 로직)
@@ -153,9 +167,9 @@ class LongRangeService:
                     pf_etd_elapsed = float(pf_obj.etd_day_number or 0)
                     # ETD Delta 재계산 (ETB와 동일한 로직 + ETD 경과일)
                     total_etd_delta = (
-                            (voyage_num - 1) * round_trip_days
-                            + (seq_voy_offset * round_trip_days)
-                            + pf_etd_elapsed
+                        (voyage_num - 1) * round_trip_days
+                        + (seq_voy_offset * round_trip_days)
+                        + pf_etd_elapsed
                     )
                     real_etd = v_base_dt + timedelta(days=total_etd_delta)
 
@@ -226,40 +240,31 @@ class LongRangeService:
             # 순서: 가상(Prev Voyage, Opp Dir) -> 실제(Curr Voyage, Orig Dir)
             if i in head_y_indices:
                 # 1. Virtual (Prev Voyage)
-                sequence.append({
-                    "obj": row,
-                    "voyage_offset": -1,
-                    "direction": opp_direction
-                })
+                sequence.append(
+                    {"obj": row, "voyage_offset": -1, "direction": opp_direction}
+                )
                 # 2. Actual
-                sequence.append({
-                    "obj": row,
-                    "voyage_offset": 0,
-                    "direction": row.direction
-                })
+                sequence.append(
+                    {"obj": row, "voyage_offset": 0, "direction": row.direction}
+                )
 
             else:
                 # [규칙 B] Normal / Tail Virtual Port
                 # 순서: 실제(Curr Voyage, Orig Dir) -> (옵션) 가상(Curr Voyage, Opp Dir)
 
                 # 1. Actual (무조건 생성)
-                sequence.append({
-                    "obj": row,
-                    "voyage_offset": 0,
-                    "direction": row.direction
-                })
+                sequence.append(
+                    {"obj": row, "voyage_offset": 0, "direction": row.direction}
+                )
 
                 # 2. Virtual (If Y AND NOT Last Port)
                 # [수정된 조건] 마지막 행이 아닐 때만 가상 포트 생성
                 if row.turn_port_info_code == "Y" and i != last_index:
-                    sequence.append({
-                        "obj": row,
-                        "voyage_offset": 0,
-                        "direction": opp_direction
-                    })
+                    sequence.append(
+                        {"obj": row, "voyage_offset": 0, "direction": opp_direction}
+                    )
 
         return sequence
-
 
     def _get_opposite_direction(self, direction):
         return {"E": "W", "W": "E", "S": "N", "N": "S"}.get(direction, direction)

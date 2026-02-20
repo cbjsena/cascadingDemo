@@ -2,11 +2,10 @@ import csv
 import os
 
 import pytest
-from decimal import Decimal
 
 from django.conf import settings
 
-from input_data.models import ProformaSchedule, Distance
+from input_data.models import Distance, ProformaSchedule
 from input_data.services.proforma_service import ProformaService
 
 
@@ -30,17 +29,31 @@ class TestProformaServiceLogic:
         """
         rows = [
             {
-                "port_seq": 1, "port_code": "KRPUS",
-                "etb_no": 0, "etb_day": "SUN", "etb_time": "0000",
-                "work_hours": 10.0, "pilot_in": 0, "pilot_out": 1.0,
-                "dist": 0, "spd": 0, "sea_time": 0
+                "port_seq": 1,
+                "port_code": "KRPUS",
+                "etb_no": 0,
+                "etb_day": "SUN",
+                "etb_time": "0000",
+                "work_hours": 10.0,
+                "pilot_in": 0,
+                "pilot_out": 1.0,
+                "dist": 0,
+                "spd": 0,
+                "sea_time": 0,
             },
             {
-                "port_seq": 2, "port_code": "JPTYO",
-                "etb_no": 2, "etb_day": "TUE", "etb_time": "1200",  # User Input
-                "work_hours": 10.0, "pilot_in": 1.0, "pilot_out": 0,
-                "dist": 0, "spd": 0, "sea_time": 0
-            }
+                "port_seq": 2,
+                "port_code": "JPTYO",
+                "etb_no": 2,
+                "etb_day": "TUE",
+                "etb_time": "1200",  # User Input
+                "work_hours": 10.0,
+                "pilot_in": 1.0,
+                "pilot_out": 0,
+                "dist": 0,
+                "spd": 0,
+                "sea_time": 0,
+            },
         ]
         header = {"scenario_id": base_scenario.id}
 
@@ -60,15 +73,23 @@ class TestProformaServiceLogic:
         """
         rows = [
             {
-                "port_seq": 1, "port_code": "A",
-                "etb_no": 0, "etb_day": "SUN", "etb_time": "0000",
-                "work_hours": 0, "pilot_out": 0
+                "port_seq": 1,
+                "port_code": "A",
+                "etb_no": 0,
+                "etb_day": "SUN",
+                "etb_time": "0000",
+                "work_hours": 0,
+                "pilot_out": 0,
             },
             {
-                "port_seq": 2, "port_code": "B",
-                "etb_no": 10, "etb_day": "WED", "etb_time": "0000",  # 명시적 Day 10
-                "work_hours": 0, "pilot_in": 0
-            }
+                "port_seq": 2,
+                "port_code": "B",
+                "etb_no": 10,
+                "etb_day": "WED",
+                "etb_time": "0000",  # 명시적 Day 10
+                "work_hours": 0,
+                "pilot_in": 0,
+            },
         ]
         header = {"scenario_id": base_scenario.id}
 
@@ -87,15 +108,23 @@ class TestProformaServiceLogic:
         """
         rows = [
             {
-                "port_seq": 1, "port_code": "A",
-                "etb_no": 0, "etb_day": "SUN", "etb_time": "0000",
-                "work_hours": 48, "pilot_out": 0 # ETD -> TUE 00:00 (Day 2)
+                "port_seq": 1,
+                "port_code": "A",
+                "etb_no": 0,
+                "etb_day": "SUN",
+                "etb_time": "0000",
+                "work_hours": 48,
+                "pilot_out": 0,  # ETD -> TUE 00:00 (Day 2)
             },
             {
-                "port_seq": 2, "port_code": "B",
-                "etb_no": 1, "etb_day": "WED", "etb_time": "0000", # Error: Day 1 (MON)
-                "work_hours": 0, "pilot_in": 0
-            }
+                "port_seq": 2,
+                "port_code": "B",
+                "etb_no": 1,
+                "etb_day": "WED",
+                "etb_time": "0000",  # Error: Day 1 (MON)
+                "work_hours": 0,
+                "pilot_in": 0,
+            },
         ]
         header = {"scenario_id": base_scenario.id}
 
@@ -116,17 +145,24 @@ class TestProformaServiceLogic:
             "proforma_name": "PF_SVC",
             "duration": "14",
             "capacity": "5000",
-            "count": "2"
+            "count": "2",
         }
         rows = [
             {"port_seq": 1, "port_code": "KRPUS", "direction": "E", "etb_no": 0},
             {"port_seq": 2, "port_code": "JPTYO", "direction": "E", "etb_no": 2},
-            {"port_seq": 3, "port_code": "KRPUS", "direction": "E", "etb_no": 5}  # 재기항
+            {
+                "port_seq": 3,
+                "port_code": "KRPUS",
+                "direction": "E",
+                "etb_no": 5,
+            },  # 재기항
         ]
 
         service.save_schedule(header, rows, user)
 
-        qs = ProformaSchedule.objects.filter(lane_code="SVC_TEST").order_by("calling_port_seq")
+        qs = ProformaSchedule.objects.filter(lane_code="SVC_TEST").order_by(
+            "calling_port_seq"
+        )
         assert qs.count() == 3
 
         # Indicator: 첫 방문 "1", 두 번째 "2"
@@ -166,7 +202,9 @@ class TestProformaFileCalculation:
     def load_csv(self, filename):
         """CSV 파일을 읽어 List of Dict로 반환"""
         # 경로: input_data/tests/views/data/
-        file_path = os.path.join(settings.BASE_DIR, "input_data", "tests", "services", "data", filename)
+        file_path = os.path.join(
+            settings.BASE_DIR, "input_data", "tests", "services", "data", filename
+        )
         data = []
         with open(file_path, mode="r", encoding="utf-8-sig") as f:
             reader = csv.DictReader(f)
@@ -191,8 +229,8 @@ class TestProformaFileCalculation:
                     to_port_code=next_row["port_code"],
                     defaults={
                         "distance": dist_val,
-                        "eca_distance": float(curr.get("link_eca_distance") or 0)
-                    }
+                        "eca_distance": float(curr.get("link_eca_distance") or 0),
+                    },
                 )
 
     def test_calculate_with_files(self, service, base_scenario):
@@ -220,24 +258,21 @@ class TestProformaFileCalculation:
                 "direction": row["direction"],
                 "turn_port_info_code": row["turn_port_info_code"],
                 "terminal": row.get("terminal_code", ""),
-
                 # Numeric
                 "pilot_in": float(row["pilot_in_hours"] or 0),
                 "pilot_out": float(row["pilot_out_hours"] or 0),
                 "work_hours": float(row["actual_work_hours"] or 0),
-
                 # ETB Input
                 "etb_no": int(row["etb_day_number"] or 0),
                 "etb_day": row["etb_day_code"],
                 "etb_time": str(row["etb_day_time"]).zfill(4),
-
                 # Calculated Fields (초기화)
                 "dist": 0,
                 "spd": 0,
                 "sea_time": 0,
                 "etd_no": 0,
                 "etd_day": "",
-                "etd_time": ""
+                "etd_time": "",
             }
             rows_to_calc.append(mapped_row)
 
@@ -256,12 +291,16 @@ class TestProformaFileCalculation:
 
             # (1) ETB 검증
             if int(calc["etb_no"]) != int(expect["etb_day_number"]):
-                row_errors.append(f"ETB No: {calc['etb_no']} != {expect['etb_day_number']}")
+                row_errors.append(
+                    f"ETB No: {calc['etb_no']} != {expect['etb_day_number']}"
+                )
 
             # (2) ETD 검증 (Expect 값이 비어있으면 검증 스킵 - 마지막 행 등)
             if expect["etd_day_number"]:
                 if int(calc["etd_no"]) != int(expect["etd_day_number"]):
-                    row_errors.append(f"ETD No: {calc['etd_no']} != {expect['etd_day_number']}")
+                    row_errors.append(
+                        f"ETD No: {calc['etd_no']} != {expect['etd_day_number']}"
+                    )
 
                 exp_etd_time = str(expect["etd_day_time"]).zfill(4)
 
@@ -274,13 +313,17 @@ class TestProformaFileCalculation:
             if expected_dist > 0:
                 # 오차 범위 0.1
                 if abs(float(calc["sea_time"]) - float(expect["sea_time_hours"])) > 0.1:
-                    row_errors.append(f"SeaTime: {calc['sea_time']} != {expect['sea_time_hours']}")
+                    row_errors.append(
+                        f"SeaTime: {calc['sea_time']} != {expect['sea_time_hours']}"
+                    )
 
                 if abs(float(calc["spd"]) - float(expect["link_speed"])) > 0.1:
                     row_errors.append(f"Speed: {calc['spd']} != {expect['link_speed']}")
 
             if row_errors:
-                errors.append(f"[Row {i + 1} {calc['port_code']}] " + ", ".join(row_errors))
+                errors.append(
+                    f"[Row {i + 1} {calc['port_code']}] " + ", ".join(row_errors)
+                )
 
         # 에러가 하나라도 있으면 실패 처리하고 전체 에러 메시지 출력
         if errors:

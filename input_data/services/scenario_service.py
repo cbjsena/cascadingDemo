@@ -1,3 +1,4 @@
+from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
 
@@ -6,6 +7,28 @@ from input_data.configs import MODEL_MAPPING, SCENARIO_CREATION_FILTERS
 from input_data.models import (
     ScenarioInfo,
 )
+
+
+@transaction.atomic
+def get_system_user():
+    """
+    초기 데이터 적재 / 배치 작업용 시스템 유저
+    """
+    User = get_user_model()
+    user, created = User.objects.get_or_create(
+        username="cascading",
+        defaults={
+            "email": "yukaris@cyberlogitec.com",
+            "is_active": True,
+            "is_staff": True,
+            "is_superuser": True,
+        },
+    )
+    if created:
+        user.set_password("qwer123$")
+        user.save(update_fields=["password"])
+
+    return user
 
 
 @transaction.atomic

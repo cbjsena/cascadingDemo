@@ -157,7 +157,6 @@ def proforma_create(request):
     return render(request, "input_data/proforma_create.html", context)
 
 
-
 @login_required
 def proforma_upload(request):
     """

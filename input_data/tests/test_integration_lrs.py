@@ -1,9 +1,11 @@
 from datetime import datetime
 
 import pytest
+
 from django.urls import reverse
 from django.utils import timezone
-from input_data.models import ScenarioInfo, LongRangeSchedule
+
+from input_data.models import LongRangeSchedule, ScenarioInfo
 
 
 @pytest.mark.django_db
@@ -20,22 +22,39 @@ class TestLrsListIntegration:
 
         # 1. 시나리오 생성
         self.scenario = ScenarioInfo.objects.create(
-            id="INT_SCENARIO", description="Integration Test", status="T",
-            created_by=user, updated_by=user
+            id="INT_SCENARIO",
+            description="Integration Test",
+            status="T",
+            created_by=user,
+            updated_by=user,
         )
 
         # 2. 데이터 세팅
         # - Lane A에는 'VESSEL_A' 배정
         LongRangeSchedule.objects.create(
-            scenario=self.scenario, lane_code="LANE_A", vessel_code="VESSEL_A",
-            voyage_number="0001", direction="E", port_code="PUS", calling_port_seq=1,
-            etb=timezone.now(), created_by=user, updated_by=user
+            scenario=self.scenario,
+            lane_code="LANE_A",
+            vessel_code="VESSEL_A",
+            voyage_number="0001",
+            direction="E",
+            port_code="PUS",
+            calling_port_seq=1,
+            etb=timezone.now(),
+            created_by=user,
+            updated_by=user,
         )
         # - Lane B에는 'VESSEL_B' 배정
         LongRangeSchedule.objects.create(
-            scenario=self.scenario, lane_code="LANE_B", vessel_code="VESSEL_B",
-            voyage_number="0001", direction="E", port_code="TYO", calling_port_seq=1,
-            etb=timezone.now(), created_by=user, updated_by=user
+            scenario=self.scenario,
+            lane_code="LANE_B",
+            vessel_code="VESSEL_B",
+            voyage_number="0001",
+            direction="E",
+            port_code="TYO",
+            calling_port_seq=1,
+            etb=timezone.now(),
+            created_by=user,
+            updated_by=user,
         )
 
     def test_lrs_list_vessel_filtering_by_lane(self):
@@ -47,10 +66,9 @@ class TestLrsListIntegration:
         url = reverse("api:vessel_options")
 
         # --- Step 1. Lane A 선택 시뮬레이션 ---
-        response_a = self.client.get(url, {
-            "scenario_id": self.scenario.id,
-            "lane_code": "LANE_A"
-        })
+        response_a = self.client.get(
+            url, {"scenario_id": self.scenario.id, "lane_code": "LANE_A"}
+        )
 
         assert response_a.status_code == 200
         options_a = response_a.json()["options"]
@@ -60,10 +78,9 @@ class TestLrsListIntegration:
         assert "VESSEL_B" not in options_a
 
         # --- Step 2. Lane B 선택 시뮬레이션 ---
-        response_b = self.client.get(url, {
-            "scenario_id": self.scenario.id,
-            "lane_code": "LANE_B"
-        })
+        response_b = self.client.get(
+            url, {"scenario_id": self.scenario.id, "lane_code": "LANE_B"}
+        )
 
         options_b = response_b.json()["options"]
 
@@ -78,10 +95,13 @@ class TestLrsListIntegration:
         url = reverse("api:vessel_options")
 
         # --- Step 1. 시나리오만 선택 (Lane 파라미터 없음) ---
-        response = self.client.get(url, {
-            "scenario_id": self.scenario.id
-            # lane_code 없음
-        })
+        response = self.client.get(
+            url,
+            {
+                "scenario_id": self.scenario.id
+                # lane_code 없음
+            },
+        )
 
         assert response.status_code == 200
         options = response.json()["options"]
@@ -103,20 +123,27 @@ class TestLrsIntegrationMissingScenarios:
 
         # 1. Given: V_01 선박이 2024년 1월에 LANE_A에 이미 배정된 스케줄 생성
         LongRangeSchedule.objects.create(
-            scenario=pf_complex_data, lane_code="LANE_A", vessel_code="V_01",
-            voyage_number="0001", port_code="PUS", calling_port_seq=1,
+            scenario=pf_complex_data,
+            lane_code="LANE_A",
+            vessel_code="V_01",
+            voyage_number="0001",
+            port_code="PUS",
+            calling_port_seq=1,
             etb=timezone.make_aware(datetime(2026, 1, 15)),
-            created_by=user, updated_by=user
+            created_by=user,
+            updated_by=user,
         )
 
-
         # 2. When: JS에서 1월 1일 ~ 1월 30일 기간에 V_01을 선택하고 API 호출
-        response = auth_client.get(url, {
-            "scenario_id": pf_complex_data.id,
-            "vessel_code": "V_01",
-            "start_date": "2026-01-01",
-            "end_date": "2026-01-30"
-        })
+        response = auth_client.get(
+            url,
+            {
+                "scenario_id": pf_complex_data.id,
+                "vessel_code": "V_01",
+                "start_date": "2026-01-01",
+                "end_date": "2026-01-30",
+            },
+        )
 
         # 3. Then
         assert response.status_code == 200

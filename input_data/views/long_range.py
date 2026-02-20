@@ -1,12 +1,15 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Max
-from django.http import JsonResponse
 from django.shortcuts import redirect, render
-from django.views.decorators.http import require_GET
 
 from common.menus import MENU_STRUCTURE
-from input_data.models import ProformaSchedule, ScenarioInfo, VesselCapacity, LongRangeSchedule
+from input_data.models import (
+    LongRangeSchedule,
+    ProformaSchedule,
+    ScenarioInfo,
+    VesselCapacity,
+)
 from input_data.services.long_range_service import LongRangeService
 
 
@@ -46,20 +49,32 @@ def long_range_create(request):
 
             if scenario_id:
                 # Lane Options
-                lane_options = ProformaSchedule.objects.filter(scenario_id=scenario_id) \
-                    .values_list('lane_code', flat=True).distinct().order_by('lane_code')
+                lane_options = (
+                    ProformaSchedule.objects.filter(scenario_id=scenario_id)
+                    .values_list("lane_code", flat=True)
+                    .distinct()
+                    .order_by("lane_code")
+                )
 
                 # Vessel Options (Capacity 포함)
-                vessel_qs = VesselCapacity.objects.filter(scenario_id=scenario_id) \
-                    .values('vessel_code') \
-                    .annotate(max_cap=Max('vessel_capacity')) \
-                    .order_by('vessel_code')
+                vessel_qs = (
+                    VesselCapacity.objects.filter(scenario_id=scenario_id)
+                    .values("vessel_code")
+                    .annotate(max_cap=Max("vessel_capacity"))
+                    .order_by("vessel_code")
+                )
                 vessel_list = list(vessel_qs)
 
                 if lane_code:
                     # Proforma Options
-                    proforma_options = ProformaSchedule.objects.filter(scenario_id=scenario_id, lane_code=lane_code) \
-                        .values_list('proforma_name', flat=True).distinct().order_by('proforma_name')
+                    proforma_options = (
+                        ProformaSchedule.objects.filter(
+                            scenario_id=scenario_id, lane_code=lane_code
+                        )
+                        .values_list("proforma_name", flat=True)
+                        .distinct()
+                        .order_by("proforma_name")
+                    )
 
             # 2. 테이블 행(Rows) 데이터 복구
             # request.POST.getlist는 순서를 보장함
@@ -71,7 +86,7 @@ def long_range_create(request):
             restored_rows = []
             for i, code in enumerate(v_codes):
                 # 'TBN'이 아니고 값이 있으면 체크된 상태로 간주
-                is_own = (code and code != "TBN")
+                is_own = code and code != "TBN"
 
                 row = {
                     "seq": i + 1,
@@ -79,19 +94,21 @@ def long_range_create(request):
                     "capacity": v_caps[i],
                     "start_date": v_dates[i],
                     "lane_code": l_codes[i],
-                    "is_checked": is_own
+                    "is_checked": is_own,
                 }
                 restored_rows.append(row)
 
             # Context 업데이트
-            context.update({
-                "preserved_data": data,  # 입력값 전체
-                "lane_options": lane_options,  # 복구된 Lane 목록
-                "proforma_options": proforma_options,  # 복구된 Proforma 목록
-                "vessel_list": vessel_list,  # 복구된 선박 목록
-                "restored_rows": restored_rows,  # 복구된 테이블 행
-                "is_error_state": True,  # 에러 상태 플래그
-            })
+            context.update(
+                {
+                    "preserved_data": data,  # 입력값 전체
+                    "lane_options": lane_options,  # 복구된 Lane 목록
+                    "proforma_options": proforma_options,  # 복구된 Proforma 목록
+                    "vessel_list": vessel_list,  # 복구된 선박 목록
+                    "restored_rows": restored_rows,  # 복구된 테이블 행
+                    "is_error_state": True,  # 에러 상태 플래그
+                }
+            )
 
     return render(request, "input_data/long_range_create.html", context)
 
@@ -125,7 +142,9 @@ def long_range_list(request):
             lrs_qs = lrs_qs.filter(vessel_code__icontains=vessel_code)
 
         # 정렬: Voyage -> Seq
-        lrs_qs = lrs_qs.order_by("vessel_code", "voyage_number", "direction", "calling_port_seq")
+        lrs_qs = lrs_qs.order_by(
+            "vessel_code", "voyage_number", "direction", "calling_port_seq"
+        )
 
     context = {
         "menu_structure": MENU_STRUCTURE,
@@ -139,7 +158,7 @@ def long_range_list(request):
             "lane_code": lane_code,
             "proforma_name": proforma_name,
             "vessel_code": vessel_code,
-        }
+        },
     }
 
     return render(request, "input_data/long_range_list.html", context)

@@ -76,8 +76,12 @@ DOC_GEN_FAIL = "Failed to generate table definition: {error}"
 # Auto Setup Messages (Console Output)
 # ------------------------------------------------------------------------------
 AUTO_SETUP_SUPERUSER_START = "\n[Auto-Setup] Creating default superuser '{username}'..."
-AUTO_SETUP_SUPERUSER_SUCCESS = "[Auto-Setup] Superuser '{username}' created successfully."
-AUTO_SETUP_SUPERUSER_EXIST = "[Auto-Setup] Superuser '{username}' already exists. Skipping."
+AUTO_SETUP_SUPERUSER_SUCCESS = (
+    "[Auto-Setup] Superuser '{username}' created successfully."
+)
+AUTO_SETUP_SUPERUSER_EXIST = (
+    "[Auto-Setup] Superuser '{username}' already exists. Skipping."
+)
 AUTO_SETUP_SUPERUSER_FAILED = "[Auto-Setup] Failed to create superuser: {error}"
 
 AUTO_SETUP_COMMAND_START = "\n[Auto-Setup] Running management command '{command}'..."

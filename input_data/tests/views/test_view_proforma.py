@@ -7,8 +7,9 @@ from django.contrib.messages import get_messages
 from django.urls import reverse
 from django.utils import timezone
 
-from input_data.models import Distance, ProformaSchedule
 from common import messages as msg
+from input_data.models import ProformaSchedule
+
 
 @pytest.mark.django_db
 class TestProformaReadViews:
@@ -236,7 +237,7 @@ class TestProformaCalculation:
             "scenario_id": base_scenario.id,
             "port_code[]": ["A", "B"],
             "etb_day[]": ["SUN", "MON"],  # 필수 데이터
-            "etb_time[]": ["0000", "0000"]
+            "etb_time[]": ["0000", "0000"],
         }
         response = auth_client.post(url, data)
         assert response.status_code == 200
@@ -257,17 +258,19 @@ class TestProformaCalculation:
             "scenario_id": base_scenario.id,
             "lane_code": "TEST_SAVE",
             "proforma_name": "PF_SAVE",
-            'effective_from_date': ['2026-01-01'],
-            "capacity":["5000"],
-            "count":["2"],
+            "effective_from_date": ["2026-01-01"],
+            "capacity": ["5000"],
+            "count": ["2"],
             "duration": ["49"],
             "port_code[]": ["KRPUS"],
             "direction[]": ["E"],
-            'pilot_in[]': ['2.000'],
-            'work_hours[]': ['2.000'],
-            'pilot_out[]': ['2.000'],
-            "etb_no[]": ["0"], "etb_day[]": ["SUN"], "etb_time[]": ["0000"],
-            "dist[]": ["0"]
+            "pilot_in[]": ["2.000"],
+            "work_hours[]": ["2.000"],
+            "pilot_out[]": ["2.000"],
+            "etb_no[]": ["0"],
+            "etb_day[]": ["SUN"],
+            "etb_time[]": ["0000"],
+            "dist[]": ["0"],
         }
 
         response = auth_client.post(url, data, follow=True)

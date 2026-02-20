@@ -1,10 +1,15 @@
 import pytest
+
 from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils import timezone
+
 from input_data.models import (
-    ScenarioInfo, ProformaSchedule, VesselCapacity,
-    LongRangeSchedule, Distance
+    Distance,
+    LongRangeSchedule,
+    ProformaSchedule,
+    ScenarioInfo,
+    VesselCapacity,
 )
 
 
@@ -20,6 +25,7 @@ def auth_client(client, user):
     client.login(username="test_user", password="password")
     return client
 
+
 @pytest.mark.django_db
 class TestApiViews:
     """
@@ -29,7 +35,7 @@ class TestApiViews:
 
     # --- Test Data Setup (Fixtures) ---
     @pytest.fixture(autouse=True)
-    def setup_data(self, db,  user, auth_client):
+    def setup_data(self, db, user, auth_client):
         self.user = user
         self.client = auth_client
 
@@ -38,57 +44,91 @@ class TestApiViews:
             id="SC01",
             description="API Test Scenario",
             status="T",
-            created_by=user, updated_by=user
+            created_by=user,
+            updated_by=user,
         )
 
         # 2. Distance (PUS -> TYO : 500)
         Distance.objects.create(
-            scenario=self.scenario, from_port_code="KRPUS", to_port_code="JPTYO",
-            distance=500, eca_distance=100
+            scenario=self.scenario,
+            from_port_code="KRPUS",
+            to_port_code="JPTYO",
+            distance=500,
+            eca_distance=100,
         )
 
         # 3. Proforma Schedule
         # - LANE_A: PF_01 (Duration 10)
         ProformaSchedule.objects.create(
-            scenario=self.scenario, lane_code="LANE_A", proforma_name="PF_01",
+            scenario=self.scenario,
+            lane_code="LANE_A",
+            proforma_name="PF_01",
             effective_from_date=timezone.now(),
-            calling_port_seq=1, declared_count=2, duration=10.0,
-            etb_day_code="MON",etb_day_time="0800",etb_day_number=0,
-            port_code="KRPUS",terminal_code="KRPUS01",
-            created_by=user, updated_by=user
+            calling_port_seq=1,
+            declared_count=2,
+            duration=10.0,
+            etb_day_code="MON",
+            etb_day_time="0800",
+            etb_day_number=0,
+            port_code="KRPUS",
+            terminal_code="KRPUS01",
+            created_by=user,
+            updated_by=user,
         )
         # - LANE_B: PF_02
         ProformaSchedule.objects.create(
-            scenario=self.scenario, lane_code="LANE_B", proforma_name="PF_02",
+            scenario=self.scenario,
+            lane_code="LANE_B",
+            proforma_name="PF_02",
             effective_from_date=timezone.now(),
-            calling_port_seq=1, declared_count=3, duration=20.0,
-            etb_day_code="SUN", etb_day_time="0800", etb_day_number=0,
-            port_code="JPTYO", terminal_code="JPTYO01",
-            created_by=user, updated_by=user
+            calling_port_seq=1,
+            declared_count=3,
+            duration=20.0,
+            etb_day_code="SUN",
+            etb_day_time="0800",
+            etb_day_number=0,
+            port_code="JPTYO",
+            terminal_code="JPTYO01",
+            created_by=user,
+            updated_by=user,
         )
 
         # 4. Vessel Capacity (Create 화면용)
         VesselCapacity.objects.create(
-            scenario=self.scenario, vessel_code="V_CAP_1",
-            vessel_capacity=10000, reefer_capacity=1000,
-            created_by=user, updated_by=user
+            scenario=self.scenario,
+            vessel_code="V_CAP_1",
+            vessel_capacity=10000,
+            reefer_capacity=1000,
+            created_by=user,
+            updated_by=user,
         )
 
         # 5. Long Range Schedule (Check & List용)
-        today = timezone.now().date()
         # - V_BUSY: LANE_X 점유 (오늘 ~ +10일)
         LongRangeSchedule.objects.create(
-            scenario=self.scenario, lane_code="LANE_X", vessel_code="V_BUSY",
-            voyage_number="0001", direction="E", port_code="PUS", calling_port_seq=1,
+            scenario=self.scenario,
+            lane_code="LANE_X",
+            vessel_code="V_BUSY",
+            voyage_number="0001",
+            direction="E",
+            port_code="PUS",
+            calling_port_seq=1,
             etb=timezone.now(),  # 오늘 포함
-            created_by=user, updated_by=user
+            created_by=user,
+            updated_by=user,
         )
         # - V_LRS_1: LANE_A (검색 필터 테스트용)
         LongRangeSchedule.objects.create(
-            scenario=self.scenario, lane_code="LANE_A", vessel_code="V_LRS_1",
-            voyage_number="0001", direction="E", port_code="PUS", calling_port_seq=1,
+            scenario=self.scenario,
+            lane_code="LANE_A",
+            vessel_code="V_LRS_1",
+            voyage_number="0001",
+            direction="E",
+            port_code="PUS",
+            calling_port_seq=1,
             etb=timezone.now(),
-            created_by=user, updated_by=user
+            created_by=user,
+            updated_by=user,
         )
 
     # =========================================================
@@ -98,11 +138,14 @@ class TestApiViews:
     def test_api_dist_001_success(self):
         """[API_DIST_001] 거리 조회 (정상)"""
         url = reverse("api:port_distance")
-        resp = self.client.get(url, {
-            "scenario_id": self.scenario.id,
-            "origin": "KRPUS",
-            "destination": "JPTYO"
-        })
+        resp = self.client.get(
+            url,
+            {
+                "scenario_id": self.scenario.id,
+                "origin": "KRPUS",
+                "destination": "JPTYO",
+            },
+        )
 
         assert resp.status_code == 200
         data = resp.json()
@@ -113,11 +156,14 @@ class TestApiViews:
     def test_api_dist_002_not_found(self):
         """[API_DIST_002] 거리 조회 (없음) -> 0 반환"""
         url = reverse("api:port_distance")
-        resp = self.client.get(url, {
-            "scenario_id": self.scenario.id,
-            "origin": "KRPUS",
-            "destination": "DDLAX"  # 없는 경로
-        })
+        resp = self.client.get(
+            url,
+            {
+                "scenario_id": self.scenario.id,
+                "origin": "KRPUS",
+                "destination": "DDLAX",  # 없는 경로
+            },
+        )
 
         assert resp.status_code == 200
         data = resp.json()
@@ -142,10 +188,9 @@ class TestApiViews:
     def test_api_pf_002_pf_list(self):
         """[API_PF_002] PF 명 목록 조회 (Lane 필터링)"""
         url = reverse("api:proforma_options")
-        resp = self.client.get(url, {
-            "scenario_id": self.scenario.id,
-            "lane_code": "LANE_A"
-        })
+        resp = self.client.get(
+            url, {"scenario_id": self.scenario.id, "lane_code": "LANE_A"}
+        )
 
         assert resp.status_code == 200
         data = resp.json()
@@ -155,27 +200,33 @@ class TestApiViews:
     def test_api_pf_003_detail_success(self):
         """[API_PF_003] PF 상세 조회 (성공)"""
         url = reverse("api:proforma_detail")
-        resp = self.client.get(url, {
-            "scenario_id": self.scenario.id,
-            "lane_code": "LANE_A",
-            "proforma_name": "PF_01"
-        })
+        resp = self.client.get(
+            url,
+            {
+                "scenario_id": self.scenario.id,
+                "lane_code": "LANE_A",
+                "proforma_name": "PF_01",
+            },
+        )
 
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "success"
-        assert data["duration"] == '10.0'
+        assert data["duration"] == "10.0"
         assert data["declared_count"] == 2
         assert data["first_port_day"] == "MON"
 
     def test_api_pf_004_detail_fail(self):
         """[API_PF_004] PF 상세 조회 (실패 - 존재하지 않음)"""
         url = reverse("api:proforma_detail")
-        resp = self.client.get(url, {
-            "scenario_id": self.scenario.id,
-            "lane_code": "LANE_A",
-            "proforma_name": "INVALID_PF"
-        })
+        resp = self.client.get(
+            url,
+            {
+                "scenario_id": self.scenario.id,
+                "lane_code": "LANE_A",
+                "proforma_name": "INVALID_PF",
+            },
+        )
 
         assert resp.status_code == 200
         data = resp.json()
@@ -205,12 +256,15 @@ class TestApiViews:
 
         today_str = timezone.now().strftime("%Y-%m-%d")
 
-        resp = self.client.get(url, {
-            "scenario_id": self.scenario.id,
-            "vessel_code": "V_BUSY",
-            "start_date": today_str,
-            "end_date": today_str
-        })
+        resp = self.client.get(
+            url,
+            {
+                "scenario_id": self.scenario.id,
+                "vessel_code": "V_BUSY",
+                "start_date": today_str,
+                "end_date": today_str,
+            },
+        )
 
         assert resp.status_code == 200
         data = resp.json()
@@ -223,12 +277,15 @@ class TestApiViews:
         url = reverse("api:vessel_lane_check")
         today_str = timezone.now().strftime("%Y-%m-%d")
 
-        resp = self.client.get(url, {
-            "scenario_id": self.scenario.id,
-            "vessel_code": "V_FREE",
-            "start_date": today_str,
-            "end_date": today_str
-        })
+        resp = self.client.get(
+            url,
+            {
+                "scenario_id": self.scenario.id,
+                "vessel_code": "V_FREE",
+                "start_date": today_str,
+                "end_date": today_str,
+            },
+        )
 
         assert resp.status_code == 200
         data = resp.json()
@@ -240,10 +297,9 @@ class TestApiViews:
         url = reverse("api:vessel_options")
 
         # Lane A로 필터링 요청
-        resp = self.client.get(url, {
-            "scenario_id": self.scenario.id,
-            "lane_code": "LANE_A"
-        })
+        resp = self.client.get(
+            url, {"scenario_id": self.scenario.id, "lane_code": "LANE_A"}
+        )
 
         assert resp.status_code == 200
         data = resp.json()

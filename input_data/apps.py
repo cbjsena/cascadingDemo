@@ -20,7 +20,9 @@ class InputDataConfig(AppConfig):
 
     def ready(self):
         # 1. 테스트 환경인지 감지
-        is_testing = 'pytest' in sys.modules or (len(sys.argv) > 1 and sys.argv[1] == 'test')
+        is_testing = "pytest" in sys.modules or (
+            len(sys.argv) > 1 and sys.argv[1] == "test"
+        )
 
         # 2. 테스트가 아닐 때만 자동화 로직(Signal) 연결
         if not is_testing:
@@ -210,7 +212,7 @@ def run_init_base_data(sender, **kwargs):
     # plan 매개변수가 있는 경우(특정 마이그레이션만 실행 시) 등을 방지하기 위해
     # 실제 마이그레이션이 수행되었을 때만 실행하도록 조건 추가 가능하지만,
     # 보통은 post_migrate 시점에 매번 체크해도 무방합니다.
-    command_name = 'init_base_data'
+    command_name = "init_base_data"
     print(msg.AUTO_SETUP_COMMAND_START.format(command=command_name))
 
     try:
@@ -219,7 +221,6 @@ def run_init_base_data(sender, **kwargs):
         print(msg.AUTO_SETUP_COMMAND_SUCCESS.format(command=command_name))
     except Exception as e:
         print(msg.AUTO_SETUP_COMMAND_FAILED.format(command=command_name, error=e))
-
 
 
 def _map_data_type(data_type):

@@ -6,7 +6,6 @@ from django.utils import timezone
 from input_data.models import Distance, ProformaSchedule, ScenarioInfo
 from input_data.services.proforma_service import ProformaService
 
-
 # =========================================================
 # User & Client Fixtures
 # [Related Scenarios] INPUT_ACCESS_001, INPUT_SCENARIO_DELETE_002, 003
@@ -174,7 +173,7 @@ def pf_complex_data(db, base_scenario, user):
         "lane_code": "TEST_LANE",
         "proforma_name": "PF_COMPLEX",
         "effective_from_date": timezone.now(),
-        "duration": 14.0, # Round Trip 14일
+        "duration": 14.0,  # Round Trip 14일
         "declared_capacity": "5000",
         "declared_count": 2,
         "direction": "E",
@@ -189,7 +188,7 @@ def pf_complex_data(db, base_scenario, user):
         **common_data,
         port_code="PORT_A",
         calling_port_seq=1,
-        turn_port_info_code="Y", # Head Virtual O
+        turn_port_info_code="Y",  # Head Virtual O
         etb_day_number=0,
         etd_day_number=0.5,
     )
@@ -216,12 +215,15 @@ def pf_complex_data(db, base_scenario, user):
 
     return base_scenario
 
+
 @pytest.fixture
 def service():
     """ProformaService 인스턴스"""
     return ProformaService()
 
+
 @pytest.fixture
 def lrs_service():
     from input_data.services.long_range_service import LongRangeService
+
     return LongRangeService()

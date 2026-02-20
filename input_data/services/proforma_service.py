@@ -96,7 +96,6 @@ class ProformaService:
         6. ETD 계산:
            - Formula: Current ETB + Work Hours
         """
-        scenario_id = header_info.get("scenario_id")
         if not rows:
             return rows
 
@@ -124,9 +123,9 @@ class ProformaService:
                 # (항상 검색하여 최신화하려면 조건 제거)
                 if curr.get("port_code") and next_row.get("port_code"):
                     dist, eca_dist = get_distance_between_ports(
-                        scenario_id=header_info['scenario_id'],
+                        scenario_id=header_info["scenario_id"],
                         origin=curr.get("port_code"),
-                        destination=next_row.get("port_code")
+                        destination=next_row.get("port_code"),
                     )
 
                     curr["dist"] = dist
@@ -181,7 +180,7 @@ class ProformaService:
                 curr_pilot_in = self._to_float(curr.get("pilot_in", 0))
 
                 calc_sea_time = (
-                        current_etb_abs - prev_etd_abs - prev_pilot_out - curr_pilot_in
+                    current_etb_abs - prev_etd_abs - prev_pilot_out - curr_pilot_in
                 )
 
                 # 방어 코드: 시간이 역전된 경우 (즉, 사용자가 ETB를 ETD보다 과거로 입력함)
@@ -798,7 +797,6 @@ class ProformaService:
         if len(s_val) >= 10:
             return s_val[:10]
         return s_val
-
 
     # No와 Time을 이용해 절대 시간을 계산하는 메서드 추가
     def _get_abs_hours_with_no(self, base_hours, no, time_str):

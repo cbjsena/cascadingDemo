@@ -1,7 +1,10 @@
+from datetime import timedelta
+
 import pytest
+
 from django.urls import reverse
 from django.utils import timezone
-from datetime import timedelta
+
 from input_data.models import LongRangeSchedule
 
 
@@ -18,7 +21,9 @@ class TestLongRangeView:
         response = auth_client.get(url)
 
         assert response.status_code == 200
-        assert "input_data/long_range_create.html" in [t.name for t in response.templates]
+        assert "input_data/long_range_create.html" in [
+            t.name for t in response.templates
+        ]
         assert "scenarios" in response.context
 
     def test_lrs_view_002_create_post(self, auth_client, pf_complex_data):
@@ -39,7 +44,7 @@ class TestLongRangeView:
             "vessel_code[]": ["V_VW_TEST"],
             "vessel_start_date[]": [start_date.strftime("%Y-%m-%d")],
             "vessel_capacity[]": ["9999"],
-            "lane_code_list[]": ["TEST_LANE"]
+            "lane_code_list[]": ["TEST_LANE"],
         }
 
         response = auth_client.post(url, data, follow=True)
@@ -48,7 +53,7 @@ class TestLongRangeView:
         assert response.status_code == 200
 
         # 2. 메시지 확인
-        messages = list(response.context['messages'])
+        messages = list(response.context["messages"])
         assert any("successfully" in str(m) for m in messages)
 
         # 3. DB 저장 확인
@@ -67,17 +72,21 @@ class TestLongRangeView:
             direction="E",
             calling_port_seq=1,
             etb=timezone.now(),
-            created_by=user, updated_by=user
+            created_by=user,
+            updated_by=user,
         )
 
         url = reverse("input_data:long_range_list")
 
         # 2. 검색 요청
-        response = auth_client.get(url, {
-            "scenario_id": pf_complex_data.id,
-            "lane_code": "TEST_LANE",
-            "vessel_code": "V_SCH_TGT"
-        })
+        response = auth_client.get(
+            url,
+            {
+                "scenario_id": pf_complex_data.id,
+                "lane_code": "TEST_LANE",
+                "vessel_code": "V_SCH_TGT",
+            },
+        )
 
         # 3. 결과 확인
         assert response.status_code == 200
@@ -106,14 +115,16 @@ class TestLongRangeViewMissingScenarios:
             "vessel_code[]": ["V_RESTORE_1", "V_RESTORE_2"],
             "vessel_start_date[]": ["2024-01-01", "2024-02-01"],
             "vessel_capacity[]": ["1000", "2000"],
-            "lane_code_list[]": ["L1", "L2"]
+            "lane_code_list[]": ["L1", "L2"],
         }
 
         # 2. When
         response = auth_client.post(url, data)
 
         # 3. Then
-        assert response.status_code == 200  # 에러가 나서 Redirect(302) 되지 않고 폼을 다시 렌더링함
+        assert (
+            response.status_code == 200
+        )  # 에러가 나서 Redirect(302) 되지 않고 폼을 다시 렌더링함
 
         # Context에 복구된 데이터가 정확히 들어있는지 검증
         context = response.context
@@ -129,15 +140,22 @@ class TestLongRangeViewMissingScenarios:
         """[LRS_VIEW_005] 목록 검색 (결과 없음 및 검색어 유지)"""
         # 기존 데이터 하나 생성
         LongRangeSchedule.objects.create(
-            scenario=pf_complex_data, lane_code="LANE_A", vessel_code="V_EXIST",
-            voyage_number="0001", port_code="PUS", calling_port_seq=1,
-            created_by=user, updated_by=user
+            scenario=pf_complex_data,
+            lane_code="LANE_A",
+            vessel_code="V_EXIST",
+            voyage_number="0001",
+            port_code="PUS",
+            calling_port_seq=1,
+            created_by=user,
+            updated_by=user,
         )
 
         url = reverse("input_data:long_range_list")
 
         # 1. When: 존재하지 않는 GHOST 선박 검색
-        response = auth_client.get(url, {"scenario_id": pf_complex_data.id, "vessel_code": "GHOST"})
+        response = auth_client.get(
+            url, {"scenario_id": pf_complex_data.id, "vessel_code": "GHOST"}
+        )
 
         # 2. Then
         assert response.status_code == 200

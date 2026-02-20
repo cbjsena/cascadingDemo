@@ -28,22 +28,15 @@ urlpatterns = [
     ),
     # Proforma Schedule  - views/proforma.py 에 정의된 함수들
     path("proforma/list/", views.proforma_list, name="proforma_list"),
-
     path("proforma/detail/", views.proforma_detail, name="proforma_detail"),
-
     path("proforma/create/", views.proforma_create, name="proforma_create"),
-
     path("proforma/upload/", views.proforma_upload, name="proforma_upload"),
-
     path(
         "proforma/template/", views.proforma_template_download, name="proforma_template"
     ),
-
     ############### Long Range Schedule
     path("long_range/create/", views.long_range_create, name="long_range_create"),
-
     path("long_range/list/", views.long_range_list, name="long_range_list"),
-
     # AJAX용
     # Input List (Common)
     # 동적 데이터 조회: /input/schedule/proforma/ 등 형태
