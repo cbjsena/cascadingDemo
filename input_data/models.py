@@ -79,8 +79,8 @@ class ScenarioBaseModel(CommonModel):
 # Group 1: Schedule
 # ==========================================
 # 1. Proforma Schedule
-class AbsProformaSchedule(models.Model):
-    """Proforma Schedule 데이터 필드 (추상)"""
+class BaseProformaSchedule(models.Model):
+    """[BASE] 기준 Proforma Schedule"""
 
     lane_code = models.CharField(max_length=10, verbose_name="Lane Code / 3 alphanum")
     proforma_name = models.CharField(
@@ -182,13 +182,6 @@ class AbsProformaSchedule(models.Model):
         verbose_name="Terminal Code (Port Code + 2-digit number, e.g., KRPUS01)",
     )
 
-    class Meta:
-        abstract = True
-
-
-class BaseProformaSchedule(AbsProformaSchedule):
-    """[BASE] 기준 Proforma Schedule"""
-
     # 표준 데이터는 scenario_id, created_by, updated_by 없음
     class Meta:
         verbose_name = "Base Proforma Schedule"
@@ -207,27 +200,145 @@ class BaseProformaSchedule(AbsProformaSchedule):
         return f"[BASE] {self.lane_code} - {self.proforma_name}"
 
 
-class ProformaSchedule(AbsProformaSchedule, ScenarioBaseModel):
-    """[SCE] 시나리오 Proforma Schedule"""
+class ProformaSchedule(CommonModel):
+    """시나리오 복사 시 분리되는 헤더 정보"""
 
-    proforma_schedule_id = models.AutoField(primary_key=True)
+    scenario = models.ForeignKey(
+        "ScenarioInfo", on_delete=models.CASCADE, db_column="scenario_id"
+    )
+
+    lane_code = models.CharField(max_length=10, verbose_name="Lane Code / 3 alphanum")
+    proforma_name = models.CharField(
+        max_length=30, verbose_name="Proforma Name / 4 numeric digits"
+    )
+    effective_from_date = models.DateTimeField(
+        verbose_name="Effective date from which the proforma is applied. "
+        "The proforma currently in use is set with a date six months prior."
+    )
+    duration = models.DecimalField(
+        max_digits=5,
+        decimal_places=1,
+        verbose_name="Total number of days from the ETB of the first port to the ETB of the last port",
+    )
+    declared_capacity = models.CharField(
+        max_length=5,
+        verbose_name="Declared vessel capacity (TEU) for the lane, Currently equal to vessel_capacity",
+    )
+    declared_count = models.IntegerField(
+        verbose_name="Declared number of vessels for the lane"
+    )
 
     class Meta:
-        verbose_name = "Proforma Schedule"
-        db_table = "sce_schedule_proforma"
-        unique_together = (
-            (
-                "scenario",
-                "lane_code",
-                "proforma_name",
-                "direction",
-                "port_code",
-                "calling_port_indicator",
-            ),
-        )
+        db_table = "sce_proforma_schedule"
+        unique_together = ("scenario", "lane_code", "proforma_name")
 
     def __str__(self):
-        return f"[{self.scenario.id}] {self.lane_code} - {self.proforma_name}"
+        return f"[{self.scenario_id}] {self.lane_code} - {self.proforma_name}"
+
+
+class ProformaScheduleDetail(CommonModel):
+    """시나리오 복사 시 분리되는 기항지 상세 정보"""
+
+    scenario = models.ForeignKey(
+        "ScenarioInfo", on_delete=models.CASCADE, db_column="scenario_id"
+    )
+    proforma = models.ForeignKey(
+        ProformaSchedule,
+        on_delete=models.CASCADE,
+        related_name="details",
+        db_column="proforma_id",
+        verbose_name="Proforma Master ID",
+    )
+
+    direction = models.CharField(
+        max_length=2, choices=DIRECTION_CHOICES, verbose_name="Direction {W, E, S, N}"
+    )
+    port_code = models.CharField(
+        max_length=10,
+        verbose_name="Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)",
+    )
+    calling_port_indicator = models.CharField(
+        max_length=2,
+        verbose_name="Port call order for each direction and port within the lane",
+    )
+    calling_port_seq = models.IntegerField(
+        verbose_name="Port call sequence within the lane"
+    )
+    turn_port_info_code = models.CharField(
+        max_length=3,
+        choices=TURN_PORT_INFO_CD,
+        default="N",
+        verbose_name="Turning Port Indicator (Y/N) / Y: Create Virtual Port ",
+    )
+    pilot_in_hours = models.DecimalField(
+        null=True,
+        max_digits=8,
+        decimal_places=3,
+        verbose_name="Time from outer port to berth (Hour)",
+        default=3,
+    )
+    etb_day_number = models.IntegerField(
+        verbose_name="Total number of days from the first port ETB to this ETB"
+    )
+    etb_day_code = models.CharField(max_length=3, verbose_name="Day of week for ETB")
+    etb_day_time = models.CharField(max_length=4, verbose_name="ETB time (HHMM)")
+    actual_work_hours = models.DecimalField(
+        null=True,
+        max_digits=8,
+        decimal_places=3,
+        verbose_name="Actual working time at the berth (hours)",
+        default=30,
+    )
+    etd_day_number = models.IntegerField(
+        null=True,
+        verbose_name="Total number of days from the first port ETB to this ETD",
+    )
+    etd_day_code = models.CharField(
+        null=True, max_length=3, verbose_name="Day of week for ETD"
+    )
+    etd_day_time = models.CharField(
+        null=True, max_length=4, verbose_name="ETD time (HHMM)"
+    )
+    pilot_out_hours = models.DecimalField(
+        null=True,
+        max_digits=8,
+        decimal_places=3,
+        verbose_name="Time from berth to outer port  (Hour)",
+        default=3,
+    )
+
+    link_distance = models.IntegerField(
+        null=True, verbose_name="Distance to Next Port (NM)", default=0
+    )
+    link_eca_distance = models.IntegerField(
+        null=True, verbose_name="ECA Distance to Next Port (NM)", default=0
+    )
+    link_speed = models.DecimalField(
+        null=True,
+        max_digits=8,
+        decimal_places=3,
+        verbose_name="Average Speed to Next Port (knots)",
+    )
+    sea_time_hours = models.DecimalField(
+        null=True,
+        max_digits=8,
+        decimal_places=3,
+        verbose_name="Sea Time (hours), Next port ETB − Current port ETD − Current port Pilot Out + Next port Pilot In",
+    )
+    terminal_code = models.CharField(
+        max_length=10,
+        verbose_name="Terminal Code (Port Code + 2-digit number, e.g., KRPUS01)",
+    )
+
+    class Meta:
+        db_table = "sce_proforma_schedule_detail"
+        unique_together = (
+            "scenario",
+            "proforma",
+            "direction",
+            "port_code",
+            "calling_port_indicator",
+        )
 
 
 # 2. Long Range Schedule

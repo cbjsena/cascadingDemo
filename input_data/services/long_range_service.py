@@ -43,24 +43,30 @@ class LongRangeService:
         except ScenarioInfo.DoesNotExist:
             raise ValueError(msg.SCENARIO_NOT_FOUND)
 
-        # 2. Base Proforma Fetching
-        proforma_rows = list(
-            ProformaSchedule.objects.filter(
-                scenario=scenario, lane_code=lane_code, proforma_name=proforma_name
-            ).order_by("calling_port_seq")
-        )
+        # =========================================================
+        # [수정됨] 2. Base Proforma Fetching (Master - Detail 분리)
+        # =========================================================
+        # 2-1. Master 조회 (Duration 추출용)
+        master = ProformaSchedule.objects.filter(
+            scenario=scenario, lane_code=lane_code, proforma_name=proforma_name
+        ).first()
 
-        if not proforma_rows:
-            raise ValueError("Proforma Schedule not found.")
+        if not master:
+            raise ValueError("Proforma Schedule (Master) not found.")
 
         # 헤더 정보 (Duration = Round Trip Time)
-        # 첫 번째 행의 duration 사용 (모든 행이 동일하다고 가정)
-        round_trip_days = float(proforma_rows[0].duration or 0)
+        round_trip_days = float(master.duration or 0)
         if round_trip_days <= 0:
             raise ValueError("Invalid Proforma Duration (0 or None).")
 
+        # 2-2. Detail 조회 (시퀀스 생성용)
+        # ORM related_name 인 'details'를 활용하여 기항지 목록을 가져옵니다.
+        proforma_rows = list(master.details.all().order_by("calling_port_seq"))
+
+        if not proforma_rows:
+            raise ValueError("Proforma Schedule Details not found.")
+
         # 3. Virtual Port Logic 적용 -> 확장된 시퀀스 생성
-        # (실제 DB 저장은 안 하지만, 순서와 Voyage Offset 결정을 위해 필요)
         expanded_sequence = self._get_expanded_sequence(proforma_rows)
 
         # 4. 기존 LRS 삭제 (해당 시나리오/Lane)

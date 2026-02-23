@@ -15,7 +15,7 @@ from common import (
 )
 from common.utils.csv_manager import CsvManager
 from common.utils.excel_manager import ExcelManager
-from input_data.models import ProformaSchedule, ScenarioInfo
+from input_data.models import ProformaSchedule, ProformaScheduleDetail, ScenarioInfo
 from input_data.services.common_service import get_distance_between_ports
 
 
@@ -288,13 +288,12 @@ class ProformaService:
 
     @transaction.atomic
     def save_schedule(self, header, rows, user):
-        """스케줄 DB 저장"""
+        """스케줄 DB 저장 (Master - Detail 분리)"""
         scenario_id_val = header.get("scenario_id")
         lane_code = header.get("lane_code")
         proforma_name = header.get("proforma_name")
 
         try:
-            # 여기서 scenario는 ScenarioInfo 객체여야 함
             scenario_obj = ScenarioInfo.objects.get(id=scenario_id_val)
         except ScenarioInfo.DoesNotExist:
             raise ValueError(msg.SCENARIO_NOT_FOUND.format(scenario_id=scenario_id_val))
@@ -305,22 +304,33 @@ class ProformaService:
 
         if eff_from_date_str:
             try:
-                # 1. 문자열 -> Naive Datetime 변환 (YYYY-MM-DD)
-                # 입력값이 '2026-01-01' 형태라고 가정
                 dt = datetime.strptime(str(eff_from_date_str)[:10], "%Y-%m-%d")
-                # 2. Naive -> Aware Datetime 변환
                 effective_from_date = timezone.make_aware(dt)
             except ValueError:
-                pass  # 파싱 실패 시 기본값(Now) 사용
+                pass
 
-        # 1. 기존 데이터 삭제 (Delete First)
+        # 1. 기존 데이터 삭제 (Master 삭제 시 ON_DELETE=CASCADE로 Detail도 자동 삭제됨)
         ProformaSchedule.objects.filter(
             scenario=scenario_obj, lane_code=lane_code, proforma_name=proforma_name
         ).delete()
 
-        # 2. 신규 데이터 생성 (Create New)
-        new_schedules = []
+        # 2. Master(헤더) 신규 생성
+        master = ProformaSchedule.objects.create(
+            scenario=scenario_obj,
+            lane_code=lane_code,
+            proforma_name=proforma_name,
+            effective_from_date=effective_from_date,
+            duration=Decimal(header.get("duration") or 0),
+            declared_capacity=header.get("capacity", ""),
+            declared_count=int(header.get("count") or 0),
+            created_by=user,
+            updated_by=user,
+        )
+
+        # 3. Detail(기항지) 신규 생성
+        new_details = []
         indicator_map = {}
+
         for row in rows:
             if not row.get("port_code"):
                 continue
@@ -328,27 +338,19 @@ class ProformaService:
             port_cd = row["port_code"]
             direction = row.get("direction", "E")
 
-            # [로직 추가] 현재 행의 Port와 Direction 조합이 몇 번째 등장인지 계산
             key = (port_cd, direction)
             current_count = indicator_map.get(key, 0) + 1
             indicator_map[key] = current_count
 
-            # indicator는 문자열 "1", "2"... 로 저장
             calling_port_indicator = str(current_count)
-
             raw_terminal = row.get("terminal", "")
             terminal_code = raw_terminal if raw_terminal else f"{port_cd}01"
 
-            schedule = ProformaSchedule(
+            detail = ProformaScheduleDetail(
                 scenario=scenario_obj,
-                lane_code=lane_code,
-                proforma_name=proforma_name,
-                effective_from_date=effective_from_date,
-                duration=Decimal(header.get("duration") or 0),
-                declared_capacity=header.get("capacity", ""),
-                declared_count=int(header.get("count") or 0),
+                proforma=master,  # [핵심] 생성된 Master 객체를 FK로 연결
+                direction=direction,
                 port_code=port_cd,
-                direction=row.get("direction", "E"),
                 calling_port_indicator=calling_port_indicator,
                 calling_port_seq=int(row.get("port_seq") or 0),
                 turn_port_info_code=row.get("turn_port_info_code", "N"),
@@ -369,10 +371,11 @@ class ProformaService:
                 created_by=user,
                 updated_by=user,
             )
-            new_schedules.append(schedule)
+            new_details.append(detail)
 
-        if new_schedules:
-            ProformaSchedule.objects.bulk_create(new_schedules)
+        # Detail 일괄 저장
+        if new_details:
+            ProformaScheduleDetail.objects.bulk_create(new_details)
 
     def calculate_summary(self, rows):
         """
@@ -570,35 +573,35 @@ class ProformaService:
 
     def get_schedule_data(self, scenario_id, lane_code, proforma_name):
         """
-        [DB -> View] 저장된 스케줄 데이터를 조회하여 화면용 Header/Rows 구조로 반환
+        [DB -> View] DB -> View: Master/Detail 조회하여 화면용 Header/Rows 반환
         """
-        qs = ProformaSchedule.objects.filter(
+        # 1. Master 조회
+        master = ProformaSchedule.objects.filter(
             scenario_id=scenario_id, lane_code=lane_code, proforma_name=proforma_name
-        ).order_by("calling_port_seq")
+        ).first()
 
-        if not qs.exists():
+        if not master:
             return {}, []
 
-        # 1. Header 구성 (첫 번째 Row 기준)
-        first_obj = qs.first()
+        # 2. Header 구성
         header = {
-            "scenario_id": first_obj.scenario_id,
-            "lane_code": first_obj.lane_code,
-            "proforma_name": first_obj.proforma_name,
-            # input date value 포맷인 YYYY-MM-DD 문자열로 변환
+            "scenario_id": master.scenario_id,
+            "lane_code": master.lane_code,
+            "proforma_name": master.proforma_name,
             "effective_from_date": (
-                first_obj.effective_from_date.strftime("%Y-%m-%d")
-                if first_obj.effective_from_date
+                master.effective_from_date.strftime("%Y-%m-%d")
+                if master.effective_from_date
                 else ""
             ),
-            "duration": first_obj.duration,
-            "capacity": first_obj.declared_capacity,
-            "count": first_obj.declared_count,
+            "duration": master.duration,
+            "capacity": master.declared_capacity,
+            "count": master.declared_count,
         }
 
-        # 2. Rows 구성
+        # 3. Detail 기반 Rows 구성 (related_name 'details' 활용)
         rows = []
-        for obj in qs:
+        details_qs = master.details.all().order_by("calling_port_seq")
+        for obj in details_qs:
             row = {
                 "port_seq": obj.calling_port_seq,
                 "port_code": obj.port_code,

@@ -53,7 +53,7 @@
                         {% for item in proforma_list %}
                         <tr>
                             <td class="text-center">{{ forloop.counter }}</td>
-                            <td class="fw-bold text-primary">{{ item.scenario__id }}</td>
+                            <td class="fw-bold text-primary">{{ item.scenario.id }}</td>
                             <td><span class="badge bg-secondary">{{ item.lane_code }}</span></td>
                             <td class="fw-bold">{{ item.proforma_name }}</td>
 
@@ -63,7 +63,7 @@
                             <td class="text-center">{{ item.port_count }}</td>
                             <td class="small text-muted">{{ item.updated_at|date:"Y-m-d H:i" }}</td>
                             <td class="text-center">
-                                <a href="{% url 'input_data:proforma_detail' %}?scenario_id={{ item.scenario__id }}&lane_code={{ item.lane_code }}&proforma_name={{ item.proforma_name }}"
+                                <a href="{% url 'input_data:proforma_detail' %}?scenario_id={{ item.scenario.id }}&lane_code={{ item.lane_code }}&proforma_name={{ item.proforma_name }}"
                                    class="btn btn-sm btn-outline-info">
                                     <i class="bi bi-eye"></i> View
                                 </a>

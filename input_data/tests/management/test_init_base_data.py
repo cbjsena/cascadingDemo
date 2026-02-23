@@ -54,6 +54,35 @@ TEST2,Test Vessel 2,C,2025/02/01"""
         assert obj2.delivery_date.year == 2025
         assert obj2.delivery_date.month == 2
 
+    def test_date_format_compatibility(self, temp_base_data_dir):
+        """
+        [CMD_INIT_003] 날짜 포맷 호환성 (YYYY/MM/DD HH:MM:SS, YYYY/MM/DD 혼용)
+        """
+        base_dir, data_dir = temp_base_data_dir
+
+        # 두 가지 날짜 형식 혼용
+        csv_content = """vessel_code,vessel_name,own_yn,delivery_date
+TEST_FMT1,Test Vessel 1,O,2025/01/01 12:30:45
+TEST_FMT2,Test Vessel 2,C,2025/02/15"""
+
+        csv_file = data_dir / "base_vessel_info.csv"
+        csv_file.write_text(csv_content, encoding="utf-8-sig")
+
+        with override_settings(BASE_DIR=base_dir):
+            call_command("init_base_data")
+
+        # 두 형식 모두 정상 파싱 확인
+        obj1 = BaseVesselInfo.objects.get(vessel_code="TEST_FMT1")
+        assert obj1.delivery_date.year == 2025
+        assert obj1.delivery_date.month == 1
+        assert obj1.delivery_date.hour == 12
+        assert obj1.delivery_date.minute == 30
+
+        obj2 = BaseVesselInfo.objects.get(vessel_code="TEST_FMT2")
+        assert obj2.delivery_date.year == 2025
+        assert obj2.delivery_date.month == 2
+        assert obj2.delivery_date.day == 15
+
     def test_load_empty_values(self, temp_base_data_dir):
         """
         [CMD_INIT_002] 빈 값 처리 (숫자 -> 0/None, 날짜 -> None)

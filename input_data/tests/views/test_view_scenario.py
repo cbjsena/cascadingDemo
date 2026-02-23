@@ -4,7 +4,7 @@ from django.contrib.messages import get_messages
 from django.urls import reverse
 
 from common import messages as msg
-from input_data.models import ProformaSchedule, ScenarioInfo
+from input_data.models import ProformaSchedule, ProformaScheduleDetail, ScenarioInfo
 
 
 @pytest.mark.django_db
@@ -102,7 +102,7 @@ class TestScenarioView:
         """
         [INPUT_SCENARIO_CLONE_001] 기존 시나리오 복제 (성공)
         """
-        # Given: scenario_with_data에는 하위 Proforma 데이터가 1건 있음
+        # Given: scenario_with_data에는 하위 Proforma Master/Detail 데이터가 각 1건씩 있음
         source_id = scenario_with_data.id
         new_id = "CLONED_SCENARIO"
 
@@ -129,14 +129,25 @@ class TestScenarioView:
         cloned_scenario = ScenarioInfo.objects.get(id=new_id)
         assert cloned_scenario.description == "Cloned"
 
-        # 2. 하위 데이터 복제 확인
-        # 원본 데이터 개수
-        orig_count = ProformaSchedule.objects.filter(scenario_id=source_id).count()
-        # 복제된 데이터 개수
-        cloned_count = ProformaSchedule.objects.filter(scenario_id=new_id).count()
+        # 2. 하위 데이터 복제 확인 (Master & Detail 모두 검증)
+        orig_master_count = ProformaSchedule.objects.filter(
+            scenario_id=source_id
+        ).count()
+        cloned_master_count = ProformaSchedule.objects.filter(
+            scenario_id=new_id
+        ).count()
 
-        assert orig_count > 0
-        assert orig_count == cloned_count
+        orig_detail_count = ProformaScheduleDetail.objects.filter(
+            scenario_id=source_id
+        ).count()
+        cloned_detail_count = ProformaScheduleDetail.objects.filter(
+            scenario_id=new_id
+        ).count()
+
+        assert orig_master_count > 0
+        assert orig_master_count == cloned_master_count
+        assert orig_detail_count > 0
+        assert orig_detail_count == cloned_detail_count
 
     # ==========================================================================
     # 4. 삭제 (Delete)
@@ -153,8 +164,9 @@ class TestScenarioView:
         assert response.status_code == 302
         # 데이터 삭제 확인
         assert not ScenarioInfo.objects.filter(id=target_id).exists()
-        # Cascade 확인
+        # Cascade 확인 (Master & Detail 모두 삭제되어야 함)
         assert not ProformaSchedule.objects.filter(scenario_id=target_id).exists()
+        assert not ProformaScheduleDetail.objects.filter(scenario_id=target_id).exists()
 
     def test_scenario_delete_permission_denied(self, auth_client, other_user):
         """

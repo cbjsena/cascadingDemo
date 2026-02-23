@@ -3,7 +3,12 @@ import pytest
 from django.contrib.auth.models import User
 from django.utils import timezone
 
-from input_data.models import Distance, ProformaSchedule, ScenarioInfo
+from input_data.models import (
+    Distance,
+    ProformaSchedule,
+    ProformaScheduleDetail,  # 추가된 Detail 모델 Import
+    ScenarioInfo,
+)
 from input_data.services.proforma_service import ProformaService
 
 # =========================================================
@@ -62,7 +67,7 @@ def scenario_with_data(db, user):
     하위 데이터가 포함된 시나리오
     [Related Scenarios] INPUT_SCENARIO_CLONE_001, DELETE_001
     """
-    # 1. 부모 생성
+    # 1. 부모 생성 (Scenario)
     scenario = ScenarioInfo.objects.create(
         id="SCENARIO_WITH_DATA",
         description="Scenario for Cascade Test",
@@ -72,8 +77,8 @@ def scenario_with_data(db, user):
         updated_by=user,
     )
 
-    # 2. 자식 생성 (Proforma Schedule)
-    ProformaSchedule.objects.create(
+    # 2. 자식 생성 (Proforma Master)
+    master = ProformaSchedule.objects.create(
         scenario=scenario,
         lane_code="TEST_LANE",
         proforma_name="PF_DATA",
@@ -81,6 +86,14 @@ def scenario_with_data(db, user):
         duration=40.0,
         declared_capacity="10000",
         declared_count=1,
+        created_by=user,
+        updated_by=user,
+    )
+
+    # 3. 손자 생성 (Proforma Detail)
+    ProformaScheduleDetail.objects.create(
+        scenario=scenario,
+        proforma=master,
         direction="E",
         port_code="KRPUS",
         calling_port_indicator="1",
@@ -128,7 +141,8 @@ def sample_schedule(db, base_scenario, user):
     """
     테스트용 단일 Proforma Schedule 데이터 (상세 조회용)
     """
-    return ProformaSchedule.objects.create(
+    # 1. Master 생성
+    master = ProformaSchedule.objects.create(
         scenario=base_scenario,
         lane_code="TEST_LANE",
         proforma_name="PF_001",
@@ -136,6 +150,14 @@ def sample_schedule(db, base_scenario, user):
         duration=14.0,
         declared_capacity="5000",
         declared_count=2,
+        created_by=user,
+        updated_by=user,
+    )
+
+    # 2. Detail 생성
+    ProformaScheduleDetail.objects.create(
+        scenario=base_scenario,
+        proforma=master,
         direction="E",
         port_code="KRPUS",
         calling_port_indicator="1",
@@ -159,6 +181,8 @@ def sample_schedule(db, base_scenario, user):
         updated_by=user,
     )
 
+    return master
+
 
 @pytest.fixture
 def pf_complex_data(db, base_scenario, user):
@@ -168,14 +192,24 @@ def pf_complex_data(db, base_scenario, user):
     - Port B (Seq 2): N
     - Port C (Seq 3): Tail Y (로직상 가상 포트 생성 안 함)
     """
-    common_data = {
+
+    # 1. Master 생성
+    master = ProformaSchedule.objects.create(
+        scenario=base_scenario,
+        lane_code="TEST_LANE",
+        proforma_name="PF_COMPLEX",
+        effective_from_date=timezone.now(),
+        duration=14.0,  # Round Trip 14일
+        declared_capacity="5000",
+        declared_count=2,
+        created_by=user,
+        updated_by=user,
+    )
+
+    # Detail 공통 데이터
+    common_detail_data = {
         "scenario": base_scenario,
-        "lane_code": "TEST_LANE",
-        "proforma_name": "PF_COMPLEX",
-        "effective_from_date": timezone.now(),
-        "duration": 14.0,  # Round Trip 14일
-        "declared_capacity": "5000",
-        "declared_count": 2,
+        "proforma": master,
         "direction": "E",
         "created_by": user,
         "updated_by": user,
@@ -184,9 +218,10 @@ def pf_complex_data(db, base_scenario, user):
     }
 
     # 1. Start Port (Head Y)
-    ProformaSchedule.objects.create(
-        **common_data,
+    ProformaScheduleDetail.objects.create(
+        **common_detail_data,
         port_code="PORT_A",
+        calling_port_indicator="1",
         calling_port_seq=1,
         turn_port_info_code="Y",  # Head Virtual O
         etb_day_number=0,
@@ -194,9 +229,10 @@ def pf_complex_data(db, base_scenario, user):
     )
 
     # 2. Middle Port (N)
-    ProformaSchedule.objects.create(
-        **common_data,
+    ProformaScheduleDetail.objects.create(
+        **common_detail_data,
         port_code="PORT_B",
+        calling_port_indicator="2",
         calling_port_seq=2,
         turn_port_info_code="N",
         etb_day_number=2,
@@ -204,9 +240,10 @@ def pf_complex_data(db, base_scenario, user):
     )
 
     # 3. End Port (Tail Y) -> 마지막 포트이므로 Y여도 Virtual X
-    ProformaSchedule.objects.create(
-        **common_data,
+    ProformaScheduleDetail.objects.create(
+        **common_detail_data,
         port_code="PORT_C",
+        calling_port_indicator="3",
         calling_port_seq=3,
         turn_port_info_code="Y",
         etb_day_number=5,

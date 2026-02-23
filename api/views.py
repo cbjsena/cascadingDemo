@@ -1,4 +1,3 @@
-# Create your views here.
 # api/views.py
 
 from django.contrib.auth.decorators import login_required
@@ -6,6 +5,8 @@ from django.db.models import Max
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 
+# ProformaScheduleDetail은 ORM의 related_name('details')으로 접근 가능하지만,
+# 명시적으로 필요한 경우 import 할 수 있습니다.
 from input_data.models import LongRangeSchedule, ProformaSchedule, VesselCapacity
 from input_data.services.common_service import get_distance_between_ports
 
@@ -61,28 +62,31 @@ def proforma_options(request):
 @login_required
 @require_GET
 def proforma_detail(request):
-    """선택된 Proforma의 상세 정보 반환"""
+    """선택된 Proforma의 상세 정보 반환 (Master + 첫 번째 Detail)"""
     scenario_id = request.GET.get("scenario_id")
     lane_code = request.GET.get("lane_code")
     proforma_name = request.GET.get("proforma_name")
-    try:
-        pf_first = (
-            ProformaSchedule.objects.filter(
-                scenario_id=scenario_id,
-                lane_code=lane_code,
-                proforma_name=proforma_name,
-            )
-            .order_by("calling_port_seq")
-            .first()
-        )
 
-        if pf_first:
+    try:
+        # 1. Master (헤더 정보) 조회
+        master = ProformaSchedule.objects.filter(
+            scenario_id=scenario_id,
+            lane_code=lane_code,
+            proforma_name=proforma_name,
+        ).first()
+
+        if master:
+            # 2. Detail (기항지 정보) 중 첫 번째 포트 조회
+            # models.py에서 related_name="details"로 설정된 역참조 활용
+            first_detail = master.details.order_by("calling_port_seq").first()
+            first_port_day = first_detail.etb_day_code if first_detail else ""
+
             data = {
                 "status": "success",
-                "declared_count": pf_first.declared_count,
-                "declared_capacity": pf_first.declared_capacity,
-                "duration": pf_first.duration,
-                "first_port_day": pf_first.etb_day_code,
+                "declared_count": master.declared_count,
+                "declared_capacity": master.declared_capacity,
+                "duration": master.duration,
+                "first_port_day": first_port_day,
             }
         else:
             data = {"status": "error", "message": "Proforma not found."}

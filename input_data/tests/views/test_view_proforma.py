@@ -8,7 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from common import messages as msg
-from input_data.models import ProformaSchedule
+from input_data.models import ProformaSchedule, ProformaScheduleDetail
 
 
 @pytest.mark.django_db
@@ -32,7 +32,8 @@ class TestProformaReadViews:
         # 리스트 데이터 확인
         proforma_list = response.context["proforma_list"]
         assert len(proforma_list) >= 1
-        assert any(item["lane_code"] == "TEST_LANE" for item in proforma_list)
+        # [수정됨] 딕셔너리 접근(["lane_code"])에서 객체 속성 접근(.lane_code)으로 변경
+        assert any(item.lane_code == "TEST_LANE" for item in proforma_list)
 
         # [Check] 메뉴 그룹 확인
         assert response.context["current_group"] == "Schedule"
@@ -41,8 +42,8 @@ class TestProformaReadViews:
         """
         [PF_LIST_002] 검색 기능 테스트
         """
-        # 검색 대상이 아닌 데이터 추가
-        ProformaSchedule.objects.create(
+        # 검색 대상이 아닌 데이터 추가 (Master - Detail 분리 구조 적용)
+        master = ProformaSchedule.objects.create(
             scenario=base_scenario,
             lane_code="OTHER",
             proforma_name="PF_002",
@@ -50,6 +51,13 @@ class TestProformaReadViews:
             duration=14.0,
             declared_capacity="5000",
             declared_count=2,
+            created_by=user,
+            updated_by=user,
+        )
+
+        ProformaScheduleDetail.objects.create(
+            scenario=base_scenario,
+            proforma=master,
             direction="E",
             port_code="KRPUS",
             calling_port_indicator="1",
@@ -79,12 +87,12 @@ class TestProformaReadViews:
         response = auth_client.get(url, {"lane_code": "OTHER"})
         results = response.context["proforma_list"]
         assert len(results) == 1
-        assert results[0]["lane_code"] == "OTHER"
+        assert results[0].lane_code == "OTHER"
 
         # 'TEST' 검색 (OTHER 제외 확인)
         response = auth_client.get(url, {"lane_code": "TEST"})
         results = response.context["proforma_list"]
-        assert not any(item["lane_code"] == "OTHER" for item in results)
+        assert not any(item.lane_code == "OTHER" for item in results)
 
     def test_proforma_detail_view(self, auth_client, sample_schedule):
         """
@@ -250,7 +258,7 @@ class TestProformaCalculation:
 
     def test_action_save_full(self, auth_client, base_scenario):
         """
-        [PF_SAVE_001] 저장 요청 및 리다이렉트
+        [PF_SAVE_001] 저장 요청 및 리다이렉트 (Master-Detail)
         """
         url = reverse("input_data:proforma_create")
         data = {
@@ -278,7 +286,10 @@ class TestProformaCalculation:
         assert response.status_code == 200
         messages = list(get_messages(response.wsgi_request))
         assert any(msg.SCHEDULE_SAVE_SUCCESS in str(m) for m in messages)
+
+        # Master와 Detail이 모두 생성되었는지 확인
         assert ProformaSchedule.objects.filter(lane_code="TEST_SAVE").exists()
+        assert ProformaScheduleDetail.objects.filter(port_code="KRPUS").exists()
 
 
 @pytest.mark.django_db

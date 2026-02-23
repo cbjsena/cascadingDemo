@@ -5,7 +5,7 @@ import pytest
 
 from django.conf import settings
 
-from input_data.models import Distance, ProformaSchedule
+from input_data.models import Distance, ProformaScheduleDetail
 from input_data.services.proforma_service import ProformaService
 
 
@@ -160,9 +160,10 @@ class TestProformaServiceLogic:
 
         service.save_schedule(header, rows, user)
 
-        qs = ProformaSchedule.objects.filter(lane_code="SVC_TEST").order_by(
-            "calling_port_seq"
-        )
+        qs = ProformaScheduleDetail.objects.filter(
+            proforma__scenario=base_scenario, proforma__lane_code="SVC_TEST"
+        ).order_by("calling_port_seq")
+
         assert qs.count() == 3
 
         # Indicator: 첫 방문 "1", 두 번째 "2"

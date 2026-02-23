@@ -5,7 +5,11 @@ import pytest
 from django.http.request import QueryDict
 from django.utils import timezone
 
-from input_data.models import LongRangeSchedule, ProformaSchedule
+from input_data.models import (
+    LongRangeSchedule,
+    ProformaSchedule,
+    ProformaScheduleDetail,
+)
 
 
 @pytest.mark.django_db
@@ -53,15 +57,15 @@ class TestLongRangeService:
         """
         # Given: pf_complex_data fixture (Port A[Y] -> Port B[N] -> Port C[Y])
         rows = list(
-            ProformaSchedule.objects.filter(
-                scenario=pf_complex_data, lane_code="TEST_LANE"
+            ProformaScheduleDetail.objects.filter(
+                proforma__scenario=pf_complex_data, proforma__lane_code="TEST_LANE"
             ).order_by("calling_port_seq")
         )
 
         # When: 시퀀스 확장 로직 실행
         expanded = lrs_service._get_expanded_sequence(rows)
 
-        # Then
+        # Thenc
         # 예상 시퀀스:
         # 1. PORT_A (Virtual): Voy -1, Dir W (Head Y 규칙)
         # 2. PORT_A (Real):    Voy 0,  Dir E
@@ -218,59 +222,59 @@ class TestLongRangeServiceMissingScenarios:
         start_date = timezone.now().date()
 
         # 1. Given: N -> Y -> N 형태의 ProformaSchedule 생성
-        ProformaSchedule.objects.create(
+        master = ProformaSchedule.objects.create(
             scenario=pf_complex_data,
             lane_code="LANE_MID",
             proforma_name="PF_MID_Y",
             effective_from_date=timezone.now(),
-            terminal_code="PORT_A01",
             declared_count=2,
             duration=10.0,
+            created_by=user,
+            updated_by=user,
+        )
+
+        # 1-2. Detail 생성 (포트 3개)
+        ProformaScheduleDetail.objects.create(
+            scenario=pf_complex_data,
+            proforma=master,
+            terminal_code="PORT_A01",
             etb_day_code="SUN",
             etb_day_time="0800",
             etb_day_number=0,
             port_code="PORT_A",
+            calling_port_indicator="1",
             calling_port_seq=1,
             direction="E",
             turn_port_info_code="N",
             created_by=user,
-            updated_by=user,
         )
-        ProformaSchedule.objects.create(  # 중간 Y 포트 (환적항 등)
+        ProformaScheduleDetail.objects.create(  # 중간 Y 포트
             scenario=pf_complex_data,
-            lane_code="LANE_MID",
-            proforma_name="PF_MID_Y",
-            effective_from_date=timezone.now(),
+            proforma=master,
             terminal_code="PORT_B01",
-            declared_count=2,
-            duration=10.0,
             etb_day_code="MON",
             etb_day_time="0800",
             etb_day_number=0,
             port_code="PORT_B",
+            calling_port_indicator="2",
             calling_port_seq=2,
             direction="E",
             turn_port_info_code="Y",
             created_by=user,
-            updated_by=user,
         )
-        ProformaSchedule.objects.create(
+        ProformaScheduleDetail.objects.create(
             scenario=pf_complex_data,
-            lane_code="LANE_MID",
-            proforma_name="PF_MID_Y",
-            effective_from_date=timezone.now(),
-            declared_count=2,
-            duration=10.0,
-            calling_port_seq=3,
-            direction="W",
-            turn_port_info_code="N",
+            proforma=master,
+            terminal_code="PORT_C01",
             etb_day_code="SAT",
             etb_day_time="0800",
             etb_day_number=0,
             port_code="PORT_C",
-            terminal_code="PORT_C01",
+            calling_port_indicator="3",
+            calling_port_seq=3,
+            direction="W",
+            turn_port_info_code="N",
             created_by=user,
-            updated_by=user,
         )
 
         qdict = QueryDict(mutable=True)

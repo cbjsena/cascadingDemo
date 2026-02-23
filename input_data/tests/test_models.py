@@ -5,7 +5,7 @@ import pytest
 from django.db.utils import IntegrityError
 from django.utils import timezone
 
-from input_data.models import ProformaSchedule, ScenarioInfo
+from input_data.models import ProformaSchedule, ProformaScheduleDetail, ScenarioInfo
 
 
 @pytest.mark.django_db
@@ -44,18 +44,19 @@ class TestScenarioModels:
 @pytest.mark.django_db
 class TestProformaModels:
     """
-    ProformaSchedule 모델 및 제약조건 테스트
+    ProformaSchedule (Master) 및 ProformaScheduleDetail (Detail) 모델 테스트
     """
 
     def test_proforma_creation_link(self, base_scenario, user):
         """
         [관련 시나리오] PROFORMA_SAVE_FULL
-        설명: Proforma 데이터 생성 시 Scenario와 FK 연결 확인
+        설명: Proforma Master 및 Detail 데이터 생성 시 FK 연결 완결성 확인
         """
         # When
         eff_from_date = timezone.make_aware(datetime(2026, 1, 1))
 
-        pf = ProformaSchedule.objects.create(
+        # 1. Master 생성
+        master = ProformaSchedule.objects.create(
             scenario=base_scenario,
             lane_code="TEST",
             proforma_name="PF_01",
@@ -63,6 +64,13 @@ class TestProformaModels:
             duration=10,
             declared_capacity="10k",
             declared_count=1,
+            created_by=user,
+        )
+
+        # 2. Detail 생성
+        detail = ProformaScheduleDetail.objects.create(
+            scenario=base_scenario,
+            proforma=master,
             direction="E",
             port_code="KRPUS",
             calling_port_indicator="1",
@@ -74,38 +82,70 @@ class TestProformaModels:
         )
 
         # Then
-        assert pf.scenario == base_scenario
-        assert pf.scenario.id == "TEST_SCENARIO_001"
+        # Master -> Scenario 연결 확인
+        assert master.scenario == base_scenario
+        assert (
+            master.scenario.id == "TEST_SCENARIO_001"
+        )  # conftest.py의 base_scenario ID
 
-    def test_unique_constraint(self, base_scenario, user):
-        """
-        [DB Integrity Check]
-        설명: 동일 시나리오 내 동일 포트/순서 중복 생성 방지
-        (테스트 시나리오에는 명시되지 않았으나 데이터 무결성을 위해 필수)
-        """
-        # Given: 첫 번째 데이터 생성
-        eff_date = timezone.now()
+        # Detail -> Master 및 Scenario 연결 확인
+        assert detail.proforma == master
+        assert detail.scenario == base_scenario
 
-        common_data = {
+    def test_master_unique_constraint(self, base_scenario, user):
+        """
+        [DB Integrity Check - Master]
+        설명: 동일 시나리오 내 동일 Lane/Proforma Name 중복 생성 방지
+        """
+        # Given: 첫 번째 Master 데이터 생성
+        common_master_data = {
             "scenario": base_scenario,
-            "lane_code": "TEST",
-            "proforma_name": "PF_01",
-            "effective_from_date": eff_date,
+            "lane_code": "TEST_LANE",
+            "proforma_name": "PF_DUP_TEST",
+            "effective_from_date": timezone.now(),
             "duration": 10,
-            "declared_capacity": "10k",
-            "declared_count": 1,
-            "direction": "E",
-            "port_code": "KRPUS",
-            "calling_port_indicator": "1",  # Key Factor
-            "calling_port_seq": 1,
-            "turn_port_info_code": "N",
-            "etb_day_number": 0,
-            "etd_day_number": 0,
+            "declared_capacity": 5000,
+            "declared_count": 2,
             "created_by": user,
         }
 
-        ProformaSchedule.objects.create(**common_data)
+        ProformaSchedule.objects.create(**common_master_data)
 
-        # When & Then: 동일한 Key 조건으로 생성 시도 시 IntegrityError 발생
+        # When & Then: 동일한 Key (scenario, lane_code, proforma_name) 조건으로 생성 시도
         with pytest.raises(IntegrityError):
-            ProformaSchedule.objects.create(**common_data)
+            ProformaSchedule.objects.create(**common_master_data)
+
+    def test_detail_unique_constraint(self, base_scenario, user):
+        """
+        [DB Integrity Check - Detail]
+        설명: 동일 Proforma 내 동일 포트/방향/순서 중복 생성 방지
+        """
+        # Given: 부모 Master 생성
+        master = ProformaSchedule.objects.create(
+            scenario=base_scenario,
+            lane_code="TEST_LANE",
+            proforma_name="PF_DETAIL_TEST",
+            effective_from_date=timezone.now(),
+            duration=14.0,
+            declared_capacity="5000",
+            declared_count=2,
+            created_by=user,
+        )
+
+        common_detail_data = {
+            "scenario": base_scenario,
+            "proforma": master,
+            "direction": "E",
+            "port_code": "KRPUS",
+            "calling_port_indicator": "1",
+            "calling_port_seq": 1,
+            "etb_day_number": 0,
+            "created_by": user,
+        }
+
+        # 첫 번째 Detail 데이터 생성
+        ProformaScheduleDetail.objects.create(**common_detail_data)
+
+        # When & Then: 동일한 Key (scenario, proforma, direction, port_code, calling_port_indicator) 조건으로 생성 시도
+        with pytest.raises(IntegrityError):
+            ProformaScheduleDetail.objects.create(**common_detail_data)

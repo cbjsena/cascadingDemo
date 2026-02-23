@@ -1,6 +1,5 @@
 import pytest
 
-from django.contrib.auth.models import User
 from django.urls import reverse
 from django.utils import timezone
 
@@ -8,22 +7,9 @@ from input_data.models import (
     Distance,
     LongRangeSchedule,
     ProformaSchedule,
-    ScenarioInfo,
+    ProformaScheduleDetail,  # 새로 추가된 Detail 모델 Import
     VesselCapacity,
 )
-
-
-@pytest.fixture
-def user(db):
-    """일반 사용자 (test_user)"""
-    return User.objects.create_user(username="test_user", password="password")
-
-
-@pytest.fixture
-def auth_client(client, user):
-    """로그인된 Client"""
-    client.login(username="test_user", password="password")
-    return client
 
 
 @pytest.mark.django_db
@@ -35,20 +21,12 @@ class TestApiViews:
 
     # --- Test Data Setup (Fixtures) ---
     @pytest.fixture(autouse=True)
-    def setup_data(self, db, user, auth_client):
+    def setup_data(self, db, user, auth_client, base_scenario):
         self.user = user
         self.client = auth_client
+        self.scenario = base_scenario  # conftest의 픽스처 재사용
 
-        # 1. Scenario
-        self.scenario = ScenarioInfo.objects.create(
-            id="SC01",
-            description="API Test Scenario",
-            status="T",
-            created_by=user,
-            updated_by=user,
-        )
-
-        # 2. Distance (PUS -> TYO : 500)
+        # 1. Distance (PUS -> TYO : 500)
         Distance.objects.create(
             scenario=self.scenario,
             from_port_code="KRPUS",
@@ -57,43 +35,65 @@ class TestApiViews:
             eca_distance=100,
         )
 
-        # 3. Proforma Schedule
-        # - LANE_A: PF_01 (Duration 10)
-        ProformaSchedule.objects.create(
+        # 2. Proforma Schedule - [Master-Detail 구조로 분리]
+
+        # --- LANE_A: PF_01 ---
+        # 2-1. PF_01 Master 생성
+        pf_01_master = ProformaSchedule.objects.create(
             scenario=self.scenario,
             lane_code="LANE_A",
             proforma_name="PF_01",
             effective_from_date=timezone.now(),
-            calling_port_seq=1,
             declared_count=2,
             duration=10.0,
-            etb_day_code="MON",
-            etb_day_time="0800",
-            etb_day_number=0,
-            port_code="KRPUS",
-            terminal_code="KRPUS01",
             created_by=user,
             updated_by=user,
         )
-        # - LANE_B: PF_02
-        ProformaSchedule.objects.create(
+        # 2-2. PF_01 Detail 생성 (KRPUS)
+        ProformaScheduleDetail.objects.create(
             scenario=self.scenario,
-            lane_code="LANE_B",
-            proforma_name="PF_02",
-            effective_from_date=timezone.now(),
+            proforma=pf_01_master,
             calling_port_seq=1,
-            declared_count=3,
-            duration=20.0,
-            etb_day_code="SUN",
+            calling_port_indicator="1",
+            direction="E",
+            port_code="KRPUS",
+            terminal_code="KRPUS01",
+            etb_day_code="MON",
             etb_day_time="0800",
             etb_day_number=0,
-            port_code="JPTYO",
-            terminal_code="JPTYO01",
             created_by=user,
             updated_by=user,
         )
 
-        # 4. Vessel Capacity (Create 화면용)
+        # --- LANE_B: PF_02 ---
+        # 2-3. PF_02 Master 생성
+        pf_02_master = ProformaSchedule.objects.create(
+            scenario=self.scenario,
+            lane_code="LANE_B",
+            proforma_name="PF_02",
+            effective_from_date=timezone.now(),
+            declared_count=3,
+            duration=20.0,
+            created_by=user,
+            updated_by=user,
+        )
+        # 2-4. PF_02 Detail 생성 (JPTYO)
+        ProformaScheduleDetail.objects.create(
+            scenario=self.scenario,
+            proforma=pf_02_master,
+            calling_port_seq=1,
+            calling_port_indicator="1",
+            direction="W",
+            port_code="JPTYO",
+            terminal_code="JPTYO01",
+            etb_day_code="SUN",
+            etb_day_time="0800",
+            etb_day_number=0,
+            created_by=user,
+            updated_by=user,
+        )
+
+        # 3. Vessel Capacity (Create 화면용)
         VesselCapacity.objects.create(
             scenario=self.scenario,
             vessel_code="V_CAP_1",
@@ -103,7 +103,7 @@ class TestApiViews:
             updated_by=user,
         )
 
-        # 5. Long Range Schedule (Check & List용)
+        # 4. Long Range Schedule (Check & List용)
         # - V_BUSY: LANE_X 점유 (오늘 ~ +10일)
         LongRangeSchedule.objects.create(
             scenario=self.scenario,
@@ -214,6 +214,7 @@ class TestApiViews:
         assert data["status"] == "success"
         assert data["duration"] == "10.0"
         assert data["declared_count"] == 2
+        # Detail 테이블에 있는 월요일(MON) 값을 제대로 가져오는지 확인
         assert data["first_port_day"] == "MON"
 
     def test_api_pf_004_detail_fail(self):
@@ -268,9 +269,7 @@ class TestApiViews:
 
         assert resp.status_code == 200
         data = resp.json()
-        # 점유 중이므로 Lane Code 반환
         assert data["lane_code"] == "LANE_X"
-        # [수정] Separate View 방식에서는 'mode' 키를 반환하지 않으므로 검증 삭제
 
     def test_api_vsl_003_check_free(self):
         """[API_VSL_003] 점유 확인 (Free - 빈 값 반환)"""
@@ -293,10 +292,8 @@ class TestApiViews:
 
     def test_api_vsl_004_options_filter(self):
         """[API_VSL_004] 선박 옵션 (검색용 - Lane 필터링)"""
-        # [수정] 검색용 옵션은 'vessel_lane_check'가 아닌 'vessel_options' 뷰를 사용함
         url = reverse("api:vessel_options")
 
-        # Lane A로 필터링 요청
         resp = self.client.get(
             url, {"scenario_id": self.scenario.id, "lane_code": "LANE_A"}
         )
@@ -307,6 +304,5 @@ class TestApiViews:
         assert "options" in data
         options = data["options"]
 
-        # V_LRS_1 (Lane A)은 있어야 하고, V_BUSY (Lane X)는 없어야 함
         assert "V_LRS_1" in options
         assert "V_BUSY" not in options

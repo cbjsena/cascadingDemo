@@ -5,6 +5,9 @@ from django.utils import timezone
 from common.constants import DEFAULT_BASE_YEAR_MONTH
 from input_data.configs import MODEL_MAPPING, SCENARIO_CREATION_FILTERS
 from input_data.models import (
+    BaseProformaSchedule,
+    ProformaSchedule,
+    ProformaScheduleDetail,
     ScenarioInfo,
 )
 
@@ -63,8 +66,17 @@ def create_scenario_from_base(target_id, description="Base Scenario", user=None)
 
     result_summary = {}
 
-    # 3. 데이터 복사 (Base -> Scenario)
+    # 3. Proforma 모델 특수 처리 (Master / Detail 분리 로직 호출)
+    proforma_summary = _copy_proforma_to_scenario(scenario, user, now)
+    result_summary.update(proforma_summary)
+
+    # 4. 나머지 일반 데이터 복사 (Base -> Scenario 1:1 복사)
     for base_model, sce_model in MODEL_MAPPING:
+        # Proforma 계열은 이미 위(_copy_proforma_to_scenario)에서
+        # Master-Detail로 분리 처리했으므로 일반 복사 루프에서는 건너뜁니다!
+        if sce_model.__name__ in ["ProformaSchedule", "ProformaScheduleDetail"]:
+            continue
+
         table_name = sce_model._meta.db_table
         filter_kwargs = SCENARIO_CREATION_FILTERS.get(sce_model)
 
@@ -105,3 +117,90 @@ def create_scenario_from_base(target_id, description="Base Scenario", user=None)
         result_summary[table_name] = len(new_objects)
 
     return scenario, result_summary
+
+
+def _copy_proforma_to_scenario(scenario, user, now):
+    """
+    [Proforma 전용 처리 함수]
+    Flat 구조의 BaseProformaSchedule을 Master(ProformaSchedule)와
+    Detail(ProformaScheduleDetail)로 분리하여 복사합니다.
+    """
+    summary = {"sce_proforma_schedule": 0, "sce_proforma_schedule_detail": 0}
+
+    base_qs = BaseProformaSchedule.objects.all()
+    if not base_qs.exists():
+        return summary
+
+    # 1. Master(Header) 추출 및 생성
+    master_cache = {}
+    masters_to_create = []
+
+    for base in base_qs:
+        master_key = (base.lane_code, base.proforma_name)
+        if master_key not in master_cache:
+            master = ProformaSchedule(
+                scenario=scenario,
+                lane_code=base.lane_code,
+                proforma_name=base.proforma_name,
+                effective_from_date=base.effective_from_date,
+                duration=base.duration,
+                declared_capacity=base.declared_capacity,
+                declared_count=base.declared_count,
+                created_by=user,
+                updated_by=user,
+                created_at=now,
+                updated_at=now,
+            )
+            master_cache[master_key] = master
+            masters_to_create.append(master)
+
+    if masters_to_create:
+        ProformaSchedule.objects.bulk_create(masters_to_create)
+        summary["sce_proforma_schedule"] = len(masters_to_create)
+
+    # DB에 생성된 Master 객체들을 다시 조회하여 PK(id)를 확보합니다.
+    # (bulk_create는 DB 종류에 따라 PK를 반환하지 않을 수 있으므로 안전한 방식 채택)
+    created_masters = ProformaSchedule.objects.filter(scenario=scenario)
+    master_db_map = {(m.lane_code, m.proforma_name): m for m in created_masters}
+
+    # 2. Detail 추출 및 생성
+    details_to_create = []
+
+    for base in base_qs:
+        # DB에서 PK를 발급받은 실제 Master 객체를 매핑
+        real_master = master_db_map.get((base.lane_code, base.proforma_name))
+
+        detail = ProformaScheduleDetail(
+            scenario=scenario,
+            proforma=real_master,  # 외래키 연결
+            direction=base.direction,
+            port_code=base.port_code,
+            calling_port_indicator=base.calling_port_indicator,
+            calling_port_seq=base.calling_port_seq,
+            turn_port_info_code=base.turn_port_info_code,
+            pilot_in_hours=base.pilot_in_hours,
+            etb_day_number=base.etb_day_number,
+            etb_day_code=base.etb_day_code,
+            etb_day_time=base.etb_day_time,
+            actual_work_hours=base.actual_work_hours,
+            etd_day_number=base.etd_day_number,
+            etd_day_code=base.etd_day_code,
+            etd_day_time=base.etd_day_time,
+            pilot_out_hours=base.pilot_out_hours,
+            link_distance=base.link_distance,
+            link_eca_distance=base.link_eca_distance,
+            link_speed=base.link_speed,
+            sea_time_hours=base.sea_time_hours,
+            terminal_code=base.terminal_code,
+            created_by=user,
+            updated_by=user,
+            created_at=now,
+            updated_at=now,
+        )
+        details_to_create.append(detail)
+
+    if details_to_create:
+        ProformaScheduleDetail.objects.bulk_create(details_to_create)
+        summary["sce_proforma_schedule_detail"] = len(details_to_create)
+
+    return summary

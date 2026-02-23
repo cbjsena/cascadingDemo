@@ -1,6 +1,6 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Count, Max
+from django.db.models import Count
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
@@ -226,15 +226,9 @@ def proforma_list(request):
     lane_code = request.GET.get("lane_code", "")
 
     # 2. 기본 쿼리셋
-    queryset = (
-        ProformaSchedule.objects.values("scenario__id", "lane_code", "proforma_name")
-        .annotate(
-            effective_from_date=Max("effective_from_date"),
-            duration=Max("duration"),
-            port_count=Count("proforma_schedule_id"),
-            updated_at=Max("updated_at"),
-        )
-        .order_by("-updated_at", "scenario__id", "lane_code")
+    # related_name인 'details'를 활용하여 하위 기항지의 개수를 카운트합니다.
+    queryset = ProformaSchedule.objects.annotate(port_count=Count("details")).order_by(
+        "-updated_at", "scenario__id", "lane_code"
     )
 
     # 3. 필터링 적용 (icontains로 대소문자 구분 없이 부분 일치 검색)
@@ -247,7 +241,7 @@ def proforma_list(request):
         "menu_structure": MENU_STRUCTURE,
         "current_group": "Schedule",
         "current_model": "proforma_schedule",
-        "proforma_list": queryset,
+        "proforma_list": queryset,  # 이제 템플릿에서 item.scenario.id, item.lane_code 처럼 객체 속성으로 접근
         "search_params": {
             "scenario_id": scenario_id,
             "lane_code": lane_code,
