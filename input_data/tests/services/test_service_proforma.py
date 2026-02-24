@@ -16,7 +16,9 @@ class TestProformaServiceLogic:
     범위: 계산 로직(역산, 보정), 데이터 가공, DB 저장 매핑
     """
 
-    def test_calculate_back_computation(self, service, base_scenario, distance_data):
+    def test_calculate_back_computation(
+        self, proforma_service, base_scenario, distance_data
+    ):
         """
         [PF_CALC_002] 역산 로직 검증 (ETB 기준 -> Sea Time/Speed 계산)
         Given:
@@ -58,7 +60,7 @@ class TestProformaServiceLogic:
         header = {"scenario_id": base_scenario.id}
 
         # When
-        calc_rows = service.calculate_schedule(rows, header)
+        calc_rows = proforma_service.calculate_schedule(rows, header)
         row_pus = calc_rows[0]
 
         # Then
@@ -66,7 +68,7 @@ class TestProformaServiceLogic:
         assert float(row_pus["sea_time"]) == 48.0  # Sea Time 역산
         assert float(row_pus["spd"]) == pytest.approx(10.42, 0.01)  # Speed 역산
 
-    def test_etb_no_priority(self, service, base_scenario):
+    def test_etb_no_priority(self, proforma_service, base_scenario):
         """
         [PF_LOGIC_001] ETB No 우선순위 검증
         자동 로직(요일 계산)보다 사용자가 입력한 etb_no(Day 10)가 유지되어야 함.
@@ -93,13 +95,13 @@ class TestProformaServiceLogic:
         ]
         header = {"scenario_id": base_scenario.id}
 
-        calc_rows = service.calculate_schedule(rows, header)
+        calc_rows = proforma_service.calculate_schedule(rows, header)
 
         # Day 10 유지 및 Sea Time 증가 확인 (240h)
         assert int(calc_rows[1]["etb_no"]) == 10
         assert float(calc_rows[0]["sea_time"]) == 240.0
 
-    def test_past_time_correction(self, service, base_scenario):
+    def test_past_time_correction(self, proforma_service, base_scenario):
         """
         [PF_LOGIC_002] 과거 시간 입력 시 자동 보정
         상황: Row 0가 2일(48h) 동안 작업하여 Day 2(TUE)에 끝남.
@@ -128,14 +130,14 @@ class TestProformaServiceLogic:
         ]
         header = {"scenario_id": base_scenario.id}
 
-        calc_rows = service.calculate_schedule(rows, header)
+        calc_rows = proforma_service.calculate_schedule(rows, header)
 
         # Prev ETD는 TUE(Day 2). User Input은 WED.
         # TUE 이후 가장 가까운 WED는 Day 3 (WED).
         corrected_no = int(calc_rows[1]["etb_no"])
         assert corrected_no == 3
 
-    def test_save_mapping_and_indicator(self, service, base_scenario, user):
+    def test_save_mapping_and_indicator(self, proforma_service, base_scenario, user):
         """
         [PF_SAVE_001] DB 저장 로직 및 Indicator 생성 검증
         """
@@ -158,7 +160,7 @@ class TestProformaServiceLogic:
             },  # 재기항
         ]
 
-        service.save_schedule(header, rows, user)
+        proforma_service.save_schedule(header, rows, user)
 
         qs = ProformaScheduleDetail.objects.filter(
             proforma__scenario=base_scenario, proforma__lane_code="SVC_TEST"
@@ -170,23 +172,23 @@ class TestProformaServiceLogic:
         assert qs[0].calling_port_indicator == "1"
         assert qs[2].calling_port_indicator == "2"
 
-    def test_row_operations(self, service, base_scenario):
+    def test_row_operations(self, proforma_service, base_scenario):
         """
         [PF_GRID_001~003] 행 추가/삽입/삭제 로직 검증
         """
         rows = []
         # Add
-        rows = service.add_row(rows, base_scenario.id)
+        rows = proforma_service.add_row(rows, base_scenario.id)
         assert len(rows) == 1
 
         # Insert (at 0 -> becomes index 1 due to implementation logic or prepending)
         # Note: insert_row implementation usually inserts *after* index or handles empty
-        rows = service.add_row(rows, base_scenario.id)  # total 2
-        rows = service.insert_row(rows, 0)  # Insert after index 0
+        rows = proforma_service.add_row(rows, base_scenario.id)  # total 2
+        rows = proforma_service.insert_row(rows, 0)  # Insert after index 0
         assert len(rows) == 3
 
         # Delete
-        rows = service.delete_rows(rows, ["1"])
+        rows = proforma_service.delete_rows(rows, ["1"])
         assert len(rows) == 2
 
 

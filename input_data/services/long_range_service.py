@@ -13,7 +13,7 @@ class LongRangeService:
     """
 
     @transaction.atomic
-    def create_lrs(self, post_data, user):
+    def generate_lrs(self, post_data, user):
         """
         화면 입력을 받아 LRS를 생성 (기존 데이터 삭제 후 생성)
         """

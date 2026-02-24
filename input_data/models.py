@@ -200,7 +200,7 @@ class BaseProformaSchedule(models.Model):
         return f"[BASE] {self.lane_code} - {self.proforma_name}"
 
 
-class ProformaSchedule(CommonModel):
+class ProformaSchedule(ScenarioBaseModel):
     """시나리오 복사 시 분리되는 헤더 정보"""
 
     scenario = models.ForeignKey(
@@ -229,7 +229,7 @@ class ProformaSchedule(CommonModel):
     )
 
     class Meta:
-        db_table = "sce_proforma_schedule"
+        db_table = "sce_schedule_proforma"
         unique_together = ("scenario", "lane_code", "proforma_name")
 
     def __str__(self):
@@ -239,9 +239,6 @@ class ProformaSchedule(CommonModel):
 class ProformaScheduleDetail(CommonModel):
     """시나리오 복사 시 분리되는 기항지 상세 정보"""
 
-    scenario = models.ForeignKey(
-        "ScenarioInfo", on_delete=models.CASCADE, db_column="scenario_id"
-    )
     proforma = models.ForeignKey(
         ProformaSchedule,
         on_delete=models.CASCADE,
@@ -331,9 +328,8 @@ class ProformaScheduleDetail(CommonModel):
     )
 
     class Meta:
-        db_table = "sce_proforma_schedule_detail"
+        db_table = "sce_schedule_proforma_detail"
         unique_together = (
-            "scenario",
             "proforma",
             "direction",
             "port_code",
@@ -341,7 +337,59 @@ class ProformaScheduleDetail(CommonModel):
         )
 
 
-# 2. Long Range Schedule
+# 2. Cascading
+class CascadingSchedule(ScenarioBaseModel):
+    """Cascading Schedule 헤더 (Proforma 1 : N Cascading)"""
+
+    scenario = models.ForeignKey(
+        "ScenarioInfo", on_delete=models.CASCADE, db_column="scenario_id"
+    )
+    proforma = models.ForeignKey(
+        ProformaSchedule,
+        on_delete=models.CASCADE,
+        related_name="cascading",
+        db_column="proforma_id",
+        verbose_name="Proforma Master ID",
+    )
+
+    cascading_seq = models.IntegerField(verbose_name="Sequence")
+    own_vessels = models.IntegerField(verbose_name="Own Vessels Count")
+    start_date = models.DateField(verbose_name="Start Date")
+    end_date = models.DateField(verbose_name="End Date", null=True, blank=True)
+
+    class Meta:
+        db_table = "sce_schedule_cascading"
+        # Proforma ID + Seq 조합은 유일해야 함
+        unique_together = ("proforma", "cascading_seq")
+
+    def __str__(self):
+        return f"[{self.scenario_id}] {self.proforma.proforma_name} - Seq {self.cascading_seq}"
+
+
+class CascadingScheduleDetail(CommonModel):
+    """Cascading Schedule 상세 (선박 목록)"""
+
+    cascading = models.ForeignKey(
+        CascadingSchedule,
+        on_delete=models.CASCADE,
+        related_name="details",
+        db_column="cascading_id",
+        verbose_name="Cascading Master ID",
+    )
+
+    vessel_code = models.CharField(max_length=20, verbose_name="Vessel Code")
+    initial_start_date = models.DateField(verbose_name="Initial Start Date")
+
+    class Meta:
+        db_table = "sce_schedule_cascading_detail"
+        # Cascading ID + Vessel Code 조합은 유일해야 함
+        unique_together = ("cascading", "vessel_code")
+
+    def __str__(self):
+        return f"{self.cascading} - {self.vessel_code}"
+
+
+# 3. Long Range Schedule
 class AbsLongRangeSchedule(models.Model):
     """Long Range Schedule 데이터 필드 (추상)"""
 

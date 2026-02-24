@@ -171,7 +171,6 @@ def _copy_proforma_to_scenario(scenario, user, now):
         real_master = master_db_map.get((base.lane_code, base.proforma_name))
 
         detail = ProformaScheduleDetail(
-            scenario=scenario,
             proforma=real_master,  # 외래키 연결
             direction=base.direction,
             port_code=base.port_code,

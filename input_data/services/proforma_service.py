@@ -347,7 +347,6 @@ class ProformaService:
             terminal_code = raw_terminal if raw_terminal else f"{port_cd}01"
 
             detail = ProformaScheduleDetail(
-                scenario=scenario_obj,
                 proforma=master,  # [핵심] 생성된 Master 객체를 FK로 연결
                 direction=direction,
                 port_code=port_cd,

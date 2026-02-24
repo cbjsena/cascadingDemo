@@ -8,9 +8,9 @@ MENU_STRUCTURE = {
             "key": "proforma_create",
         },
         {
-            "name": "Long Range Creation",
-            "url_name": "input_data:long_range_create",
-            "key": "long_range_create",
+            "name": "Cascading Creation",
+            "url_name": "input_data:cascading_create",
+            "key": "cascading_create",
         },
     ],
     # "Master Data": [

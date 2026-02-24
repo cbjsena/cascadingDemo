@@ -5,18 +5,19 @@ from django.utils import timezone
 
 from input_data.models import (
     Distance,
+    LongRangeSchedule,
     ProformaSchedule,
-    ProformaScheduleDetail,  # 추가된 Detail 모델 Import
+    ProformaScheduleDetail,
     ScenarioInfo,
 )
+from input_data.services.cascading_service import CascadingService
+from input_data.services.long_range_service import LongRangeService
 from input_data.services.proforma_service import ProformaService
+
 
 # =========================================================
 # User & Client Fixtures
-# [Related Scenarios] INPUT_ACCESS_001, INPUT_SCENARIO_DELETE_002, 003
 # =========================================================
-
-
 @pytest.fixture
 def user(db):
     """일반 사용자 (test_user)"""
@@ -43,11 +44,8 @@ def auth_client(client, user):
 
 
 # =========================================================
-# Scenario Fixtures
-# [Related Scenarios] INPUT_SCENARIO_LIST_001, CREATE_002
+# Scenario & Proforma Fixtures
 # =========================================================
-
-
 @pytest.fixture
 def base_scenario(db, user):
     """기본 시나리오 (데이터 없음)"""
@@ -55,7 +53,7 @@ def base_scenario(db, user):
         id="TEST_SCENARIO_001",
         description="Base Test Scenario",
         base_year_month="202602",
-        status="T",  # Default Status
+        status="T",
         created_by=user,
         updated_by=user,
     )
@@ -63,10 +61,7 @@ def base_scenario(db, user):
 
 @pytest.fixture
 def scenario_with_data(db, user):
-    """
-    하위 데이터가 포함된 시나리오
-    [Related Scenarios] INPUT_SCENARIO_CLONE_001, DELETE_001
-    """
+    """하위 데이터가 포함된 시나리오"""
     # 1. 부모 생성 (Scenario)
     scenario = ScenarioInfo.objects.create(
         id="SCENARIO_WITH_DATA",
@@ -92,7 +87,6 @@ def scenario_with_data(db, user):
 
     # 3. 손자 생성 (Proforma Detail)
     ProformaScheduleDetail.objects.create(
-        scenario=scenario,
         proforma=master,
         direction="E",
         port_code="KRPUS",
@@ -110,30 +104,6 @@ def scenario_with_data(db, user):
         updated_by=user,
     )
     return scenario
-
-
-# =========================================================
-# Master Data Fixtures
-# [Related Scenarios] PROFORMA_DATA_DIST
-# =========================================================
-
-
-@pytest.fixture
-def distance_data(db, base_scenario):
-    """거리 테이블 기초 데이터"""
-    return Distance.objects.create(
-        scenario=base_scenario,
-        from_port_code="KRPUS",
-        to_port_code="JPTYO",
-        distance=500,
-        eca_distance=100,
-    )
-
-
-# =========================================================
-# Schedule Fixtures (New)
-# [Related Scenarios] PROFORMA_LIST_001, DETAIL_VIEW, EDIT_MODE
-# =========================================================
 
 
 @pytest.fixture
@@ -156,7 +126,6 @@ def sample_schedule(db, base_scenario, user):
 
     # 2. Detail 생성
     ProformaScheduleDetail.objects.create(
-        scenario=base_scenario,
         proforma=master,
         direction="E",
         port_code="KRPUS",
@@ -208,7 +177,6 @@ def pf_complex_data(db, base_scenario, user):
 
     # Detail 공통 데이터
     common_detail_data = {
-        "scenario": base_scenario,
         "proforma": master,
         "direction": "E",
         "created_by": user,
@@ -253,14 +221,68 @@ def pf_complex_data(db, base_scenario, user):
     return base_scenario
 
 
+# =========================================================
+# Long Range Schedule (Integration) Fixtures
+# =========================================================
 @pytest.fixture
-def service():
+def lrs_integration_data(db, user):
+    """[추가됨] LRS 통합 테스트용 공통 데이터"""
+    scenario = ScenarioInfo.objects.create(
+        id="INT_SCENARIO", description="Integration Test", status="T", created_by=user
+    )
+    # - Lane A에는 'VESSEL_A' 배정
+    LongRangeSchedule.objects.create(
+        scenario=scenario,
+        lane_code="LANE_A",
+        vessel_code="VESSEL_A",
+        voyage_number="0001",
+        direction="E",
+        port_code="PUS",
+        calling_port_seq=1,
+        etb=timezone.now(),
+        created_by=user,
+        updated_by=user,
+    )
+    # - Lane B에는 'VESSEL_B' 배정
+    LongRangeSchedule.objects.create(
+        scenario=scenario,
+        lane_code="LANE_B",
+        vessel_code="VESSEL_B",
+        voyage_number="0001",
+        direction="E",
+        port_code="TYO",
+        calling_port_seq=1,
+        etb=timezone.now(),
+        created_by=user,
+        updated_by=user,
+    )
+
+    return scenario
+
+
+@pytest.fixture
+def distance_data(db, base_scenario):
+    """거리 테이블 기초 데이터"""
+    return Distance.objects.create(
+        scenario=base_scenario,
+        from_port_code="KRPUS",
+        to_port_code="JPTYO",
+        distance=500,
+        eca_distance=100,
+    )
+
+
+@pytest.fixture
+def proforma_service():
     """ProformaService 인스턴스"""
     return ProformaService()
 
 
 @pytest.fixture
-def lrs_service():
-    from input_data.services.long_range_service import LongRangeService
+def cascading_service():
+    return CascadingService()
 
+
+@pytest.fixture
+def lrs_service():
     return LongRangeService()

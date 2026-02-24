@@ -71,7 +71,7 @@ class TestScenarioCreationService:
         assert masters.first().lane_code == "LANE_A"
 
         # Detail은 2개가 생성되고, Master를 바라봐야 함
-        details = ProformaScheduleDetail.objects.filter(scenario=scenario)
+        details = ProformaScheduleDetail.objects.filter(proforma__scenario_id=scenario)
         assert details.count() == 2
         assert details.first().proforma == masters.first()
 
@@ -84,7 +84,10 @@ class TestScenarioCreationService:
         # Given: 첫 번째 생성
         create_scenario_from_base("TEST_002", user=user)
         assert (
-            ProformaScheduleDetail.objects.filter(scenario_id="TEST_002").count() == 2
+            ProformaScheduleDetail.objects.filter(
+                proforma__scenario_id="TEST_002"
+            ).count()
+            == 2
         )
 
         # Base 데이터 하나 추가
@@ -111,7 +114,10 @@ class TestScenarioCreationService:
         # Then: 기존 데이터는 사라지고 최신 Base 데이터 기준으로 재적재됨 (Master 2개, Detail 3개)
         assert ProformaSchedule.objects.filter(scenario_id="TEST_002").count() == 2
         assert (
-            ProformaScheduleDetail.objects.filter(scenario_id="TEST_002").count() == 3
+            ProformaScheduleDetail.objects.filter(
+                proforma__scenario_id="TEST_002"
+            ).count()
+            == 3
         )
 
     def test_sce_svc_003_system_user_creation(self, setup_base_data):

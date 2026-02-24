@@ -171,9 +171,14 @@
             </div>
 
             <div class="d-flex justify-content-end pb-5">
-                <button type="submit" class="btn btn-success btn-lg px-5" id="btnCreateLRS"
+                <button type="submit" name="action" value="save" class="btn btn-primary btn-lg px-4" id="btnSaveCascading"
                         {% if not is_error_state %}disabled{% endif %}>
-                    <i class="bi bi-check-circle"></i> Create LRS
+                    <i class="bi bi-save"></i> Save Cascading
+                </button>
+
+                <button type="submit" name="action" value="create_lrs" class="btn btn-success btn-lg px-4" id="btnCreateLRS"
+                        {% if not is_error_state %}disabled{% endif %}>
+                    <i class="bi bi-play-circle"></i> Create LRS
                 </button>
             </div>
         </div>
@@ -463,7 +468,12 @@
         const targetCount = parseInt(els.ownInput.value) || 0;
         const checkedCount = document.querySelectorAll('.own-vessel-check:checked').length;
 
-        els.createBtn.disabled = !(targetCount >= 0 && targetCount === checkedCount);
+        // 조건: 입력한 Own Vessel 대수와 그리드에서 체크된 선박 대수가 같아야 함
+        const isValid = (targetCount > 0 && targetCount === checkedCount);
+
+        // 두 버튼 모두 활성화/비활성화 처리
+        document.getElementById('btnSaveCascading').disabled = !isValid;
+        document.getElementById('btnCreateLRS').disabled = !isValid;
     }
 
     // 초기화 (에러 복구 시 이벤트 재연결)

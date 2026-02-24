@@ -1,7 +1,7 @@
+from .cascading import cascading_create  # noqa: F401
 from .common import input_list  # noqa: F401
 from .dashboard import input_home  # noqa: F401
 from .long_range import (  # noqa: F401
-    long_range_create,
     long_range_list,
 )
 from .proforma import (  # noqa: F401

@@ -56,7 +56,6 @@ class TestProformaReadViews:
         )
 
         ProformaScheduleDetail.objects.create(
-            scenario=base_scenario,
             proforma=master,
             direction="E",
             port_code="KRPUS",

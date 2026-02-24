@@ -5,7 +5,13 @@ import pytest
 from django.db.utils import IntegrityError
 from django.utils import timezone
 
-from input_data.models import ProformaSchedule, ProformaScheduleDetail, ScenarioInfo
+from input_data.models import (
+    CascadingSchedule,
+    CascadingScheduleDetail,
+    ProformaSchedule,
+    ProformaScheduleDetail,
+    ScenarioInfo,
+)
 
 
 @pytest.mark.django_db
@@ -69,7 +75,6 @@ class TestProformaModels:
 
         # 2. Detail 생성
         detail = ProformaScheduleDetail.objects.create(
-            scenario=base_scenario,
             proforma=master,
             direction="E",
             port_code="KRPUS",
@@ -84,13 +89,11 @@ class TestProformaModels:
         # Then
         # Master -> Scenario 연결 확인
         assert master.scenario == base_scenario
-        assert (
-            master.scenario.id == "TEST_SCENARIO_001"
-        )  # conftest.py의 base_scenario ID
+        assert master.scenario.id == "TEST_SCENARIO_001"
 
         # Detail -> Master 및 Scenario 연결 확인
         assert detail.proforma == master
-        assert detail.scenario == base_scenario
+        assert detail.proforma.scenario == base_scenario
 
     def test_master_unique_constraint(self, base_scenario, user):
         """
@@ -133,7 +136,6 @@ class TestProformaModels:
         )
 
         common_detail_data = {
-            "scenario": base_scenario,
             "proforma": master,
             "direction": "E",
             "port_code": "KRPUS",
@@ -149,3 +151,52 @@ class TestProformaModels:
         # When & Then: 동일한 Key (scenario, proforma, direction, port_code, calling_port_indicator) 조건으로 생성 시도
         with pytest.raises(IntegrityError):
             ProformaScheduleDetail.objects.create(**common_detail_data)
+
+
+@pytest.mark.django_db
+class TestCascadingModels:
+    """[신규] CascadingSchedule 관련 모델 무결성 테스트"""
+
+    def test_cascading_unique_constraint(self, sample_schedule, user):
+        """동일한 Proforma에 동일한 cascading_seq 중복 생성 방지"""
+        CascadingSchedule.objects.create(
+            scenario=sample_schedule.scenario,
+            proforma=sample_schedule,
+            cascading_seq=1,
+            own_vessels=1,
+            start_date=timezone.now().date(),
+            created_by=user,
+        )
+        with pytest.raises(IntegrityError):
+            CascadingSchedule.objects.create(
+                scenario=sample_schedule.scenario,
+                proforma=sample_schedule,
+                cascading_seq=1,
+                own_vessels=2,
+                start_date=timezone.now().date(),
+                created_by=user,
+            )
+
+    def test_cascading_detail_unique_constraint(self, sample_schedule, user):
+        """동일 Cascading 내 동일 선박(vessel_code) 중복 등록 방지"""
+        cascading = CascadingSchedule.objects.create(
+            scenario=sample_schedule.scenario,
+            proforma=sample_schedule,
+            cascading_seq=1,
+            own_vessels=2,
+            start_date=timezone.now().date(),
+            created_by=user,
+        )
+        CascadingScheduleDetail.objects.create(
+            cascading=cascading,
+            vessel_code="VESSEL_1",
+            initial_start_date=timezone.now().date(),
+            created_by=user,
+        )
+        with pytest.raises(IntegrityError):
+            CascadingScheduleDetail.objects.create(
+                cascading=cascading,
+                vessel_code="VESSEL_1",
+                initial_start_date=timezone.now().date(),
+                created_by=user,
+            )

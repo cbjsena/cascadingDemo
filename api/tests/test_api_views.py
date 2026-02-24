@@ -51,7 +51,6 @@ class TestApiViews:
         )
         # 2-2. PF_01 Detail 생성 (KRPUS)
         ProformaScheduleDetail.objects.create(
-            scenario=self.scenario,
             proforma=pf_01_master,
             calling_port_seq=1,
             calling_port_indicator="1",
@@ -79,7 +78,6 @@ class TestApiViews:
         )
         # 2-4. PF_02 Detail 생성 (JPTYO)
         ProformaScheduleDetail.objects.create(
-            scenario=self.scenario,
             proforma=pf_02_master,
             calling_port_seq=1,
             calling_port_indicator="1",

@@ -34,8 +34,7 @@ urlpatterns = [
     path(
         "proforma/template/", views.proforma_template_download, name="proforma_template"
     ),
-    ############### Long Range Schedule
-    path("long_range/create/", views.long_range_create, name="long_range_create"),
+    path("cascading/create/", views.cascading_create, name="cascading_create"),
     path("long_range/list/", views.long_range_list, name="long_range_list"),
     # AJAX용
     # Input List (Common)

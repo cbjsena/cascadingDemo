@@ -5,7 +5,7 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
-from input_data.models import LongRangeSchedule, ScenarioInfo
+from input_data.models import LongRangeSchedule
 
 
 @pytest.mark.django_db
@@ -15,49 +15,7 @@ class TestLrsListIntegration:
     - 화면의 Javascript가 호출하는 API URL과 파라미터를 그대로 시뮬레이션
     """
 
-    @pytest.fixture(autouse=True)
-    def setup_integration_data(self, db, auth_client, user):
-        self.client = auth_client
-        self.user = user
-
-        # 1. 시나리오 생성
-        self.scenario = ScenarioInfo.objects.create(
-            id="INT_SCENARIO",
-            description="Integration Test",
-            status="T",
-            created_by=user,
-            updated_by=user,
-        )
-
-        # 2. 데이터 세팅
-        # - Lane A에는 'VESSEL_A' 배정
-        LongRangeSchedule.objects.create(
-            scenario=self.scenario,
-            lane_code="LANE_A",
-            vessel_code="VESSEL_A",
-            voyage_number="0001",
-            direction="E",
-            port_code="PUS",
-            calling_port_seq=1,
-            etb=timezone.now(),
-            created_by=user,
-            updated_by=user,
-        )
-        # - Lane B에는 'VESSEL_B' 배정
-        LongRangeSchedule.objects.create(
-            scenario=self.scenario,
-            lane_code="LANE_B",
-            vessel_code="VESSEL_B",
-            voyage_number="0001",
-            direction="E",
-            port_code="TYO",
-            calling_port_seq=1,
-            etb=timezone.now(),
-            created_by=user,
-            updated_by=user,
-        )
-
-    def test_lrs_list_vessel_filtering_by_lane(self):
+    def test_lrs_list_vessel_filtering_by_lane(self, auth_client, lrs_integration_data):
         """
         [LRS_INT_001] 화면에서 Lane 선택 시 해당 Lane의 선박만 가져오는지 검증
         Target API: api:vessel_options (List 화면 검색용)
@@ -66,8 +24,8 @@ class TestLrsListIntegration:
         url = reverse("api:vessel_options")
 
         # --- Step 1. Lane A 선택 시뮬레이션 ---
-        response_a = self.client.get(
-            url, {"scenario_id": self.scenario.id, "lane_code": "LANE_A"}
+        response_a = auth_client.get(
+            url, {"scenario_id": lrs_integration_data.id, "lane_code": "LANE_A"}
         )
 
         assert response_a.status_code == 200
@@ -78,8 +36,8 @@ class TestLrsListIntegration:
         assert "VESSEL_B" not in options_a
 
         # --- Step 2. Lane B 선택 시뮬레이션 ---
-        response_b = self.client.get(
-            url, {"scenario_id": self.scenario.id, "lane_code": "LANE_B"}
+        response_b = auth_client.get(
+            url, {"scenario_id": lrs_integration_data.id, "lane_code": "LANE_B"}
         )
 
         options_b = response_b.json()["options"]
@@ -88,17 +46,17 @@ class TestLrsListIntegration:
         assert "VESSEL_B" in options_b
         assert "VESSEL_A" not in options_b
 
-    def test_lrs_list_vessel_all_load(self):
+    def test_lrs_list_vessel_all_load(self, auth_client, lrs_integration_data):
         """
         [LRS_INT_002] Lane 미선택(초기 진입/해제) 시 전체 선박 조회 검증
         """
         url = reverse("api:vessel_options")
 
         # --- Step 1. 시나리오만 선택 (Lane 파라미터 없음) ---
-        response = self.client.get(
+        response = auth_client.get(
             url,
             {
-                "scenario_id": self.scenario.id
+                "scenario_id": lrs_integration_data.id
                 # lane_code 없음
             },
         )

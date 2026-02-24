@@ -3,8 +3,7 @@ import json
 from django.apps import apps
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.core.exceptions import FieldDoesNotExist
-from django.db import transaction
+from django.db import models, transaction
 from django.db.models import Count, Min
 from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
@@ -215,31 +214,79 @@ def scenario_dashboard(request, scenario_id):
 
 
 def _clone_scenario_data(source_id, target_scenario):
+    """
+    시나리오 하위의 모든 데이터를 동적으로 탐색하여 복제하는 메인 로직
+    """
     app_config = apps.get_app_config("input_data")
-    models_to_clone = [
-        m for m in app_config.get_models() if m.__name__ != "ScenarioInfo"
+
+    # 1. ScenarioInfo를 제외하고 'scenario' 필드가 있는 모든 Master 모델 추출
+    master_models = [
+        m
+        for m in app_config.get_models()
+        if m.__name__ != "ScenarioInfo" and hasattr(m, "scenario")
     ]
 
-    for model_class in models_to_clone:
-        # 1. ScenarioInfo 자체는 제외
-        if model_class.__name__ == "ScenarioInfo":
-            continue
+    for model_class in master_models:
+        # 2. 해당 Master 모델과 연결된 Detail 관계(related_name="*details*") 탐색
+        detail_rels = [
+            rel
+            for rel in model_class._meta.related_objects
+            if isinstance(rel, models.ManyToOneRel)
+            and "details" in (rel.related_name or "")
+        ]
 
-        # 2. [중요] 'Std'로 시작하는 표준 테이블 제외 (또는 scenario 필드 존재 여부 확인)
-        # 가장 확실한 방법: 'scenario' 필드가 있는지 검사
-        try:
-            model_class._meta.get_field("scenario")
-        except FieldDoesNotExist:
-            # scenario 필드가 없는 모델(Std 등)은 복제 대상 아님 -> Skip
-            continue
+        # 3. Master와 Detail들을 일괄 복제 실행
+        _clone_relation_data(model_class, detail_rels, source_id, target_scenario)
 
-        # 3. 복제 로직 실행
-        # (ScenarioBaseModel을 상속받은 모델들만 여기 도달함)
-        original_objects = model_class.objects.filter(scenario__id=source_id)
-        if original_objects.exists():
-            new_objects = []
-            for obj in original_objects:
-                obj.pk = None
-                obj.scenario = target_scenario
-                new_objects.append(obj)
-            model_class.objects.bulk_create(new_objects)
+
+def _clone_relation_data(master_model, detail_rels, source_id, target_scenario):
+    """
+    특정 Master 모델과 그에 속한 여러 Detail 모델들을 Bulk로 복제
+    related_name에 "details"가 포함된 모든 하위 테이블
+    """
+    # 1. 원본 Master 데이터 조회
+    originals = list(master_model.objects.filter(scenario_id=source_id))
+    if not originals:
+        return
+
+    # 2. Master 복제 (Bulk Create)
+    old_ids = [obj.pk for obj in originals]
+    new_masters = []
+    for obj in originals:
+        obj.pk = None
+        obj.scenario = target_scenario
+        new_masters.append(obj)
+
+    # PostgreSQL 등에서 신규 PK를 객체에 채워줌
+    master_model.objects.bulk_create(new_masters)
+
+    # 원본 ID -> 신규 객체 매핑 맵 생성
+    id_map = {old_id: new_obj for old_id, new_obj in zip(old_ids, new_masters)}
+
+    # 3. 모든 연관된 Detail 모델들 순회 및 복제
+    for rel in detail_rels:
+        detail_model = rel.related_model
+        fk_field_name = rel.remote_field.name  # 예: 'proforma'
+
+        # 원본 Master들에 속한 모든 Detail 한 번에 조회
+        all_original_details = detail_model.objects.filter(
+            **{f"{fk_field_name}__in": old_ids}
+        )
+
+        new_details = []
+        for d in all_original_details:
+            old_parent_id = getattr(d, f"{fk_field_name}_id")
+            new_parent_obj = id_map.get(old_parent_id)
+
+            if new_parent_obj:
+                d.pk = None
+                setattr(d, fk_field_name, new_parent_obj)  # 새 부모 연결
+
+                # Detail에 scenario 필드가 정의된 경우(역정규화) 대비
+                if hasattr(d, "scenario"):
+                    d.scenario = target_scenario
+
+                new_details.append(d)
+
+        if new_details:
+            detail_model.objects.bulk_create(new_details)

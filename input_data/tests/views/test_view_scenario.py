@@ -138,10 +138,10 @@ class TestScenarioView:
         ).count()
 
         orig_detail_count = ProformaScheduleDetail.objects.filter(
-            scenario_id=source_id
+            proforma__scenario_id=source_id
         ).count()
         cloned_detail_count = ProformaScheduleDetail.objects.filter(
-            scenario_id=new_id
+            proforma__scenario_id=new_id
         ).count()
 
         assert orig_master_count > 0
@@ -166,7 +166,9 @@ class TestScenarioView:
         assert not ScenarioInfo.objects.filter(id=target_id).exists()
         # Cascade 확인 (Master & Detail 모두 삭제되어야 함)
         assert not ProformaSchedule.objects.filter(scenario_id=target_id).exists()
-        assert not ProformaScheduleDetail.objects.filter(scenario_id=target_id).exists()
+        assert not ProformaScheduleDetail.objects.filter(
+            proforma__scenario_id=target_id
+        ).exists()
 
     def test_scenario_delete_permission_denied(self, auth_client, other_user):
         """
