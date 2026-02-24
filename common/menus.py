@@ -26,6 +26,11 @@ MENU_STRUCTURE = {
             "url_name": "input_data:proforma_list",
         },
         {
+            "name": "Cascading Schedule",
+            "key": "cascading_schedule",
+            "url_name": "input_data:cascading_list",
+        },
+        {
             "name": "Long Range Schedule",
             "key": "long_range_schedule",
             "url_name": "input_data:long_range_list",

@@ -158,13 +158,18 @@ class TestCascadingModels:
     """[신규] CascadingSchedule 관련 모델 무결성 테스트"""
 
     def test_cascading_unique_constraint(self, sample_schedule, user):
-        """동일한 Proforma에 동일한 cascading_seq 중복 생성 방지"""
+        """
+        [DB Integrity Check - Master]
+        설명: 동일한 Proforma에 동일한 cascading_seq 중복 생성 방지
+        관련 시나리오: CASCADING_ACT_001 (Save 시 유일키 제약조건 방어)
+        """
         CascadingSchedule.objects.create(
             scenario=sample_schedule.scenario,
             proforma=sample_schedule,
             cascading_seq=1,
             own_vessels=1,
-            start_date=timezone.now().date(),
+            initial_etb_date=timezone.now().date(),
+            effective_start_date=timezone.now().date(),
             created_by=user,
         )
         with pytest.raises(IntegrityError):
@@ -173,18 +178,24 @@ class TestCascadingModels:
                 proforma=sample_schedule,
                 cascading_seq=1,
                 own_vessels=2,
-                start_date=timezone.now().date(),
+                initial_etb_date=timezone.now().date(),
+                effective_start_date=timezone.now().date(),
                 created_by=user,
             )
 
     def test_cascading_detail_unique_constraint(self, sample_schedule, user):
-        """동일 Cascading 내 동일 선박(vessel_code) 중복 등록 방지"""
+        """
+        [DB Integrity Check - Detail]
+        설명: 동일 Cascading 내 동일 선박(vessel_code) 중복 등록 방지
+        관련 시나리오: CASCADING_ACT_001 (동일한 배 중복 투입 시 DB 에러)
+        """
         cascading = CascadingSchedule.objects.create(
             scenario=sample_schedule.scenario,
             proforma=sample_schedule,
             cascading_seq=1,
             own_vessels=2,
-            start_date=timezone.now().date(),
+            initial_etb_date=timezone.now().date(),
+            effective_start_date=timezone.now().date(),
             created_by=user,
         )
         CascadingScheduleDetail.objects.create(

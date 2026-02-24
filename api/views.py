@@ -7,7 +7,13 @@ from django.views.decorators.http import require_GET
 
 # ProformaScheduleDetail은 ORM의 related_name('details')으로 접근 가능하지만,
 # 명시적으로 필요한 경우 import 할 수 있습니다.
-from input_data.models import LongRangeSchedule, ProformaSchedule, VesselCapacity
+from input_data.models import (
+    CascadingScheduleDetail,
+    LongRangeSchedule,
+    ProformaSchedule,
+    VesselCapacity,
+)
+from input_data.services.cascading_service import CascadingService
 from input_data.services.common_service import get_distance_between_ports
 
 
@@ -81,12 +87,18 @@ def proforma_detail(request):
             first_detail = master.details.order_by("calling_port_seq").first()
             first_port_day = first_detail.etb_day_code if first_detail else ""
 
+            cascading_svc = CascadingService()
+            cascading_next_seq = cascading_svc.get_next_cascading_seq(
+                scenario_id, lane_code, proforma_name
+            )
+
             data = {
                 "status": "success",
                 "declared_count": master.declared_count,
                 "declared_capacity": master.declared_capacity,
                 "duration": master.duration,
                 "first_port_day": first_port_day,
+                "cascading_next_seq": cascading_next_seq,
             }
         else:
             data = {"status": "error", "message": "Proforma not found."}
@@ -123,14 +135,27 @@ def vessel_lane_check(request):
     data = {"lane_code": ""}
 
     if scenario_id and vessel_code and start_date and end_date:
-        qs = LongRangeSchedule.objects.filter(
+        # 1. 먼저 생성된 LRS 엔진 데이터에서 찾아봄
+        lrs_qs = LongRangeSchedule.objects.filter(
             scenario_id=scenario_id,
             vessel_code=vessel_code,
             etb__date__gte=start_date,
             etb__date__lte=end_date,
         )
-        if qs.exists():
-            data["lane_code"] = qs.first().lane_code
+        if lrs_qs.exists():
+            data["lane_code"] = lrs_qs.first().lane_code
+            return JsonResponse(data)
+
+        # 2. [추가됨] LRS가 안 만들어졌다면, Cascading 저장 데이터에서 찾아봄
+        cas_qs = CascadingScheduleDetail.objects.filter(
+            vessel_code=vessel_code,
+            initial_start_date__lte=end_date,  # 선박의 투입일(첫 ETB)이 검색 종료일보다 이전이고
+            cascading__effective_end_date__gte=start_date,  # 스케줄 그룹의 종료일이 검색 시작일보다 이후일 때
+        ).select_related("cascading__proforma")
+
+        if cas_qs.exists():
+            data["lane_code"] = cas_qs.first().cascading.proforma.lane_code
+
     return JsonResponse(data)
 
 

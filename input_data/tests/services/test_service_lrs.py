@@ -31,8 +31,8 @@ class TestLongRangeService:
                 "scenario_id": sample_schedule.scenario.id,
                 "lane_code": sample_schedule.lane_code,
                 "proforma_name": sample_schedule.proforma_name,
-                "apply_start_date": start_date.strftime("%Y-%m-%d"),
-                "apply_end_date": end_date.strftime("%Y-%m-%d"),
+                "effective_start_date": start_date.strftime("%Y-%m-%d"),
+                "effective_end_date": end_date.strftime("%Y-%m-%d"),
             }
         )
         qdict.setlist("vessel_code[]", ["V_TEST"])
@@ -149,8 +149,8 @@ class TestLongRangeService:
                 "scenario_id": pf_complex_data.id,
                 "lane_code": "LANE_MID",
                 "proforma_name": "PF_MID_Y",
-                "apply_start_date": start_date.strftime("%Y-%m-%d"),
-                "apply_end_date": (start_date + timedelta(days=15)).strftime(
+                "effective_start_date": start_date.strftime("%Y-%m-%d"),
+                "effective_end_date": (start_date + timedelta(days=15)).strftime(
                     "%Y-%m-%d"
                 ),
             }

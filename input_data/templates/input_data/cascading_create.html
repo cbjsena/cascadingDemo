@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Create LRS - Cascading Opt{% endblock %}
+{% block title %}Create Cascading - Cascading Opt{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="h4">Create Long Range Schedule</h2>
+        <h2 class="h4">Create Cascading Schedule</h2>
     </div>
 
     <form method="post" id="lrsForm">
@@ -56,7 +56,6 @@
                             {% endfor %}
                         </select>
                     </div>
-
                     <div class="col-md-3">
                         <button type="button" class="btn btn-primary w-100" id="btnLoadProforma"
                                 {% if not is_error_state %}disabled{% endif %}>
@@ -67,16 +66,24 @@
             </div>
         </div>
 
-        <div id="settingsArea" style="display: {% if is_error_state %}block{% else %}none{% endif %};">
+        <div id="settingsArea" style="display: {% if is_error_state or is_edit_mode %}block{% else %}none{% endif %};">
 
             <div class="card shadow-sm mb-4">
                 <div class="card-header bg-light fw-bold">2. Global Settings</div>
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-2">
-                            <label class="form-label fw-bold">Required Vessels</label>
+                            <label class="form-label small text-muted">Required Vessels</label>
                             <input type="text" class="form-control bg-light" id="requiredCount" readonly
-                                   value="{{ restored_rows|length|default:'' }}">
+                                   value="{% if preserved_data.required_count %}{{ preserved_data.required_count }}
+                                          {% elif restored_rows %}{{ restored_rows|length }}
+                                          {% endif %}">
+                        </div>
+
+                        <div class="col-md-2">
+                            <label class="form-label small text-muted">Cascading Seq</label>
+                            <input type="number" class="form-control fw-bold text-primary" id="cascadingSeq" name="cascading_seq"
+                                   value="{{ preserved_data.cascading_seq|default_if_none:'' }}" readonly>
                         </div>
                         <div class="col-md-2">
                             <label class="form-label fw-bold text-primary">Own Vessels</label>
@@ -84,17 +91,17 @@
                                    value="{{ preserved_data.own_vessel_count|default:'0' }}">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold text-success">LRS Start Date</label>
-                            <input type="date" class="form-control" id="lrsStartDate" name="apply_start_date" required
-                                   value="{{ preserved_data.apply_start_date|default:'' }}">
+                            <label class="form-label fw-bold">Start Date</label>
+                            <input type="date" class="form-control" id="lrsStartDate" name="effective_start_date" required
+                                   value="{{ preserved_data.effective_start_date|default:'' }}">
                             <div class="form-text text-success" id="startDayHint">
                                 {% if is_error_state %}Reload info to see day{% else %}Select date to generate rows{% endif %}
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold">LRS End Date</label>
-                            <input type="date" class="form-control" name="apply_end_date" required
-                                   value="{{ preserved_data.apply_end_date|default:'' }}">
+                            <label class="form-label fw-bold">End Date</label>
+                            <input type="date" class="form-control" name="effective_end_date" required
+                                   value="{{ preserved_data.effective_end_date|default:'' }}">
                         </div>
                         <input type="hidden" id="pfFirstDay" value="">
                     </div>
@@ -145,7 +152,7 @@
                                                 {% endfor %}
                                             </select>
                                             <input type="hidden" name="vessel_code[]" class="vessel-code-hidden"
-                                                   value="{{ row.vessel_code|default:'TBN' }}">
+                                                   value="{{ row.vessel_code|default:'' }}">
                                         </td>
                                         <td>
                                             <input type="text" class="form-control bg-light text-end" name="vessel_capacity[]"
@@ -196,6 +203,12 @@
         vessel_check: "{% url 'api:vessel_lane_check' %}"  // 기간 점유 확인
     };
 
+    const initData = {
+        scenario: "{{ preserved_data.scenario_id|default:'' }}",
+        lane: "{{ preserved_data.lane_code|default:'' }}",
+        proforma: "{{ preserved_data.proforma_name|default:'' }}"
+    };
+
     // 요일 매핑 (Proforma Day Code -> JS Date Day Index)
     const DAY_MAP = { "SUN": 0, "MON": 1, "TUE": 2, "WED": 3, "THU": 4, "FRI": 5, "SAT": 6 };
 
@@ -215,7 +228,7 @@
         startDayHint: document.getElementById('startDayHint'),
         ownInput: document.getElementById('ownVesselCount'),
         startDate: document.getElementById('lrsStartDate'),
-        endDate: document.querySelector('input[name="apply_end_date"]'),
+        endDate: document.querySelector('input[name="effective_end_date"]'),
         tbody: document.getElementById('vesselTableBody'),
         createBtn: document.getElementById('btnCreateLRS')
     };
@@ -229,8 +242,59 @@
         ];
     {% endif %}
 
-    // --- 2. Cascade Select Logic (Using CommonApi) ---
+    // 2.0 화면 로드 완료 시 Edit 모드 Select Box 연쇄 복구
+    window.addEventListener('DOMContentLoaded', () => {
+        // 1. Edit 모드이거나 에러 발생 후 돌아온 경우 (initData가 존재할 때)
+        if (initData.scenario) {
+            // 우선 시나리오에 묶인 전체 선박 리스트를 가져와서 캐싱해 둠 (Row 조작을 위해 필요)
+            CommonApi.loadVesselList(API_URLS.vessel_list, initData.scenario, (data) => {
+                vesselDataList = data;
+            });
 
+            // 선박 목록을 불러온 직후, Edit 모드로 채워진 테이블 Row들의 Select Option을 채워줌
+            document.querySelectorAll('.vessel-select').forEach(select => {
+                const hiddenInput = select.closest('tr').querySelector('.vessel-code-hidden');
+
+                // Select Box에 전체 선박 Option 채워넣기
+                let optionsHtml = '<option value="">Select Vessel</option>';
+                vesselDataList.forEach(v => {
+                    optionsHtml += `<option value="${v.vessel_code}" data-cap="${v.max_cap}">${v.vessel_code}</option>`;
+                });
+                select.innerHTML = optionsHtml;
+
+                // 만약 체크된 Row(저장된 데이터)라면 기존 선택값 복원
+                if (hiddenInput && hiddenInput.value) {
+                    select.value = hiddenInput.value;
+                    select.dispatchEvent(new Event('change')); // Capacity 등 연동 이벤트 강제 발생
+                }
+            });
+
+            // Lane 목록 동적 로드
+            CommonApi.loadLanes(API_URLS.options, initData.scenario, els.lane, () => {
+                // Lane 로드가 완료되면 기존 선택값 복구
+                if (initData.lane) {
+                    els.lane.value = initData.lane;
+
+                    // 해당 Lane에 묶인 Proforma 목록 동적 로드
+                    CommonApi.loadProformas(API_URLS.options, initData.scenario, initData.lane, els.proforma, () => {
+                        // Proforma 로드가 완료되면 기존 선택값 복구
+                        if (initData.proforma) {
+                            els.proforma.value = initData.proforma;
+                            if (els.loadBtn) els.loadBtn.disabled = false;
+                        }
+                    });
+                }
+            });
+        }
+
+        // 2. 이미 렌더링된 Row들이 존재하면 이벤트 다시 연결 (Edit 모드에서 테이블 조작 시 필요)
+        if (document.querySelector('.own-vessel-check')) {
+            attachRowEvents();
+            validateCreateButton();
+        }
+    });
+
+    // --- 2. Cascade Select Logic (Using CommonApi) ---
     els.scenario.addEventListener('change', function() {
         const sid = this.value;
 
@@ -293,6 +357,8 @@
 
                     // Global Settings 적용
                     els.requiredCount.value = data.declared_count;
+                    // [추가] API에서 계산되어 온 next_seq 값을 화면 input에 넣음
+                    document.getElementById('cascadingSeq').value = data.cascading_next_seq || 1;
                     els.slotBadge.textContent = `Total Slots: ${data.declared_count}`;
 
                     els.pfFirstDay.value = data.first_port_day;
@@ -358,7 +424,7 @@
                     <select class="form-select vessel-select" disabled>
                         ${optionsHtml}
                     </select>
-                    <input type="hidden" name="vessel_code[]" class="vessel-code-hidden" value="TBN">
+                    <input type="hidden" name="vessel_code[]" class="vessel-code-hidden" >
                 </td>
                 <td>
                     <input type="text" class="form-control bg-light text-end" name="vessel_capacity[]" readonly tabindex="-1">
@@ -404,7 +470,7 @@
                     select.disabled = true;
                     select.value = "";
                     tr.classList.remove('table-info');
-                    hiddenInput.value = "TBN";
+                    {#hiddenInput.value = "TBN";#}
                     capInput.value = "";
                     laneInput.value = "";
                 }

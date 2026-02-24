@@ -219,29 +219,33 @@ def proforma_template_download(request):
 @login_required
 def proforma_list(request):
     """
-    Proforma Schedule 목록 조회 View (Read-Only)
+    Proforma Schedule 목록 조회 및 검색
     """
-    # 1. 검색 파라미터 수신
     scenario_id = request.GET.get("scenario_id", "")
     lane_code = request.GET.get("lane_code", "")
 
-    # 2. 기본 쿼리셋
-    # related_name인 'details'를 활용하여 하위 기항지의 개수를 카운트합니다.
-    queryset = ProformaSchedule.objects.annotate(port_count=Count("details")).order_by(
-        "-updated_at", "scenario__id", "lane_code"
+    # 1. 기본 QuerySet
+    queryset = (
+        ProformaSchedule.objects.select_related("scenario")
+        .annotate(port_count=Count("details"))
+        .order_by("-created_at")
     )
 
-    # 3. 필터링 적용 (icontains로 대소문자 구분 없이 부분 일치 검색)
+    # 2. 검색 필터 적용
     if scenario_id:
-        queryset = queryset.filter(scenario__id__icontains=scenario_id)
+        queryset = queryset.filter(scenario_id=scenario_id)
     if lane_code:
         queryset = queryset.filter(lane_code__icontains=lane_code)
+
+    # 3. 셀렉트 박스용 시나리오 전체 목록 가져오기
+    scenarios = ScenarioInfo.objects.all().order_by("-created_at")
 
     context = {
         "menu_structure": MENU_STRUCTURE,
         "current_group": "Schedule",
         "current_model": "proforma_schedule",
-        "proforma_list": queryset,  # 이제 템플릿에서 item.scenario.id, item.lane_code 처럼 객체 속성으로 접근
+        "proforma_list": queryset,
+        "scenarios": scenarios,  # 반드시 필요함
         "search_params": {
             "scenario_id": scenario_id,
             "lane_code": lane_code,

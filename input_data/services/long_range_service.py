@@ -21,8 +21,8 @@ class LongRangeService:
         scenario_id = post_data.get("scenario_id")
         lane_code = post_data.get("lane_code")
         proforma_name = post_data.get("proforma_name")
-        start_date_str = post_data.get("apply_start_date")
-        end_date_str = post_data.get("apply_end_date")
+        start_date_str = post_data.get("effective_start_date")
+        end_date_str = post_data.get("effective_end_date")
 
         # UI에서 넘어오는 배열 데이터
         vessel_codes = post_data.getlist("vessel_code[]")

@@ -25,7 +25,8 @@
                     <select class="form-select" id="scenarioSelect" name="scenario_id">
                         <option value="">Select Scenario</option>
                         {% for scenario in scenarios %}
-                        <option value="{{ scenario.id }}" {% if search_params.scenario_id == scenario.id %}selected{% endif %}>
+                        <option value="{{ scenario.id }}"
+                                {% if search_params.scenario_id == scenario.id %}selected{% endif %}>
                             {{ scenario.id }}
                         </option>
                         {% endfor %}
@@ -34,14 +35,16 @@
 
                 <div class="col-md-2">
                     <label class="form-label small text-muted">Lane Code</label>
-                    <select class="form-select" id="laneSelect" name="lane_code" {% if not search_params.scenario_id %}disabled{% endif %}>
+                    <select class="form-select" id="laneSelect" name="lane_code"
+                            {% if not search_params.scenario_id %}disabled{% endif %}>
                         <option value="">Select Lane</option>
                     </select>
                 </div>
 
                 <div class="col-md-3">
                     <label class="form-label small text-muted">Proforma Name</label>
-                    <select class="form-select" id="proformaSelect" name="proforma_name" {% if not search_params.lane_code %}disabled{% endif %}>
+                    <select class="form-select" id="proformaSelect" name="proforma_name"
+                            {% if not search_params.lane_code %}disabled{% endif %}>
                         <option value="">Select Proforma</option>
                     </select>
                 </div>

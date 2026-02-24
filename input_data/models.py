@@ -212,7 +212,7 @@ class ProformaSchedule(ScenarioBaseModel):
         max_length=30, verbose_name="Proforma Name / 4 numeric digits"
     )
     effective_from_date = models.DateTimeField(
-        verbose_name="Effective date from which the proforma is applied. "
+        verbose_name="Effective start date of the proforma."
         "The proforma currently in use is set with a date six months prior."
     )
     duration = models.DecimalField(
@@ -354,8 +354,17 @@ class CascadingSchedule(ScenarioBaseModel):
 
     cascading_seq = models.IntegerField(verbose_name="Sequence")
     own_vessels = models.IntegerField(verbose_name="Own Vessels Count")
-    start_date = models.DateField(verbose_name="Start Date")
-    end_date = models.DateField(verbose_name="End Date", null=True, blank=True)
+    initial_etb_date = models.DateField(
+        verbose_name="Initial ETB of the first vessel at the first port"
+    )
+    effective_start_date = models.DateField(
+        verbose_name="Effective start date of the cascading schedule"
+    )
+    effective_end_date = models.DateField(
+        verbose_name="Effective end date of the cascading schedule",
+        null=True,
+        blank=True,
+    )
 
     class Meta:
         db_table = "sce_schedule_cascading"
