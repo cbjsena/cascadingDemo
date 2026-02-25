@@ -5,6 +5,7 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
+from common import messages as msg
 from input_data.models import (
     CascadingSchedule,
     CascadingScheduleDetail,
@@ -155,7 +156,7 @@ class TestCascadingView:
 
         assert response.status_code == 200
         messages = list(response.context["messages"])
-        assert any("created successfully" in str(m) for m in messages)
+        assert any(msg.CASCADING_LRS_CREATE_SUCCESS in str(m) for m in messages)
 
         # Cascading Detail과 LRS 테이블 모두에 해당 선박이 존재해야 함
         assert CascadingScheduleDetail.objects.filter(vessel_code="V_LRS").exists()

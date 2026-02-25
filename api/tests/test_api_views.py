@@ -3,6 +3,7 @@ import pytest
 from django.urls import reverse
 from django.utils import timezone
 
+from common import messages as msg
 from input_data.models import (
     Distance,
     LongRangeSchedule,
@@ -230,7 +231,7 @@ class TestApiViews:
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "error"
-        assert "not found" in data["message"]
+        assert msg.PROFORMA_NOT_FOUND in data["message"]
 
     # =========================================================
     # 3. Vessel Related Tests (List, Check, Options)

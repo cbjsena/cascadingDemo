@@ -73,3 +73,23 @@ class TestDocGeneration:
                 assert (
                     not expected_file.exists()
                 ), "File should NOT be created for MySQL"
+
+    def test_empty_data_handling(self, tmp_path):
+        """[TEST_DOC_05] DB 쿼리 결과가 없을 때 파일 생성하지 않음"""
+        with patch("django.conf.settings.BASE_DIR", str(tmp_path)):
+            with patch("django.db.connection.vendor", "postgresql"):
+                with patch("django.db.connection.cursor") as mock_cursor_ctx:
+                    # 빈 데이터 반환 Mocking
+                    mock_cursor = MagicMock()
+                    mock_cursor_ctx.return_value.__enter__.return_value = mock_cursor
+                    mock_cursor.fetchall.return_value = []  # 빈 리스트
+
+                    app_config = apps.get_app_config("input_data")
+                    generate_table_definition(sender=None, app_config=app_config)
+
+                    expected_file = (
+                        tmp_path / "doc" / "db" / "base_table_definitions.csv"
+                    )
+                    assert (
+                        not expected_file.exists()
+                    ), "File should NOT be created for empty data"

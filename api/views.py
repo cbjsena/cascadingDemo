@@ -5,6 +5,8 @@ from django.db.models import Max
 from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 
+from common import messages as msg
+
 # ProformaScheduleDetail은 ORM의 related_name('details')으로 접근 가능하지만,
 # 명시적으로 필요한 경우 import 할 수 있습니다.
 from input_data.models import (
@@ -101,7 +103,7 @@ def proforma_detail(request):
                 "cascading_next_seq": cascading_next_seq,
             }
         else:
-            data = {"status": "error", "message": "Proforma not found."}
+            data = {"status": "error", "message": msg.PROFORMA_NOT_FOUND}
     except Exception as e:
         data = {"status": "error", "message": str(e)}
     return JsonResponse(data)

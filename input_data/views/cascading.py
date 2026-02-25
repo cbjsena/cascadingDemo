@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 
+from common import messages as msg
 from common.menus import MENU_STRUCTURE
 from input_data.models import CascadingSchedule, ScenarioInfo
 from input_data.services.cascading_service import CascadingService
@@ -47,7 +48,7 @@ def cascading_create(request):
                 context["restored_rows"] = data["details"]
                 context["is_edit_mode"] = True
             else:
-                messages.error(request, "Cascading Schedule not found.")
+                messages.error(request, msg.CASCADING_NOT_FOUND)
 
         return render(request, "input_data/cascading_create.html", context)
 
@@ -63,20 +64,18 @@ def cascading_create(request):
                 cascading_svc.save_cascading(request.POST, request.user)
 
                 if action == "save":
-                    messages.success(request, "Cascading Schedule saved successfully.")
+                    messages.success(request, msg.CASCADING_SAVE_SUCCESS)
 
                 elif action == "create_lrs":
                     # Create LRS 버튼을 눌렀을 때만 엔진 구동
                     lrs_svc.generate_lrs(request.POST, request.user)
-                    messages.success(
-                        request, "Cascading & Long Range Schedule created successfully."
-                    )
+                    messages.success(request, msg.CASCADING_LRS_CREATE_SUCCESS)
 
             # 처리가 끝나면 다시 현재 화면으로 (GET 파라미터는 제거되거나 유지할 수 있음)
             return redirect("input_data:cascading_create")
 
         except Exception as e:
-            messages.error(request, f"Failed to process: {str(e)}")
+            messages.error(request, msg.CASCADING_PROCESS_ERROR.format(error=str(e)))
 
             # (에러 복구 로직 - 기존과 동일하게 context 갱신)
             data = request.POST

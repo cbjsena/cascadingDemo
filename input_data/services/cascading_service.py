@@ -2,6 +2,7 @@ from datetime import datetime, timedelta
 
 from django.db.models import Max
 
+from common import messages as msg
 from input_data.models import (
     CascadingSchedule,
     CascadingScheduleDetail,
@@ -125,7 +126,7 @@ class CascadingService:
             and start_date_str
             and end_date_str
         ):
-            raise ValueError("Missing required fields for Cascading.")
+            raise ValueError(msg.MISSING_REQUIRED_FIELDS_FOR.format(target="Cascading"))
 
         scenario = ScenarioInfo.objects.get(id=scenario_id)
         master_proforma = ProformaSchedule.objects.filter(
@@ -133,7 +134,7 @@ class CascadingService:
         ).first()
 
         if not master_proforma:
-            raise ValueError("Proforma Schedule not found.")
+            raise ValueError(msg.PROFORMA_NOT_FOUND)
 
         cascading_seq = int(post_data.get("cascading_seq", 1))
 

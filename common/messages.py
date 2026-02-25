@@ -1,4 +1,18 @@
 # common/messages.py
+"""
+애플리케이션 전역 메시지 상수 관리 모듈
+
+Django 표준:
+- 단일 언어 프로젝트: 문자열 상수 직접 사용 (현재 방식)
+- 다국어 지원 필요 시: gettext_lazy 사용으로 전환
+  예) from django.utils.translation import gettext_lazy as _
+      PERMISSION_DENIED = _("You do not have permission to perform this action.")
+
+사용 예시:
+    from common import messages as msg
+    messages.error(request, msg.PERMISSION_DENIED)
+    messages.success(request, msg.SCENARIO_CREATE_SUCCESS.format(scenario_id="SCE001"))
+"""
 
 # ==========================================
 # 1. 공통 및 인증 (General & Auth)
@@ -7,8 +21,10 @@ PERMISSION_DENIED = "You do not have permission to perform this action."
 LOGIN_REQUIRED = "Please login to access this page."
 FUNC_NOT_IMPLEMENTED = "{func_name} function not implemented yet."
 SAVE_ERROR = "Failed to save: {error}"
-LOAD_ERROR = "Failed to save: {error}"
+LOAD_ERROR = "Failed to load: {error}"  # Fixed: was "Failed to save"
 DATA_NOT_FOUND = "Data not found."
+MISSING_REQUIRED_FIELDS = "Missing required fields."
+MISSING_REQUIRED_FIELDS_FOR = "Missing required fields for {target}."
 
 # ==========================================
 # 2. 시나리오 관리 (Scenario)
@@ -30,6 +46,24 @@ SCENARIO_CLONE_ERROR = "Failed to clone data: {error}"
 SCHEDULE_NEW_STARTED = "New schedule started."
 SCHEDULE_CALCULATED = "Schedule calculated."
 SCHEDULE_SAVE_SUCCESS = "Schedule saved successfully."
+SCHEDULE_LOAD_ERROR = "Failed to load schedule: {error}"
+INVALID_PARAMETERS = "Invalid parameters."
+
+# ==========================================
+# 3-1. Cascading Schedule
+# ==========================================
+CASCADING_SAVE_SUCCESS = "Cascading Schedule saved successfully."
+CASCADING_LRS_CREATE_SUCCESS = "Cascading & Long Range Schedule created successfully."
+CASCADING_NOT_FOUND = "Cascading Schedule not found."
+CASCADING_PROCESS_ERROR = "Failed to process: {error}"
+
+# ==========================================
+# 3-2. Proforma Schedule
+# ==========================================
+PROFORMA_NOT_FOUND = "Proforma Schedule not found."
+PROFORMA_MASTER_NOT_FOUND = "Proforma Schedule (Master) not found."
+PROFORMA_DETAIL_NOT_FOUND = "Proforma Schedule Details not found."
+PROFORMA_INVALID_DURATION = "Invalid Proforma Duration (0 or None)."
 
 # ==========================================
 # 4. 엑셀 업로드 (Web UI)

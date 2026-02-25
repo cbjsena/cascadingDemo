@@ -49,7 +49,7 @@ def proforma_create(request):
                 context["rows"] = fetched_rows
             except Exception as e:
                 # 조회 실패 시 에러 메시지 후 빈 폼 출력
-                messages.error(request, f"Failed to load schedule: {str(e)}")
+                messages.error(request, msg.SCHEDULE_LOAD_ERROR.format(error=str(e)))
 
     # =========================================================
     # [2] POST 요청 처리: 데이터 조작 (Save, Add Row, etc.)
@@ -274,7 +274,7 @@ def proforma_detail(request):
             messages.error(request, msg.LOAD_ERROR.format(error=str(e)))
             return redirect("input_data:proforma_list")
     else:
-        messages.error(request, "Invalid parameters.")
+        messages.error(request, msg.INVALID_PARAMETERS)
         return redirect("input_data:proforma_list")
 
     # 3. Context 구성

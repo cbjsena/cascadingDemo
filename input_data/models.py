@@ -476,8 +476,6 @@ class BaseLongRangeSchedule(AbsLongRangeSchedule):
 class LongRangeSchedule(AbsLongRangeSchedule, ScenarioBaseModel):
     """[SCE] 시나리오 Long Range Schedule"""
 
-    long_range_schedule_id = models.AutoField(primary_key=True)
-
     class Meta:
         verbose_name = "Long Range Schedule"
         db_table = "sce_schedule_long_range"
@@ -558,8 +556,6 @@ class BaseVesselInfo(AbsVesselInfo):
 class VesselInfo(AbsVesselInfo, ScenarioBaseModel):
     """[SCE] 시나리오 Vessel Info"""
 
-    vessel_info_id = models.AutoField(primary_key=True)
-
     class Meta:
         verbose_name = "Vessel Info and Charter, Dock, Built of vessel "
         db_table = "sce_vessel_info"
@@ -605,8 +601,6 @@ class BaseCharterCost(AbsCharterCost):
 
 class CharterCost(AbsCharterCost, ScenarioBaseModel):
     """[SCE] 시나리오 Charter Cost"""
-
-    charter_cost_id = models.AutoField(primary_key=True)
 
     class Meta:
         verbose_name = "Vessel charter hire rate information"
@@ -655,8 +649,6 @@ class BaseVesselCapacity(AbsVesselCapacity):
 
 class VesselCapacity(AbsVesselCapacity, ScenarioBaseModel):
     """[SCE] 시나리오 Vessel Capacity"""
-
-    vessel_capacity_id = models.AutoField(primary_key=True)
 
     class Meta:
         verbose_name = "Vessel capacity information"
@@ -715,8 +707,6 @@ class BaseCanalFee(AbsCanalFee):
 class CanalFee(AbsCanalFee, ScenarioBaseModel):
     """[SCE] 시나리오 Canal Fee"""
 
-    canal_fee_id = models.AutoField(primary_key=True)
-
     class Meta:
         verbose_name = "Canal transit fee information"
         db_table = "sce_cost_canal_fee"
@@ -750,8 +740,6 @@ class BaseDistance(AbsDistance):
 
 class Distance(AbsDistance, ScenarioBaseModel):
     """[SCE] 시나리오 Distance"""
-
-    distance_id = models.AutoField(primary_key=True)
 
     class Meta:
         verbose_name = "Distance and ECA distance between ports"
@@ -791,8 +779,6 @@ class BaseTSCost(AbsTSCost):
 
 class TSCost(AbsTSCost, ScenarioBaseModel):
     """[SCE] 시나리오 TS Cost"""
-
-    ts_cost_id = models.AutoField(primary_key=True)
 
     class Meta:
         verbose_name = "Transshipment cost per port"
@@ -841,8 +827,6 @@ class BaseBunkerConsumptionSea(AbsBunkerConsumptionSea):
 
 class BunkerConsumptionSea(AbsBunkerConsumptionSea, ScenarioBaseModel):
     """[SCE] 시나리오 Bunker Consumption Sea"""
-
-    bunker_consumption_sea_id = models.AutoField(primary_key=True)
 
     class Meta:
         verbose_name = "Daily bunker consumption by vessel size and speed at sea"
@@ -894,8 +878,6 @@ class BaseBunkerConsumptionPort(AbsBunkerConsumptionPort):
 class BunkerConsumptionPort(AbsBunkerConsumptionPort, ScenarioBaseModel):
     """[SCE] 시나리오 Bunker Consumption Port"""
 
-    bunker_consumption_port_id = models.AutoField(primary_key=True)
-
     class Meta:
         verbose_name = (
             "bunker consumption per hour by vessel size during port stay and idling"
@@ -939,8 +921,6 @@ class BaseBunkerPrice(AbsBunkerPrice):
 
 class BunkerPrice(AbsBunkerPrice, ScenarioBaseModel):
     """[SCE] 시나리오 Bunker Price"""
-
-    bunker_price_id = models.AutoField(primary_key=True)
 
     class Meta:
         verbose_name = "Bunker price per ton by Lane and Trade and Bunker type"
@@ -992,8 +972,6 @@ class BaseFixedVesselDeployment(AbsFixedVesselDeployment):
 
 class FixedVesselDeployment(AbsFixedVesselDeployment, ScenarioBaseModel):
     """[SCE] 시나리오 Fixed Vessel Deployment"""
-
-    fixed_deployment_id = models.AutoField(primary_key=True)
 
     class Meta:
         verbose_name = "Constraints for fixed vessel deployment on specific lanes"
@@ -1053,8 +1031,6 @@ class BaseFixedScheduleChange(AbsFixedScheduleChange):
 class FixedScheduleChange(AbsFixedScheduleChange, ScenarioBaseModel):
     """[SCE] 시나리오 Fixed Schedule Change"""
 
-    fixed_schedule_change_id = models.AutoField(primary_key=True)
-
     class Meta:
         verbose_name = "Fixed Constraints for fixed schedule change on specific vessels"
         db_table = "sce_constraint_fixed_schedule_change"
@@ -1113,8 +1089,6 @@ class BasePortConstraint(AbsPortConstraint):
 
 class PortConstraint(AbsPortConstraint, ScenarioBaseModel):
     """[SCE] 시나리오 Port Constraint"""
-
-    constraint_id = models.AutoField(primary_key=True)
 
     class Meta:
         verbose_name = "Constraints on vessel classes prohibited at specific ports"

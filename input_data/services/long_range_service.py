@@ -36,7 +36,7 @@ class LongRangeService:
             and start_date_str
             and end_date_str
         ):
-            raise ValueError("Missing required fields.")
+            raise ValueError(msg.MISSING_REQUIRED_FIELDS)
 
         try:
             scenario = ScenarioInfo.objects.get(id=scenario_id)
@@ -52,19 +52,19 @@ class LongRangeService:
         ).first()
 
         if not master:
-            raise ValueError("Proforma Schedule (Master) not found.")
+            raise ValueError(msg.PROFORMA_MASTER_NOT_FOUND)
 
         # 헤더 정보 (Duration = Round Trip Time)
         round_trip_days = float(master.duration or 0)
         if round_trip_days <= 0:
-            raise ValueError("Invalid Proforma Duration (0 or None).")
+            raise ValueError(msg.PROFORMA_INVALID_DURATION)
 
         # 2-2. Detail 조회 (시퀀스 생성용)
         # ORM related_name 인 'details'를 활용하여 기항지 목록을 가져옵니다.
         proforma_rows = list(master.details.all().order_by("calling_port_seq"))
 
         if not proforma_rows:
-            raise ValueError("Proforma Schedule Details not found.")
+            raise ValueError(msg.PROFORMA_DETAIL_NOT_FOUND)
 
         # 3. Virtual Port Logic 적용 -> 확장된 시퀀스 생성
         expanded_sequence = self._get_expanded_sequence(proforma_rows)
