@@ -238,7 +238,7 @@ def proforma_list(request):
     queryset = (
         ProformaSchedule.objects.select_related("scenario")
         .annotate(port_count=Count("details"))
-        .order_by("-created_at")
+        .order_by("-scenario__created_at", "lane_code", "effective_from_date")
     )
 
     # 2. 검색 필터 적용

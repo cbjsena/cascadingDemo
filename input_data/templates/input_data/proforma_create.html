@@ -168,8 +168,8 @@
                                     </select>
                                 </td>
 
-                                <td><input type="number" step="0.5" class="form-control form-control-sm border-0 bg-transparent text-center p-0"
-                                           name="pilot_in[]" value="{{ row.pilot_in }}">
+                                <td><input type="number" step="0.1" class="form-control form-control-sm border-0 bg-transparent text-center p-0"
+                                           name="pilot_in[]" value="{{ row.pilot_in|floatformat:1|default:0.0 }}">
                                 </td>
 
                                 <td><input type="number" class="form-control form-control-sm border-0 bg-transparent text-center p-0"
@@ -188,8 +188,8 @@
                                 </td>
 
                                 <td>
-                                    <input type="number" step="0.5" class="form-control form-control-sm border-0 bg-transparent text-center p-0"
-                                           name="work_hours[]" value="{{ row.work_hours }}">
+                                    <input type="number" step="0.1" class="form-control form-control-sm border-0 bg-transparent text-center p-0"
+                                           name="work_hours[]" value="{{ row.work_hours|floatformat:1|default:0.0 }}">
                                 </td>
 
                                 <td class="cell-readonly">
@@ -210,8 +210,8 @@
                                 </td>
 
                                 <td>
-                                    <input type="number" step="0.5" class="form-control form-control-sm border-0 bg-transparent text-center p-0"
-                                           name="pilot_out[]" value="{{ row.pilot_out }}">
+                                    <input type="number" step="0.1" class="form-control form-control-sm border-0 bg-transparent text-center p-0"
+                                           name="pilot_out[]" value="{{ row.pilot_out|floatformat:1|default:0.0 }}">
                                 </td>
 
                                 <td class="cell-readonly">
@@ -252,7 +252,7 @@
 
                                 <td>
                                     <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center fw-bold"
-                                           value="{{ summary.pilot_in|default:0 }}" readonly>
+                                           value="{{ summary.pilot_in|floatformat:1|default:0.0 }}" readonly>
                                 </td>
 
                                 <td></td>
@@ -261,7 +261,7 @@
 
                                 <td>
                                     <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center fw-bold"
-                                           value="{{ summary.work_hours|default:0 }}" readonly>
+                                           value="{{ summary.work_hours|floatformat:1|default:0.0 }}" readonly>
                                 </td>
 
                                 <td></td>
@@ -270,7 +270,7 @@
 
                                 <td>
                                     <input type="number" class="form-control form-control-sm border-0 bg-transparent text-center fw-bold"
-                                           value="{{ summary.pilot_out|default:0 }}" readonly>
+                                           value="{{ summary.pilot_out|floatformat:1|default:0.0 }}" readonly>
                                 </td>
 
                                 <td>

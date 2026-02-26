@@ -1,0 +1,34 @@
+
+select lane_code,proforma_name,TO_CHAR(effective_from_date, 'YYYY/MM/DD'),duration,
+	declared_capacity,declared_count,direction,port_code,calling_port_indicator,
+	calling_port_seq,turn_port_info_code,
+	round(pilot_in_hours,1),
+	etb_day_number,etb_day_code,etb_day_time,
+	round(actual_work_hours,1),
+	etd_day_number,etd_day_code,etd_day_time,
+	round(pilot_out_hours,1),
+	link_distance,link_eca_distance,link_speed,sea_time_hours,terminal_code
+ from sce_schedule_proforma_detail d, sce_schedule_proforma h, sce_scenario_info s
+ WHERE D.proforma_id = H.id
+  and H.scenario_id = S.id
+AND s.name not like 'Base%'
+  and h.id  in (
+select h.id
+ from sce_schedule_proforma_detail d, sce_schedule_proforma h, sce_scenario_info s
+WHERE D.proforma_id = H.id
+  and H.scenario_id = S.id
+AND s.name not like 'Base%'
+and d.link_distance  = 0
+group by h.id
+having count(*)=1)
+order by h.proforma_name , d.calling_port_seq
+;
+
+select h.proforma_name , count(*)
+ from sce_schedule_proforma_detail d, sce_schedule_proforma h, sce_scenario_info s
+WHERE D.proforma_id = H.id
+  and H.scenario_id = S.id
+AND s.name not like 'Base%'
+and d.link_distance  = 0
+group by h.proforma_name
+order by h.proforma_name

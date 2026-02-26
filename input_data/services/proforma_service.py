@@ -13,6 +13,7 @@ from common import (
     excel_configs as ex_cfg,
     messages as msg,
 )
+from common.utils import safe_float, safe_int, safe_round, safe_sum
 from common.utils.csv_manager import CsvManager
 from common.utils.excel_manager import ExcelManager
 from input_data.models import ProformaSchedule, ProformaScheduleDetail, ScenarioInfo
@@ -64,18 +65,18 @@ class ProformaService:
                 val = grid_data[key][i] if i < len(grid_data[key]) else ""
 
                 # 숫자형 필드 안전 변환 (필요시)
-                if key in [
-                    "pilot_in",
-                    "work_hours",
-                    "pilot_out",
+                if key in ["pilot_in", "work_hours", "pilot_out"]:
+                    # Pilot In, Work Hours, Pilot Out은 소수점 한자리로 제한
+                    row[key] = safe_round(val, 1)
+                elif key in [
                     "dist",
                     "eca_dist",
                     "spd",
                     "sea_time",
                 ]:
-                    row[key] = self._to_float(val)
+                    row[key] = safe_float(val)
                 elif key in ["port_seq", "etb_no", "etd_no"]:
-                    row[key] = int(val) if str(val).isdigit() else 0
+                    row[key] = safe_int(val)
                 else:
                     row[key] = val
             rows.append(row)
@@ -176,8 +177,8 @@ class ProformaService:
                 # Step C. Sea Time & Speed 역산 (Previous Row Update)
                 # ------------------------------------------------------------
                 # Sea Time = (Berth to Berth) - (Prev Pilot Out) - (Curr Pilot In)
-                prev_pilot_out = self._to_float(prev_row.get("pilot_out", 0))
-                curr_pilot_in = self._to_float(curr.get("pilot_in", 0))
+                prev_pilot_out = safe_float(prev_row.get("pilot_out", 0))
+                curr_pilot_in = safe_float(curr.get("pilot_in", 0))
 
                 calc_sea_time = (
                     current_etb_abs - prev_etd_abs - prev_pilot_out - curr_pilot_in
@@ -193,7 +194,7 @@ class ProformaService:
                 prev_row["sea_time"] = round(calc_sea_time, 2)
 
                 # 이전 행(Leg)의 Speed 업데이트 (Speed = Dist / Time)
-                dist = self._to_float(prev_row.get("dist", 0))
+                dist = safe_float(prev_row.get("dist", 0))
                 if calc_sea_time > 0.01:
                     prev_row["spd"] = round(dist / calc_sea_time, 2)
                 else:
@@ -213,7 +214,7 @@ class ProformaService:
             # ----------------------------------------------------------------
             # Step E. 현재 행의 ETD 계산 (ETB + Work Hours)
             # ----------------------------------------------------------------
-            work_hours = self._to_float(curr.get("work_hours", 0))
+            work_hours = safe_float(curr.get("work_hours", 0))
             current_etd_abs = current_etb_abs + work_hours
 
             no, day, time = self._hours_to_display_format(
@@ -383,12 +384,12 @@ class ProformaService:
         if not rows:
             return {}
 
-        # self._to_float()를 사용하여 안전하게 합계 계산
-        total_pilot_in = sum(self._to_float(row.get("pilot_in")) for row in rows)
-        total_work_hours = sum(self._to_float(row.get("work_hours")) for row in rows)
-        total_pilot_out = sum(self._to_float(row.get("pilot_out")) for row in rows)
-        total_dist = sum(self._to_float(row.get("dist")) for row in rows)
-        total_sea_time = sum(self._to_float(row.get("sea_time")) for row in rows)
+        # safe_sum을 사용하여 안전하게 합계 계산
+        total_pilot_in = safe_sum(row.get("pilot_in") for row in rows)
+        total_work_hours = safe_sum(row.get("work_hours") for row in rows)
+        total_pilot_out = safe_sum(row.get("pilot_out") for row in rows)
+        total_dist = safe_sum(row.get("dist") for row in rows)
+        total_sea_time = safe_sum(row.get("sea_time") for row in rows)
 
         # 평균 속도 = 총 거리 / 총 항해 시간
         avg_speed = 0
@@ -396,9 +397,9 @@ class ProformaService:
             avg_speed = round(total_dist / total_sea_time, 2)
 
         return {
-            "pilot_in": total_pilot_in,
-            "work_hours": total_work_hours,
-            "pilot_out": total_pilot_out,
+            "pilot_in": safe_round(total_pilot_in, 1),
+            "work_hours": safe_round(total_work_hours, 1),
+            "pilot_out": safe_round(total_pilot_out, 1),
             "dist": total_dist,
             "sea_time": total_sea_time,
             "spd": avg_speed,
@@ -423,33 +424,17 @@ class ProformaService:
             if not row.get("turn_port_info_code"):
                 row["turn_port_info_code"] = const.DEFAULT_TURN_INO
 
-            for key in [
-                "pilot_in",
-                "work_hours",
-                "pilot_out",
-                "dist",
-                "eca_dist",
-                "spd",
-                "sea_time",
-            ]:
-                row[key] = self._to_float(row.get(key, 0))
+            # 소수점 첫째자리로 제한되는 필드들
+            for key in ["pilot_in", "work_hours", "pilot_out"]:
+                row[key] = safe_round(row.get(key), 1)
 
-                # float 변환
-                for key in [
-                    "pilot_in",
-                    "work_hours",
-                    "pilot_out",
-                    "dist",
-                    "eca_dist",
-                    "spd",
-                    "sea_time",
-                ]:
-                    row[key] = self._to_float(row.get(key, 0))
+            # 일반 float 변환 필드들
+            for key in ["dist", "eca_dist", "spd", "sea_time"]:
+                row[key] = safe_float(row.get(key))
 
-                # int 변환
-                for key in ["port_seq", "etb_no", "etd_no"]:
-                    val = row.get(key, 0)
-                    row[key] = int(val) if str(val).isdigit() else 0
+            # int 변환
+            for key in ["port_seq", "etb_no", "etd_no"]:
+                row[key] = safe_int(row.get(key))
 
         # 4. 계산
         # calc_header = {"scenario_id": header.get("scenario_id")}
@@ -503,8 +488,8 @@ class ProformaService:
             return output.getvalue()
 
         # (2) STD_SVCE_SPD
-        total_dist = sum(self._to_float(r.get("dist", 0)) for r in rows)
-        total_sea_time = sum(self._to_float(r.get("sea_time", 0)) for r in rows)
+        total_dist = safe_sum(r.get("dist", 0) for r in rows)
+        total_sea_time = safe_sum(r.get("sea_time", 0) for r in rows)
         std_speed = round(total_dist / total_sea_time, 2) if total_sea_time > 0 else 0
 
         # (3) Counter
@@ -610,23 +595,24 @@ class ProformaService:
         for obj in details_qs:
             row = {
                 "port_seq": obj.calling_port_seq,
-                "port_code": obj.port_code,
-                "direction": obj.direction,
-                "turn_port_info_code": obj.turn_port_info_code,
-                "pilot_in": obj.pilot_in_hours,
-                "etb_no": obj.etb_day_number,
-                "etb_day": obj.etb_day_code,
-                "etb_time": obj.etb_day_time,
-                "work_hours": obj.actual_work_hours,
-                "etd_no": obj.etd_day_number,
-                "etd_day": obj.etd_day_code,
-                "etd_time": obj.etd_day_time,
-                "pilot_out": obj.pilot_out_hours,
-                "dist": obj.link_distance,
-                "eca_dist": obj.link_eca_distance,
-                "spd": obj.link_speed,
-                "sea_time": obj.sea_time_hours,
-                "terminal": obj.terminal_code,
+                "port_code": obj.port_code or "",
+                "direction": obj.direction or const.DEFAULT_DIRECTION,
+                "turn_port_info_code": obj.turn_port_info_code
+                or const.DEFAULT_TURN_INO,
+                "pilot_in": safe_round(obj.pilot_in_hours, 1),  # null 안전 처리
+                "etb_no": safe_int(obj.etb_day_number),
+                "etb_day": obj.etb_day_code or const.DEFAULT_ETB_DAY,
+                "etb_time": obj.etb_day_time or const.DEFAULT_TIME,
+                "work_hours": safe_round(obj.actual_work_hours, 1),  # null 안전 처리
+                "etd_no": safe_int(obj.etd_day_number),
+                "etd_day": obj.etd_day_code or const.DEFAULT_ETD_DAY,
+                "etd_time": obj.etd_day_time or const.DEFAULT_TIME,
+                "pilot_out": safe_round(obj.pilot_out_hours, 1),  # null 안전 처리
+                "dist": safe_float(obj.link_distance),
+                "eca_dist": safe_float(obj.link_eca_distance),
+                "spd": safe_float(obj.link_speed),
+                "sea_time": safe_float(obj.sea_time_hours),
+                "terminal": obj.terminal_code or "",
             }
             rows.append(row)
 
@@ -654,12 +640,6 @@ class ProformaService:
             "sea_time": 0,
             "terminal": "",
         }
-
-    def _to_float(self, value):
-        try:
-            return float(value)
-        except (TypeError, ValueError):
-            return 0.0
 
     def _get_abs_hours_from_day_time(self, day_str, time_str):
         """
