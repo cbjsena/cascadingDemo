@@ -48,7 +48,8 @@ class TestLongRangeListView:
         # 응답 HTML 텍스트 내에 cascading/create 로 가는 링크가 포함되어 있는지 검증
         content = response.content.decode("utf-8")
         assert "cascading/create/" in content
-        assert lrs_integration_data.id in content
+        # scenario_id를 문자열로 변환하여 HTML에서 검색
+        assert str(lrs_integration_data.id) in content
 
     def test_lrs_list_003_empty_result(self, auth_client, lrs_integration_data):
         """[LRS_LIST_003] 존재하지 않는 데이터 검색 시 빈 목록 표출 검증"""

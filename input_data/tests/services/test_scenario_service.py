@@ -60,10 +60,10 @@ class TestScenarioCreationService:
     def test_sce_svc_001_basic_creation(self, setup_base_data, user):
         """[SCE_SVC_001] 시나리오 기본 생성 및 Master-Detail 분리 검증"""
         # When
-        scenario, summary = create_scenario_from_base("TEST_001", user=user)
+        scenario, summary = create_scenario_from_base("Test Scenario 001", user=user)
 
         # Then
-        assert ScenarioInfo.objects.filter(id="TEST_001").exists()
+        assert ScenarioInfo.objects.filter(name="Test Scenario 001").exists()
 
         # Master는 lane+proforma_name 단위로 1개만 생성되어야 함
         masters = ProformaSchedule.objects.filter(scenario=scenario)
@@ -82,10 +82,10 @@ class TestScenarioCreationService:
     def test_sce_svc_002_overwrite_scenario(self, setup_base_data, user):
         """[SCE_SVC_002] 기존 시나리오 덮어쓰기 (Reset) 검증"""
         # Given: 첫 번째 생성
-        create_scenario_from_base("TEST_002", user=user)
+        first_scenario, _ = create_scenario_from_base("Test Scenario 002", user=user)
         assert (
             ProformaScheduleDetail.objects.filter(
-                proforma__scenario_id="TEST_002"
+                proforma__scenario_id=first_scenario.id
             ).count()
             == 2
         )
@@ -108,14 +108,16 @@ class TestScenarioCreationService:
             etb_day_time="1200",
         )
 
-        # When: 동일한 ID로 두 번째 생성
-        create_scenario_from_base("TEST_002", user=user)
+        # When: 동일한 Name으로 두 번째 생성
+        second_scenario, _ = create_scenario_from_base("Test Scenario 002", user=user)
 
         # Then: 기존 데이터는 사라지고 최신 Base 데이터 기준으로 재적재됨 (Master 2개, Detail 3개)
-        assert ProformaSchedule.objects.filter(scenario_id="TEST_002").count() == 2
+        assert (
+            ProformaSchedule.objects.filter(scenario_id=second_scenario.id).count() == 2
+        )
         assert (
             ProformaScheduleDetail.objects.filter(
-                proforma__scenario_id="TEST_002"
+                proforma__scenario_id=second_scenario.id
             ).count()
             == 3
         )
@@ -123,7 +125,7 @@ class TestScenarioCreationService:
     def test_sce_svc_003_system_user_creation(self, setup_base_data):
         """[SCE_SVC_003] 시스템 유저 자동 할당 검증"""
         # When: user 없이 생성
-        scenario, summary = create_scenario_from_base("TEST_003", user=None)
+        scenario, summary = create_scenario_from_base("System Test Scenario", user=None)
 
         # Then
         system_user = User.objects.get(username="cascading")

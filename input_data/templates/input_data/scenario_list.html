@@ -19,8 +19,9 @@
                 <table class="table table-hover align-middle mb-0">
                     <thead class="table-light">
                         <tr>
-                            <th scope="col" class="ps-4">Scenario ID</th>
-                            <th scope="col">Description</th>
+                            <th scope="col" class="ps-4">Scenario Name</th>
+                            <th scope="col">Type</th>
+                            <th scope="col">Status</th>
                             <th scope="col">Base YM</th>
                             <th scope="col">Created By</th>
                             <th scope="col">Created At</th>
@@ -28,10 +29,35 @@
                         </tr>
                     </thead>
                     <tbody>
-                        {% for scenario  in scenarios  %}
+                        {% for scenario in scenarios %}
                         <tr>
-                            <td class="ps-4 fw-bold text-primary">{{ scenario.id }}</td>
-                            <td>{{ scenario.description|default:"-" }}</td>
+                            <td class="ps-4">
+                                <div>
+                                    <strong class="text-primary fs-5">{{ scenario.name }}</strong>
+                                    {% if scenario.base_scenario %}
+                                        <small class="text-info ms-2" title="Cloned from">
+                                            <i class="bi bi-arrow-return-right"></i> from {{ scenario.base_scenario.name }}
+                                        </small>
+                                    {% endif %}
+                                    {% if scenario.description %}
+                                        <div class="small text-muted mt-1">{{ scenario.description|truncatechars:60 }}</div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td>
+                                {% if scenario.scenario_type == 'BASELINE' %}
+                                    <span class="badge bg-warning text-dark">{{ scenario.get_scenario_type_display }}</span>
+                                {% elif scenario.scenario_type == 'WHAT_IF' %}
+                                    <span class="badge bg-info">{{ scenario.get_scenario_type_display }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ scenario.get_scenario_type_display }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="badge bg-{{ scenario.status|default:'secondary' }}">
+                                    {{ scenario.get_status_display|default:"Draft" }}
+                                </span>
+                            </td>
                             <td>
                                 {% if scenario.base_year_month %}
                                     <span class="badge bg-secondary">{{ scenario.base_year_month }}</span>
@@ -66,9 +92,9 @@
                         </tr>
                         {% empty %}
                         <tr>
-                            <td colspan="6" class="text-center py-5 text-muted">
+                            <td colspan="7" class="text-center py-5 text-muted">
                                 <i class="bi bi-inbox fs-1 d-block mb-2"></i>
-                                No scenarios  found. Please create a new one.
+                                No scenarios found. Please create a new one.
                             </td>
                         </tr>
                         {% endfor %}
@@ -80,48 +106,105 @@
 </div>
 
 <div class="modal fade" id="createScenarioModal" tabindex="-1" aria-labelledby="createScenarioModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <form method="post" action="{% url 'input_data:scenario_create' %}">
                 {% csrf_token %}
                 <div class="modal-header">
-                    <h5 class="modal-title" id="createScenarioModalLabel">Create New Scenario </h5>
+                    <h5 class="modal-title" id="createScenarioModalLabel">
+                        <i class="bi bi-plus-circle"></i> Create New Simulation Scenario
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="newDataId" class="form-label fw-bold">New Scenario ID <span class="text-danger">*</span></label>
-                        <input type="text" class="form-control" id="newDataId" name="scenario_id" value="{{ default_scenario_id }}" required>
-                        <div class="form-text">Auto-generated ID (YYYYMMDD + Seq). You can modify it.</div>
+                        <label for="scenarioName" class="form-label fw-bold">Scenario Name <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="scenarioName" name="name"
+                               placeholder="e.g., Fuel Price Increase Analysis" required>
+                        <div class="form-text">Unique name for this simulation scenario. ID will be auto-generated.</div>
                     </div>
+
+                    <div class="mb-3">
+                        <label for="description" class="form-label">Description</label>
+                        <textarea class="form-control" id="description" name="description" rows="2"
+                                  placeholder="Detailed description of what this scenario tests..."></textarea>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="scenarioType" class="form-label">Scenario Type</label>
+                                <select class="form-select" id="scenarioType" name="scenario_type">
+                                    <option value="WHAT_IF" selected>What-If Analysis</option>
+                                    <option value="BASELINE">Baseline Scenario</option>
+                                    <option value="OPTIMIZATION">Optimization Study</option>
+                                    <option value="SENSITIVITY">Sensitivity Analysis</option>
+                                    <option value="COMPARISON">Scenario Comparison</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="baseScenario" class="form-label">Base Scenario (Optional)</label>
+                                <select class="form-select" id="baseScenario" name="base_scenario_id">
+                                    <option value="" selected>None</option>
+                                    {% for scenario in scenarios %}
+                                        <option value="{{ scenario.id }}">
+                                            {{ scenario.name }}
+                                            {% if scenario.scenario_type == 'BASELINE' %}<span class="text-warning">[BASELINE]</span>{% endif %}
+                                        </option>
+                                    {% endfor %}
+                                </select>
+                                <div class="form-text">Reference scenario for comparison</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="baseYearMonth" class="form-label">Base Year Month</label>
+                                <input type="text" class="form-control" id="baseYearMonth" name="base_year_month"
+                                       value="{{ default_base_ym }}" placeholder="YYYYMM" pattern="[0-9]{6}">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="planningHorizon" class="form-label">Planning Horizon (Months)</label>
+                                <input type="number" class="form-control" id="planningHorizon" name="planning_horizon_months"
+                                       value="12" min="1" max="60">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="tags" class="form-label">Tags</label>
+                                <input type="text" class="form-control" id="tags" name="tags"
+                                       placeholder="capacity-test, route-optimization">
+                                <div class="form-text">Comma-separated tags</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr>
 
                     <div class="mb-3">
                         <label for="sourceDataId" class="form-label">Copy Data From (Optional)</label>
                         <select class="form-select" id="sourceDataId" name="source_scenario_id">
                             <option value="" selected>None (Create Empty)</option>
-                            {% for scenario  in scenarios  %}
+                            {% for scenario in scenarios %}
                                 <option value="{{ scenario.id }}">
-                                    {{ scenario.id }} ({{ scenario.description|truncatechars:30 }})
+                                    {{ scenario.name }} ({{ scenario.description|truncatechars:30 }})
                                 </option>
                             {% endfor %}
                         </select>
-                        <div class="form-text">Select an existing scenario  to clone all its data.</div>
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="description" class="form-label">Description</label>
-                        <input type="text" class="form-control" id="description" name="description" placeholder="Short description">
-                    </div>
-
-                    <div class="mb-3">
-                        <label for="baseYearMonth" class="form-label">Base Year Month</label>
-                        <input type="text" class="form-control" id="baseYearMonth" name="base_year_month"
-                               value="{{ default_base_ym }}" placeholder="YYYYMM">
+                        <div class="form-text">Select an existing scenario to clone all its data.</div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary">Create</button>
+                    <button type="submit" class="btn btn-primary">
+                        <i class="bi bi-plus-lg"></i> Create Scenario
+                    </button>
                 </div>
             </form>
         </div>

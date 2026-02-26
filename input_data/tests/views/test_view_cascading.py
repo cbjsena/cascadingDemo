@@ -129,7 +129,9 @@ class TestCascadingView:
         assert new_cascade.effective_start_date == start_date
         assert new_cascade.initial_etb_date == initial_etb
 
-    def test_cascading_act_002_create_lrs(self, auth_client, pf_complex_data):
+    def test_cascading_act_002_create_lrs(
+        self, auth_client, base_scenario, pf_complex_data
+    ):
         """
         [CASCADING_ACT_002] Create LRS
         저장 및 LRS 생성 엔진 구동 동시 수행
@@ -139,7 +141,7 @@ class TestCascadingView:
 
         data = {
             "action": "create_lrs",
-            "scenario_id": "TEST_SCENARIO_001",  # base_scenario id
+            "scenario_id": base_scenario.id,  # base_scenario 픽스처의 자동 할당된 id 사용
             "lane_code": "TEST_LANE",
             "proforma_name": "PF_COMPLEX",
             "cascading_seq": "1",
@@ -221,8 +223,9 @@ class TestCascadingView:
 
         assert qs.count() == 1
         assert qs.first().proforma.lane_code == "TEST_LANE"
+        # search_params의 scenario_id는 문자열이므로 int로 변환하여 비교
         assert (
-            response.context["search_params"]["scenario_id"]
+            int(response.context["search_params"]["scenario_id"])
             == sample_schedule.scenario.id
         )
 

@@ -24,11 +24,12 @@ def auth_client(client, user):
 
 @pytest.fixture
 def base_scenario(db, user):
-    """기본 시나리오 (데이터 없음)"""
+    """기본 시나리오 (API 테스트용)"""
     return ScenarioInfo.objects.create(
-        id="SC01",
-        description="API Test Scenario",
-        status="T",
+        name="API Test Scenario",
+        description="Scenario for API testing",
+        scenario_type="BASELINE",
+        status="ACTIVE",
         created_by=user,
         updated_by=user,
     )

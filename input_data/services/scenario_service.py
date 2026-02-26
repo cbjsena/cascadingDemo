@@ -35,9 +35,11 @@ def get_system_user():
 
 
 @transaction.atomic
-def create_scenario_from_base(target_id, description="Base Scenario", user=None):
+def create_scenario_from_base(scenario_name, description="Base Scenario", user=None):
     """
     Base 데이터를 복사하여 새로운 시나리오를 생성하는 서비스 함수.
+    - scenario_name: 생성할 시나리오의 이름 (name 필드)
+    - description: 시나리오 설명
     - user: 이 작업을 수행한 사용자 (created_by에 저장)
     """
 
@@ -47,15 +49,16 @@ def create_scenario_from_base(target_id, description="Base Scenario", user=None)
         user = get_system_user()
 
     # 1. 기존 시나리오가 있다면 삭제 (Reset)
-    if ScenarioInfo.objects.filter(id=target_id).exists():
-        ScenarioInfo.objects.filter(id=target_id).delete()
+    if ScenarioInfo.objects.filter(name=scenario_name).exists():
+        ScenarioInfo.objects.filter(name=scenario_name).delete()
 
     # 2. 시나리오 마스터(ScenarioInfo) 생성
     scenario = ScenarioInfo(
-        id=target_id,
+        name=scenario_name,
         description=description,
         base_year_month=DEFAULT_BASE_YEAR_MONTH,
-        status="T",
+        scenario_type="BASELINE",  # 기본 데이터에서 생성되는 시나리오는 BASELINE
+        status="ACTIVE",
     )
 
     if user:

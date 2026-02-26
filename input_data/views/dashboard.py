@@ -1,7 +1,6 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 
-from common.constants import DEFAULT_SCENARIO_ID
 from common.menus import MENU_STRUCTURE
 from input_data.models import ScenarioInfo
 
@@ -11,6 +10,10 @@ def input_home(request):
     """대시보드 View"""
     total_scenarios = ScenarioInfo.objects.count()
     recent_scenarios = ScenarioInfo.objects.order_by("-created_at")[:5]
+
+    # 기본 시나리오 ID (첫 번째 시나리오 또는 None)
+    default_scenario = ScenarioInfo.objects.first()
+    default_scenario_id = default_scenario.id if default_scenario else None
 
     if recent_scenarios.exists():
         last_update = recent_scenarios.first().created_at
@@ -22,6 +25,6 @@ def input_home(request):
         "total_scenarios": total_scenarios,
         "recent_scenarios": recent_scenarios,
         "last_update": last_update,
-        "default_scenario_id": DEFAULT_SCENARIO_ID,
+        "default_scenario_id": default_scenario_id,
     }
     return render(request, "input_data/input_home.html", context)

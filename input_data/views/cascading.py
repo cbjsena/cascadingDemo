@@ -139,7 +139,7 @@ def cascading_list(request):
 
     context = {
         "menu_structure": MENU_STRUCTURE,
-        "current_group": "Creation Data",
+        "current_group": "Schedule",
         "current_model": "cascading_list",
         "scenarios": scenarios,
         "cascading_list": qs,
@@ -168,7 +168,7 @@ def cascading_detail(request, pk):
 
     context = {
         "menu_structure": MENU_STRUCTURE,
-        "current_group": "Creation Data",
+        "current_group": "Schedule",
         "current_model": "cascading_list",  # 메뉴 활성화를 위해 list로 유지
         "cascading": cascading,
         "details": details,

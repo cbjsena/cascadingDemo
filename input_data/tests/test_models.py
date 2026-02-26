@@ -25,9 +25,10 @@ class TestScenarioModels:
         [관련 시나리오] INPUT_SCENARIO_CREATE_001
         설명: 시나리오 생성 시 Default 값(Status) 확인
         """
-        assert base_scenario.id == "TEST_SCENARIO_001"
-        assert base_scenario.status == "T"  # Default Value Check
-        assert str(base_scenario) == "[TEST_SCENARIO_001] Base Test Scenario"
+        assert base_scenario.name == "Base Test Scenario"
+        assert base_scenario.status == "ACTIVE"  # Default Value Check
+        assert base_scenario.id is not None  # ID가 자동 할당됨
+        assert str(base_scenario) == f"Base Test Scenario (ID: {base_scenario.id})"
 
     def test_cascade_delete(self, scenario_with_data):
         """
@@ -89,7 +90,7 @@ class TestProformaModels:
         # Then
         # Master -> Scenario 연결 확인
         assert master.scenario == base_scenario
-        assert master.scenario.id == "TEST_SCENARIO_001"
+        assert master.scenario.name == "Base Test Scenario"
 
         # Detail -> Master 및 Scenario 연결 확인
         assert detail.proforma == master

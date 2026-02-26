@@ -18,13 +18,13 @@
             <form method="get" action="{% url 'input_data:cascading_list' %}" class="row g-3 align-items-end">
 
                 <div class="col-md-3">
-                    <label class="form-label small text-muted">Scenario ID</label>
+                    <label class="form-label small text-muted">Scenario Name</label>
                     <select class="form-select" id="scenarioSelect" name="scenario_id">
                         <option value="">Select Scenario</option>
                         {% for scenario in scenarios %}
                         <option value="{{ scenario.id }}"
                             {% if search_params.scenario_id == scenario.id %}selected{% endif %}>
-                            {{ scenario.id }}
+                            {{ scenario.name }}
                         </option>
                         {% endfor %}
                     </select>
@@ -65,7 +65,7 @@
                     <thead class="table-light">
                         <tr>
                             <th style="width: 5%;">No</th>
-                            <th style="width: 15%;">Scenario ID</th>
+                            <th style="width: 15%;">Scenario</th>
                             <th style="width: 10%;">Lane Code</th>
                             <th style="width: 15%;">Proforma Name</th>
                             <th style="width: 10%;">Cascading Seq</th>
@@ -79,7 +79,7 @@
                         {% for row in cascading_list %}
                         <tr>
                             <td>{{ forloop.counter }}</td>
-                            <td class="text-start fw-bold">{{ row.scenario.id }}</td>
+                            <td class="text-start fw-bold">{{ row.scenario.name }}</td>
                             <td>{{ row.proforma.lane_code }}</td>
                             <td class="text-start">{{ row.proforma.proforma_name }}</td>
                             <td><span class="badge bg-info text-dark">Seq {{ row.cascading_seq }}</span></td>

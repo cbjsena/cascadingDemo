@@ -11,13 +11,13 @@
             <form method="get" action="{% url 'input_data:proforma_list' %}" class="row g-3 align-items-end">
 
                 <div class="col-md-3">
-                    <label class="form-label fw-bold small text-muted">Scenario ID</label>
+                    <label class="form-label fw-bold small text-muted">Scenario Name</label>
                     <select class="form-select" id="scenarioSelect" name="scenario_id">
                         <option value="">Select Scenario</option>
                         {% for scenario in scenarios %}
                         <option value="{{ scenario.id }}"
                             {% if search_params.scenario_id == scenario.id %}selected{% endif %}>
-                            {{ scenario.id }}
+                            {{ scenario.name }}
                         </option>
                         {% endfor %}
                     </select>
@@ -52,7 +52,7 @@
                     <thead class="table-light">
                         <tr>
                             <th class="text-center" style="width: 50px;">No</th>
-                            <th>Scenario ID</th>
+                            <th>Scenario</th>
                             <th>Lane Code</th>
                             <th>Proforma Name</th>
                             <th>Effective From</th>
@@ -66,7 +66,7 @@
                         {% for item in proforma_list %}
                         <tr>
                             <td class="text-center">{{ forloop.counter }}</td>
-                            <td class="fw-bold text-primary">{{ item.scenario.id }}</td>
+                            <td class="fw-bold text-primary">{{ item.scenario.name }}</td>
                             <td><span class="badge bg-secondary">{{ item.lane_code }}</span></td>
                             <td class="fw-bold">{{ item.proforma_name }}</td>
 

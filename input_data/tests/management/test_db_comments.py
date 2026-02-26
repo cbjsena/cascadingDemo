@@ -36,7 +36,7 @@ class TestDBComments:
                 ), "Table comment SQL missing"
 
                 # 5. 검증: 컬럼 코멘트 (ScenarioInfo.id)
-                col_sql = 'COMMENT ON COLUMN "sce_scenario_info"."scenario_id" IS'
+                col_sql = 'COMMENT ON COLUMN "sce_scenario_info"."name" IS'
                 assert any(
                     col_sql in sql for sql in executed_sqls
                 ), "Column comment SQL missing"

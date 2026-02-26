@@ -1,7 +1,5 @@
 from django.core.management.base import BaseCommand
 
-from common import messages as msg
-from common.constants import DEFAULT_SCENARIO_ID
 from input_data.services.scenario_service import create_scenario_from_base
 
 
@@ -9,21 +7,34 @@ class Command(BaseCommand):
     help = "Create a default scenario from Base data"
 
     def add_arguments(self, parser):
-        parser.add_argument("--scenario_id", type=str, default=DEFAULT_SCENARIO_ID)
+        parser.add_argument(
+            "--name",
+            type=str,
+            default="Base Scenario",
+            help="Name for the default scenario",
+        )
+        parser.add_argument(
+            "--description",
+            type=str,
+            default="Base scenario created from initial data",
+            help="Description for the default scenario",
+        )
 
     def handle(self, *args, **kwargs):
-        target_id = kwargs["scenario_id"]
+        scenario_name = kwargs["name"]
+        description = kwargs["description"]
+
         self.stdout.write(
-            self.style.MIGRATE_HEADING(f"Creating Default Scenario: {target_id}")
+            self.style.MIGRATE_HEADING(f"Creating Default Scenario: '{scenario_name}'")
         )
 
         try:
-            # 서비스 호출
-            scenario, summary = create_scenario_from_base(target_id)
+            # 서비스 호출 (새로운 시그니처 사용)
+            scenario, summary = create_scenario_from_base(scenario_name, description)
 
             self.stdout.write(
                 self.style.SUCCESS(
-                    msg.SCENARIO_CREATE_SUCCESS.format(scenario_id=target_id)
+                    f"Scenario '{scenario_name}' (ID: {scenario.id}) created successfully."
                 )
             )
 

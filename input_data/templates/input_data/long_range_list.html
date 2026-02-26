@@ -21,13 +21,13 @@
         <div class="card-body">
             <form method="get" class="row g-3 align-items-end">
                 <div class="col-md-2">
-                    <label class="form-label small text-muted">Scenario ID</label>
+                    <label class="form-label small text-muted">Scenario Name</label>
                     <select class="form-select" id="scenarioSelect" name="scenario_id">
                         <option value="">Select Scenario</option>
                         {% for scenario in scenarios %}
                         <option value="{{ scenario.id }}"
                                 {% if search_params.scenario_id == scenario.id %}selected{% endif %}>
-                            {{ scenario.id }}
+                            {{ scenario.name }}
                         </option>
                         {% endfor %}
                     </select>

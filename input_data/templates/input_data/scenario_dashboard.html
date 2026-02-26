@@ -1,17 +1,51 @@
 {% extends "base.html" %}
 
-{% block title %}Scenario Dashboard - {{ scenario.id }}{% endblock %}
+{% block title %}{{ scenario.name }} Dashboard{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
+    <!-- Enhanced Header with Simulation Info -->
     <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
         <div>
             <h1 class="h2">
-                <i class="bi bi-speedometer2 text-primary"></i> Scenario Dashboard
+                <i class="bi bi-speedometer2 text-primary"></i>
+                {% if simulation_info.is_baseline %}
+                    <span class="badge bg-warning text-dark me-2">BASELINE</span>
+                {% else %}
+                    <span class="badge bg-info me-2">{{ scenario.get_scenario_type_display }}</span>
+                {% endif %}
+                Scenario Dashboard
             </h1>
-            <p class="text-muted mb-0">
-                ID: <strong>{{ scenario.id }}</strong> | Base YM: {{ scenario.base_year_month }}
-            </p>
+            <div class="d-flex flex-wrap gap-3">
+                <div>
+                    <strong class="fs-4">{{ scenario.name }}</strong>
+                </div>
+                {% if scenario.base_year_month %}
+                <div class="text-muted">
+                    <i class="bi bi-calendar3"></i> Base: {{ scenario.base_year_month }}
+                </div>
+                {% endif %}
+                <div class="text-muted">
+                    <i class="bi bi-clock"></i>
+                    <span class="badge bg-{{ scenario.calculation_status|default:'secondary' }}">
+                        {{ scenario.get_calculation_status_display|default:"Unknown" }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Tags -->
+            {% if simulation_info.tag_list %}
+            <div class="mt-2">
+                {% for tag in simulation_info.tag_list %}
+                    <span class="badge bg-secondary me-1">{{ tag }}</span>
+                {% endfor %}
+            </div>
+            {% endif %}
+
+            <!-- Description -->
+            {% if scenario.description %}
+            <p class="text-muted mt-2 mb-0">{{ scenario.description }}</p>
+            {% endif %}
         </div>
         <div class="btn-toolbar mb-2 mb-md-0">
             <a href="{% url 'input_data:scenario_list' %}" class="btn btn-sm btn-outline-secondary">
@@ -23,8 +57,9 @@
         </div>
     </div>
 
+    <!-- Enhanced KPI Cards with Simulation Info -->
     <div class="row g-4 mb-4">
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card shadow-sm border-start border-4 border-primary h-100">
                 <div class="card-body">
                     <div class="text-muted small text-uppercase fw-bold">Total Lanes</div>
@@ -32,13 +67,13 @@
                         <i class="bi bi-signpost-split fs-1 text-primary me-3"></i>
                         <div>
                             <span class="h2 fw-bold">{{ summary.total_lanes }}</span>
-                            <span class="text-muted"> Svcs</span>
+                            <span class="text-muted"> Services</span>
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card shadow-sm border-start border-4 border-success h-100">
                 <div class="card-body">
                     <div class="text-muted small text-uppercase fw-bold">Required Vessels</div>
@@ -46,16 +81,21 @@
                         <i class="bi bi-box-seam fs-1 text-success me-3"></i>
                         <div>
                             <span class="h2 fw-bold">{{ summary.total_vessels }}</span>
-                            <span class="text-muted"> Vsls</span>
+                            <span class="text-muted"> Vessels</span>
+                            {% if simulation_info.virtual_vessels_count > 0 %}
+                                <div class="small text-info">
+                                    <i class="bi bi-cpu"></i> {{ simulation_info.virtual_vessels_count }} Virtual
+                                </div>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
             </div>
         </div>
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="card shadow-sm border-start border-4 border-info h-100">
                 <div class="card-body">
-                    <div class="text-muted small text-uppercase fw-bold">Total Capacity Deployed</div>
+                    <div class="text-muted small text-uppercase fw-bold">Total Capacity</div>
                     <div class="d-flex align-items-center mt-2">
                         <i class="bi bi-boxes fs-1 text-info me-3"></i>
                         <div>
@@ -66,7 +106,58 @@
                 </div>
             </div>
         </div>
+        <div class="col-md-3">
+            <div class="card shadow-sm border-start border-4 border-warning h-100">
+                <div class="card-body">
+                    <div class="text-muted small text-uppercase fw-bold">Simulation Runs</div>
+                    <div class="d-flex align-items-center mt-2">
+                        <i class="bi bi-play-circle fs-1 text-warning me-3"></i>
+                        <div>
+                            <span class="h2 fw-bold">{{ simulation_info.simulation_runs_count }}</span>
+                            <span class="text-muted"> Runs</span>
+                            {% if scenario.last_calculated %}
+                                <div class="small text-success">
+                                    <i class="bi bi-check-circle"></i> {{ scenario.last_calculated|timesince }} ago
+                                </div>
+                            {% else %}
+                                <div class="small text-muted">
+                                    <i class="bi bi-dash-circle"></i> Not calculated
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
+
+    <!-- Planning Horizon and Base Scenario Info -->
+    {% if scenario.base_scenario or scenario.planning_horizon_months %}
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card border-0 bg-light">
+                <div class="card-body py-2">
+                    <div class="row align-items-center">
+                        {% if scenario.base_scenario %}
+                        <div class="col-md-6">
+                            <small class="text-muted">Base Scenario:</small>
+                            <a href="{% url 'input_data:scenario_dashboard' scenario.base_scenario.id %}" class="text-decoration-none">
+                                <i class="bi bi-link-45deg"></i> {{ scenario.base_scenario.name }}
+                            </a>
+                        </div>
+                        {% endif %}
+                        {% if scenario.planning_horizon_months %}
+                        <div class="col-md-6">
+                            <small class="text-muted">Planning Horizon:</small>
+                            <span class="fw-bold">{{ scenario.planning_horizon_months }} months</span>
+                        </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
     <div class="card shadow-sm">
         <div class="card-header bg-light fw-bold">

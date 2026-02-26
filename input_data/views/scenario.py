@@ -11,7 +11,6 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from common import messages as msg
-from common.constants import DEFAULT_BASE_YEAR_MONTH
 from common.menus import MENU_STRUCTURE
 from input_data.models import ProformaSchedule, ScenarioInfo
 from input_data.services.scenario_service import create_scenario_from_base
@@ -21,24 +20,12 @@ from input_data.services.scenario_service import create_scenario_from_base
 def scenario_list(request):
     scenarios = ScenarioInfo.objects.all().order_by("-created_at")
 
-    # 기본값 생성 로직 (Helper)
-    today_str = timezone.now().strftime("%Y%m%d")
-    last_scenario = (
-        ScenarioInfo.objects.filter(id__startswith=today_str).order_by("-id").first()
-    )
-    new_seq = 1
-    if last_scenario:
-        try:
-            new_seq = int(last_scenario.id[8:]) + 1
-        except ValueError:
-            pass
-    default_scenario_id = f"{today_str}{new_seq:02d}"
+    # 기본값 생성 로직 (시나리오 이름 기반)
     default_base_ym = timezone.now().strftime("%Y%m")
 
     context = {
         "menu_structure": MENU_STRUCTURE,
         "scenarios": scenarios,
-        "default_scenario_id": default_scenario_id,
         "default_base_ym": default_base_ym,
     }
     return render(request, "input_data/scenario_list.html", context)
@@ -48,21 +35,51 @@ def scenario_list(request):
 @transaction.atomic
 def scenario_create(request):
     if request.method == "POST":
-        new_scenario_id = request.POST.get("scenario_id")
+        name = request.POST.get("name", "").strip()
         source_scenario_id = request.POST.get("source_scenario_id")
-        description = request.POST.get("description")
+        description = request.POST.get("description", "")
         base_ym = request.POST.get("base_year_month")
+        scenario_type = request.POST.get("scenario_type", "WHAT_IF")
+        base_scenario_id = request.POST.get("base_scenario_id")
+        planning_horizon_months = request.POST.get("planning_horizon_months", 12)
+        tags = request.POST.get("tags", "")
 
-        if ScenarioInfo.objects.filter(id=new_scenario_id).exists():
+        if not name:
+            messages.error(request, "Scenario name is required.")
+            return redirect("input_data:scenario_list")
+
+        if ScenarioInfo.objects.filter(name=name).exists():
             messages.error(
-                request, msg.SCENARIO_ID_DUPLICATE.format(scenario_id=new_scenario_id)
+                request,
+                f"Scenario name '{name}' already exists. Please use a different name.",
             )
             return redirect("input_data:scenario_list")
 
+        # 베이스 시나리오 참조 설정
+        base_scenario = None
+
+        # 1. 명시적으로 base_scenario_id가 지정된 경우 우선 사용
+        if base_scenario_id:
+            try:
+                base_scenario = ScenarioInfo.objects.get(id=base_scenario_id)
+            except ScenarioInfo.DoesNotExist:
+                pass
+
+        # 2. source_scenario_id가 있는 경우 (복사), 복사 원본을 base_scenario로 자동 설정
+        if source_scenario_id and not base_scenario:
+            try:
+                base_scenario = ScenarioInfo.objects.get(id=source_scenario_id)
+            except ScenarioInfo.DoesNotExist:
+                pass
+
         new_scenario = ScenarioInfo.objects.create(
-            id=new_scenario_id,
+            name=name,
             description=description,
             base_year_month=base_ym,
+            scenario_type=scenario_type,
+            base_scenario=base_scenario,  # 복사 시 자동으로 원본 시나리오 참조
+            planning_horizon_months=int(planning_horizon_months or 12),
+            tags=tags,
             created_by=request.user,
             updated_by=request.user,
         )
@@ -70,19 +87,18 @@ def scenario_create(request):
         if source_scenario_id:
             try:
                 _clone_scenario_data(source_scenario_id, new_scenario)
+                source_name = (
+                    base_scenario.name if base_scenario else source_scenario_id
+                )
                 messages.success(
                     request,
-                    msg.SCENARIO_CLONE_SUCCESS.format(
-                        scenario_id=new_scenario_id, source_id=source_scenario_id
-                    ),
+                    f"Scenario '{name}' created successfully (Cloned from '{source_name}').",
                 )
             except Exception as e:
                 messages.error(request, msg.SCENARIO_CLONE_ERROR.format(error=str(e)))
                 return redirect("input_data:scenario_list")
         else:
-            messages.success(
-                request, msg.SCENARIO_CREATE_SUCCESS.format(scenario_id=new_scenario_id)
-            )
+            messages.success(request, f"Scenario '{name}' created successfully.")
 
         return redirect("input_data:scenario_list")
     return redirect("input_data:scenario_list")
@@ -118,23 +134,23 @@ def create_base_scenario_view(request):
         # (Fetch API 사용 시 body, Form submit 시 POST dict)
         if request.content_type == "application/json":
             data = json.loads(request.body)
-            target_id = data.get("scenario_id", DEFAULT_BASE_YEAR_MONTH)
+            scenario_name = data.get("scenario_name", "Base Scenario")
             description = data.get("description", "Base Scenario created from Web")
         else:
-            target_id = request.POST.get("scenario_id", DEFAULT_BASE_YEAR_MONTH)
+            scenario_name = request.POST.get("scenario_name", "Base Scenario")
             description = request.POST.get(
                 "description", "Base Scenario created from Web"
             )
 
-        # [수정 사항 3] 로그인한 사용자(request.user) 전달
+        # 새로운 서비스 시그니처에 맞게 호출
         scenario, summary = create_scenario_from_base(
-            target_id=target_id, description=description, user=request.user
+            scenario_name=scenario_name, description=description, user=request.user
         )
 
         return JsonResponse(
             {
                 "status": "success",
-                "message": msg.SCENARIO_CREATE_SUCCESS.format(scenario_id=target_id),
+                "message": f"Scenario '{scenario_name}' (ID: {scenario.id}) created successfully.",
                 "summary": summary,
             }
         )
@@ -151,26 +167,30 @@ def scenario_dashboard(request, scenario_id):
     """
     [View] 시나리오 상세 대시보드
     - Lane별 선박 투입 계획(Proforma) 요약 및 통계 제공
+    - 새로운 ScenarioInfo 필드들 지원
     """
-    # Todo lrs 완성 이후 lrs에서 가져와서 보여주도록 수정(count 대비 실제 deploy된 선박, 용량, 첫 날짜)
     # 1. 시나리오 조회 (없으면 404)
     scenario = get_object_or_404(ScenarioInfo, id=scenario_id)
 
     # 2. 스케줄 데이터 집계 (Group By Lane, Name)
-    # ProformaSchedule은 기항지(Port)별로 행이 생성되므로, 헤더 정보 기준으로 묶어야 함
+    # ProformaSchedule (Master) + ProformaScheduleDetail (상세) 조인
     schedules_qs = (
         ProformaSchedule.objects.filter(scenario=scenario)
+        .annotate(
+            # Detail에서 기항지 수 계산
+            ports_count=Count("details", distinct=True)
+        )
         .values(
             "lane_code",
             "proforma_name",
             "declared_capacity",
             "declared_count",
             "duration",
+            "effective_from_date",
         )
         .annotate(
-            # 그룹별 집계 함수 적용
-            start_date=Min("effective_from_date"),  # 시작일 (데이터 중 가장 빠른 날짜)
-            port_count=Count("port_code"),  # 기항지 수
+            start_date=Min("effective_from_date"),  # 시작일
+            ports_count=Count("details", distinct=True),  # 기항지 수
         )
         .order_by("lane_code", "proforma_name")
     )
@@ -197,7 +217,16 @@ def scenario_dashboard(request, scenario_id):
 
         schedules.append(item)
 
-    # 4. Context 구성
+    # 4. 시뮬레이션 상태 및 KPI 정보 추가
+    latest_kpi = (
+        None  # scenario.kpi_snapshots.first()  # 최신 KPI (TODO: 구현 후 활성화)
+    )
+    virtual_vessels_count = (
+        0  # scenario.virtual_vessels.count()  # 가상 선박 수 (TODO: 구현 후 활성화)
+    )
+    simulation_runs_count = 0  # scenario.simulation_runs.count()  # 시뮬레이션 실행 횟수 (TODO: 구현 후 활성화)
+
+    # 5. Context 구성
     context = {
         "menu_structure": MENU_STRUCTURE,
         "current_model": "scenario_list",  # 사이드바 메뉴 활성화 (Scenario List 하위 개념)
@@ -207,6 +236,14 @@ def scenario_dashboard(request, scenario_id):
             "total_lanes": total_lanes,
             "total_vessels": total_vessels,
             "total_capacity": total_capacity,
+        },
+        # 새로운 ScenarioInfo 필드들
+        "simulation_info": {
+            "virtual_vessels_count": virtual_vessels_count,
+            "simulation_runs_count": simulation_runs_count,
+            "latest_kpi": latest_kpi,
+            "tag_list": scenario.tag_list,  # property로 태그 리스트
+            "is_baseline": scenario.is_baseline,  # property로 베이스라인 여부
         },
     }
 

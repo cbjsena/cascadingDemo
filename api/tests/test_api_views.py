@@ -27,6 +27,10 @@ class TestApiViews:
         self.client = auth_client
         self.scenario = base_scenario  # conftest의 픽스처 재사용
 
+        # 시나리오가 자동 ID로 생성되었는지 확인
+        assert self.scenario.id is not None
+        assert self.scenario.name == "API Test Scenario"
+
         # 1. Distance (PUS -> TYO : 500)
         Distance.objects.create(
             scenario=self.scenario,

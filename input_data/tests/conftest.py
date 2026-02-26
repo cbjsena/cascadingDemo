@@ -50,10 +50,11 @@ def auth_client(client, user):
 def base_scenario(db, user):
     """기본 시나리오 (데이터 없음)"""
     return ScenarioInfo.objects.create(
-        id="TEST_SCENARIO_001",
-        description="Base Test Scenario",
+        name="Base Test Scenario",
+        description="Base Test Scenario for testing",
         base_year_month="202602",
-        status="T",
+        scenario_type="BASELINE",
+        status="ACTIVE",
         created_by=user,
         updated_by=user,
     )
@@ -64,10 +65,11 @@ def scenario_with_data(db, user):
     """하위 데이터가 포함된 시나리오"""
     # 1. 부모 생성 (Scenario)
     scenario = ScenarioInfo.objects.create(
-        id="SCENARIO_WITH_DATA",
+        name="Scenario With Test Data",
         description="Scenario for Cascade Test",
         base_year_month="202602",
-        status="T",
+        scenario_type="WHAT_IF",
+        status="ACTIVE",
         created_by=user,
         updated_by=user,
     )
@@ -228,7 +230,11 @@ def pf_complex_data(db, base_scenario, user):
 def lrs_integration_data(db, user):
     """[추가됨] LRS 통합 테스트용 공통 데이터"""
     scenario = ScenarioInfo.objects.create(
-        id="INT_SCENARIO", description="Integration Test", status="T", created_by=user
+        name="Integration Test Scenario",
+        description="Integration Test",
+        scenario_type="WHAT_IF",
+        status="ACTIVE",
+        created_by=user,
     )
     # - Lane A에는 'VESSEL_A' 배정
     LongRangeSchedule.objects.create(

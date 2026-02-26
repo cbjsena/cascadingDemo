@@ -2,7 +2,20 @@ from django.db import models
 
 from common.models import CommonModel
 
-SCENARIO_STATUS_CODE = (("T", "TEST"), ("N", "Not used"))
+SCENARIO_STATUS_CODE = (
+    ("DRAFT", "Draft - Work in Progress"),
+    ("ACTIVE", "Active - Ready for Analysis"),
+    ("ARCHIVED", "Archived - Completed Analysis"),
+    ("BASELINE", "Baseline - Reference Scenario"),
+)
+
+SCENARIO_TYPE_CHOICES = (
+    ("BASELINE", "Baseline Scenario"),
+    ("WHAT_IF", "What-If Analysis"),
+    ("OPTIMIZATION", "Optimization Study"),
+    ("SENSITIVITY", "Sensitivity Analysis"),
+    ("COMPARISON", "Scenario Comparison"),
+)
 OWN_TYPE_CHOICES = (("O", "Own"), ("C", "Chartered"))
 DIRECTION_CHOICES = (("E", "East"), ("W", "West"), ("S", "South"), ("N", "North"))
 SCHEDULE_CHANGE_STATUS_CODE_CHOICES = (
@@ -28,34 +41,113 @@ DEPLOYMENT_TYPE_CHOICES = (
 # [Main] Scenario Info
 # ==========================================
 class ScenarioInfo(CommonModel):
-    id = models.CharField(
-        max_length=50,
-        primary_key=True,
-        db_column="scenario_id",
-        verbose_name="Scenario ID",
+    # Auto-incrementing ID (Django standard)
+    id = models.AutoField(primary_key=True, verbose_name="Scenario ID")
+
+    # User-friendly unique name
+    name = models.CharField(
+        max_length=100,
+        unique=True,
+        verbose_name="Scenario Name",
+        help_text="Unique, user-friendly name for this simulation scenario",
     )
-    description = models.CharField(
-        max_length=255, null=True, blank=True, verbose_name="Description"
+
+    description = models.TextField(
+        null=True,
+        blank=True,
+        verbose_name="Description",
+        help_text="Detailed description of what this scenario tests",
     )
+
+    # Simulation-specific fields
+    scenario_type = models.CharField(
+        max_length=20,
+        choices=SCENARIO_TYPE_CHOICES,
+        default="WHAT_IF",
+        verbose_name="Scenario Type",
+    )
+    base_scenario = models.ForeignKey(
+        "self",
+        on_delete=models.SET_NULL,
+        null=True,
+        blank=True,
+        verbose_name="Base Scenario",
+        help_text="Reference scenario for comparison",
+    )
+
+    # Planning period
     base_year_month = models.CharField(
         max_length=6,
         null=True,
         blank=True,
-        verbose_name="Year and month used as the base period / YYYYMM",
+        verbose_name="Base Year-Month / YYYYMM",
+        help_text="Planning period start",
     )
+    planning_horizon_months = models.PositiveIntegerField(
+        default=12,
+        verbose_name="Planning Horizon (Months)",
+        help_text="How many months ahead to simulate",
+    )
+
+    # Status and metadata
     status = models.CharField(
-        max_length=50,
+        max_length=20,
         choices=SCENARIO_STATUS_CODE,
-        default="T",
-        verbose_name="Scenario Status {T: TEST, N: Not used}",
+        default="DRAFT",
+        verbose_name="Scenario Status",
+    )
+    tags = models.CharField(
+        max_length=200,
+        blank=True,
+        verbose_name="Tags",
+        help_text="Comma-separated tags for categorization (e.g., capacity-test, route-optimization)",
+    )
+
+    # Analysis results cache
+    last_calculated = models.DateTimeField(
+        null=True,
+        blank=True,
+        verbose_name="Last Calculated",
+        help_text="When this scenario was last fully calculated",
+    )
+    calculation_status = models.CharField(
+        max_length=20,
+        choices=(
+            ("PENDING", "Pending Calculation"),
+            ("CALCULATING", "Currently Calculating"),
+            ("COMPLETED", "Calculation Complete"),
+            ("ERROR", "Calculation Error"),
+        ),
+        default="PENDING",
+        verbose_name="Calculation Status",
     )
 
     class Meta:
         verbose_name = "Scenario Info"
-        db_table = "sce_scenario_info"  # [변경] cas -> sce
+        verbose_name_plural = "Simulation Scenarios"
+        db_table = "sce_scenario_info"
+        ordering = ["-created_at"]
 
     def __str__(self):
-        return f"[{self.id}] {self.description}"
+        return f"{self.name} (ID: {self.id})"
+
+    @property
+    def is_baseline(self):
+        """Check if this is a baseline scenario"""
+        return self.scenario_type == "BASELINE"
+
+    @property
+    def tag_list(self):
+        """Return tags as a list"""
+        return (
+            [tag.strip() for tag in self.tags.split(",") if tag.strip()]
+            if self.tags
+            else []
+        )
+
+    def get_comparison_scenarios(self):
+        """Get scenarios that use this as a base for comparison"""
+        return ScenarioInfo.objects.filter(base_scenario=self)
 
 
 # ==========================================
@@ -233,7 +325,7 @@ class ProformaSchedule(ScenarioBaseModel):
         unique_together = ("scenario", "lane_code", "proforma_name")
 
     def __str__(self):
-        return f"[{self.scenario_id}] {self.lane_code} - {self.proforma_name}"
+        return f"[{self.scenario.id}] {self.lane_code} - {self.proforma_name}"
 
 
 class ProformaScheduleDetail(CommonModel):
@@ -372,7 +464,7 @@ class CascadingSchedule(ScenarioBaseModel):
         unique_together = ("proforma", "cascading_seq")
 
     def __str__(self):
-        return f"[{self.scenario_id}] {self.proforma.proforma_name} - Seq {self.cascading_seq}"
+        return f"[{self.scenario.id}] {self.proforma.proforma_name} - Seq {self.cascading_seq}"
 
 
 class CascadingScheduleDetail(CommonModel):
@@ -1047,7 +1139,7 @@ class FixedScheduleChange(AbsFixedScheduleChange, ScenarioBaseModel):
     def __str__(self):
         return (
             f"[{self.scenario.id}] {self.vessel_code} : {self.port_code} "
-            f"({self.get_event_type_display()}) @ {self.eta.date()}"
+            f"({self.get_schedule_change_status_code_display()}) @ {self.eta.date()}"
         )
 
 
@@ -1301,3 +1393,138 @@ class BaseWeekPeriod(models.Model):
 #
 #     def __str__(self):
 #         return f"{self.ghg_target_effective_from_year}~{self.ghg_target_effective_to_year}:{self.ghg_target_co2}"
+
+
+# ==========================================
+# Simulation Analysis & Results
+# ==========================================
+class SimulationRun(CommonModel):
+    """시뮬레이션 실행 기록"""
+
+    scenario = models.ForeignKey(
+        ScenarioInfo, on_delete=models.CASCADE, related_name="simulation_runs"
+    )
+    run_name = models.CharField(
+        max_length=100,
+        verbose_name="Run Name",
+        help_text="Name for this simulation run",
+    )
+    parameters = models.JSONField(
+        default=dict,
+        verbose_name="Simulation Parameters",
+        help_text="Parameters used for this simulation run",
+    )
+    start_time = models.DateTimeField(auto_now_add=True, verbose_name="Start Time")
+    end_time = models.DateTimeField(null=True, blank=True, verbose_name="End Time")
+    status = models.CharField(
+        max_length=20,
+        choices=(
+            ("RUNNING", "Running"),
+            ("COMPLETED", "Completed"),
+            ("FAILED", "Failed"),
+            ("CANCELLED", "Cancelled"),
+        ),
+        default="RUNNING",
+    )
+    results_summary = models.JSONField(
+        default=dict,
+        verbose_name="Results Summary",
+        help_text="Key performance indicators and summary metrics",
+    )
+
+    class Meta:
+        db_table = "sce_simulation_run"
+        ordering = ["-start_time"]
+
+    def __str__(self):
+        return f"{self.scenario.id} - {self.run_name}"
+
+    @property
+    def duration(self):
+        """Calculate simulation run duration"""
+        if self.end_time and self.start_time:
+            return self.end_time - self.start_time
+        return None
+
+
+class ScenarioComparison(CommonModel):
+    """시나리오 비교 분석"""
+
+    name = models.CharField(max_length=100, verbose_name="Comparison Name")
+    base_scenario = models.ForeignKey(
+        ScenarioInfo,
+        on_delete=models.CASCADE,
+        related_name="base_comparisons",
+        verbose_name="Base Scenario",
+    )
+    compare_scenarios = models.ManyToManyField(
+        ScenarioInfo,
+        related_name="compare_comparisons",
+        verbose_name="Scenarios to Compare",
+    )
+    comparison_metrics = models.JSONField(
+        default=list,
+        verbose_name="Comparison Metrics",
+        help_text="List of metrics to compare (e.g., cost, utilization, schedule adherence)",
+    )
+    results = models.JSONField(default=dict, verbose_name="Comparison Results")
+
+    class Meta:
+        db_table = "sce_scenario_comparison"
+        ordering = ["-created_at"]
+
+    def __str__(self):
+        return f"Comparison: {self.name}"
+
+
+class KPISnapshot(CommonModel):
+    """시나리오별 KPI 스냅샷"""
+
+    scenario = models.ForeignKey(
+        ScenarioInfo, on_delete=models.CASCADE, related_name="kpi_snapshots"
+    )
+    snapshot_date = models.DateTimeField(
+        auto_now_add=True, verbose_name="Snapshot Date"
+    )
+
+    # Key Performance Indicators
+    total_vessels = models.IntegerField(default=0, verbose_name="Total Vessels")
+    total_capacity_teu = models.DecimalField(
+        max_digits=12, decimal_places=2, default=0, verbose_name="Total Capacity (TEU)"
+    )
+    utilization_rate = models.DecimalField(
+        max_digits=5, decimal_places=2, default=0, verbose_name="Utilization Rate (%)"
+    )
+    total_voyages = models.IntegerField(default=0, verbose_name="Total Voyages")
+    average_port_time = models.DecimalField(
+        max_digits=8,
+        decimal_places=2,
+        default=0,
+        verbose_name="Average Port Time (Hours)",
+    )
+
+    # Cost metrics (can be expanded)
+    estimated_fuel_cost = models.DecimalField(
+        max_digits=15, decimal_places=2, default=0, verbose_name="Estimated Fuel Cost"
+    )
+    estimated_charter_cost = models.DecimalField(
+        max_digits=15,
+        decimal_places=2,
+        default=0,
+        verbose_name="Estimated Charter Cost",
+    )
+
+    # Custom metrics
+    custom_metrics = models.JSONField(
+        default=dict,
+        verbose_name="Custom Metrics",
+        help_text="Additional custom KPIs specific to this scenario",
+    )
+
+    class Meta:
+        db_table = "sce_kpi_snapshot"
+        ordering = ["-snapshot_date"]
+        unique_together = ("scenario", "snapshot_date")
+
+    def __str__(self):
+        return f"KPI - {self.scenario.id} ({self.snapshot_date.date()})"
