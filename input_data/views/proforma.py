@@ -6,7 +6,13 @@ from django.shortcuts import redirect, render
 from django.urls import reverse
 
 from common import constants as const, messages as msg
-from common.menus import MENU_STRUCTURE
+from common.menus import (
+    CREATION_MENU_STRUCTURE,
+    MENU_STRUCTURE,
+    MenuGroup,
+    MenuItem,
+    MenuSection,
+)
 from input_data.models import ProformaSchedule, ScenarioInfo
 from input_data.services.proforma_service import ProformaService
 
@@ -25,8 +31,10 @@ def proforma_create(request):
         "header": {},
         "days": const.DAYS,
         "menu_structure": MENU_STRUCTURE,
-        "current_group": "Creation Data",  # 사이드바에서 펼쳐놓을 그룹 (선택사항)
-        "current_model": "proforma_create",  # 현재 활성화된 메뉴 (선택사항)
+        "creation_menu_structure": CREATION_MENU_STRUCTURE,
+        "current_section": MenuSection.CREATION,
+        "current_group": MenuGroup.SCHEDULE,
+        "current_model": MenuItem.PROFORMA_CREATE,
     }
 
     # =========================================================
@@ -181,8 +189,10 @@ def proforma_upload(request):
                 # "summary": summary,  # <--- 화면으로 전달
                 "days": const.DAYS,
                 "menu_structure": MENU_STRUCTURE,
-                "current_group": "Creation Data",
-                "current_model": "proforma_create",
+                "creation_menu_structure": CREATION_MENU_STRUCTURE,
+                "current_section": MenuSection.CREATION,
+                "current_group": MenuGroup.SCHEDULE,
+                "current_model": MenuItem.PROFORMA_CREATE,
             }
 
             messages.success(request, msg.UPLOAD_SUCCESS)
@@ -242,8 +252,10 @@ def proforma_list(request):
 
     context = {
         "menu_structure": MENU_STRUCTURE,
-        "current_group": "Schedule",
-        "current_model": "proforma_schedule",
+        "creation_menu_structure": CREATION_MENU_STRUCTURE,
+        "current_section": MenuSection.INPUT_MANAGEMENT,
+        "current_group": MenuGroup.SCHEDULE,
+        "current_model": MenuItem.PROFORMA_SCHEDULE,
         "proforma_list": queryset,
         "scenarios": scenarios,  # 반드시 필요함
         "search_params": {
@@ -280,8 +292,10 @@ def proforma_detail(request):
     # 3. Context 구성
     context = {
         "menu_structure": MENU_STRUCTURE,
-        "current_group": "Schedule",
-        "current_model": "proforma_schedule",
+        "creation_menu_structure": CREATION_MENU_STRUCTURE,
+        "current_section": MenuSection.INPUT_MANAGEMENT,
+        "current_group": MenuGroup.SCHEDULE,
+        "current_model": MenuItem.PROFORMA_SCHEDULE,
         "header": header,
         "rows": rows,
         # 권한 체크 로직을 위해 User 정보 전달 (Template에서 분기 처리 가능)

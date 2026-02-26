@@ -8,6 +8,7 @@ from django.urls import reverse
 from django.utils import timezone
 
 from common import messages as msg
+from common.menus import MenuGroup, MenuItem, MenuSection
 from input_data.models import ProformaSchedule, ProformaScheduleDetail
 
 
@@ -36,7 +37,7 @@ class TestProformaReadViews:
         assert any(item.lane_code == "TEST_LANE" for item in proforma_list)
 
         # [Check] 메뉴 그룹 확인
-        assert response.context["current_group"] == "Schedule"
+        assert response.context["current_group"] == MenuGroup.SCHEDULE
 
     def test_proforma_list_search(self, auth_client, base_scenario, user):
         """
@@ -112,13 +113,13 @@ class TestProformaReadViews:
         header = response.context["header"]
         assert header["lane_code"] == "TEST_LANE"
         # [Check] 메뉴 그룹 확인
-        assert response.context["current_group"] == "Schedule"
+        assert response.context["current_group"] == MenuGroup.SCHEDULE
         assert len(response.context["rows"]) == 1
 
     def test_proforma_view_initial(self, auth_client, base_scenario):
         """
         [PF_CREATE_001] 생성 화면 초기 진입
-        Changed: 메뉴 그룹이 'Creation Data'인지 확인
+        Changed: Creation 섹션의 Schedule 그룹인지 확인
         """
         url = reverse("input_data:proforma_create")
         response = auth_client.get(url)
@@ -127,9 +128,10 @@ class TestProformaReadViews:
         assert len(response.context["rows"]) == 0
         assert "scenarios" in response.context
 
-        # [Check] 메뉴 그룹 확인
-        assert response.context["current_group"] == "Creation Data"
-        assert response.context["current_model"] == "proforma_create"
+        # [Check] 메뉴 섹션과 그룹, 모델 확인
+        assert response.context["current_section"] == MenuSection.CREATION
+        assert response.context["current_group"] == MenuGroup.SCHEDULE
+        assert response.context["current_model"] == MenuItem.PROFORMA_CREATE
 
     def test_proforma_edit_mode_load(self, auth_client, sample_schedule):
         """

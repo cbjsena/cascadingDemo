@@ -1,7 +1,11 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 
-from common.menus import MENU_STRUCTURE
+from common.menus import (
+    CREATION_MENU_STRUCTURE,
+    MENU_STRUCTURE,
+    MenuSection,
+)
 from input_data.models import ScenarioInfo
 
 
@@ -22,6 +26,8 @@ def input_home(request):
 
     context = {
         "menu_structure": MENU_STRUCTURE,
+        "creation_menu_structure": CREATION_MENU_STRUCTURE,
+        "current_section": MenuSection.INPUT_MANAGEMENT,
         "total_scenarios": total_scenarios,
         "recent_scenarios": recent_scenarios,
         "last_update": last_update,

@@ -1,7 +1,13 @@
 from django.contrib.auth.decorators import login_required
 from django.shortcuts import render
 
-from common.menus import MENU_STRUCTURE
+from common.menus import (
+    CREATION_MENU_STRUCTURE,
+    MENU_STRUCTURE,
+    MenuGroup,
+    MenuItem,
+    MenuSection,
+)
 from input_data.models import (
     LongRangeSchedule,
     ScenarioInfo,
@@ -43,8 +49,10 @@ def long_range_list(request):
 
     context = {
         "menu_structure": MENU_STRUCTURE,
-        "current_group": "Schedule",
-        "current_model": "long_range_list",
+        "creation_menu_structure": CREATION_MENU_STRUCTURE,
+        "current_section": MenuSection.INPUT_MANAGEMENT,
+        "current_group": MenuGroup.SCHEDULE,
+        "current_model": MenuItem.LONG_RANGE_SCHEDULE,
         "scenarios": ScenarioInfo.objects.all().order_by("-created_at"),
         "lrs_list": lrs_qs,
         # 검색 상태 유지용

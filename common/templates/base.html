@@ -62,18 +62,59 @@
                 </div>
                 {% endif %}
 
+                <h6 class="sidebar-heading">Creation</h6>
+
+                <ul class="nav flex-column">
+                    {% for group, items in creation_menu_structure.items %}
+                    <li class="nav-item mt-1">
+                        <a class="nav-link d-flex justify-content-between align-items-center {% if current_section != 'creation' or current_group != group %}collapsed{% endif %}"
+                           data-bs-toggle="collapse"
+                           href="#menu-creation-{{ forloop.counter }}"
+                           role="button"
+                           aria-expanded="{% if current_section == 'creation' and current_group == group %}true{% else %}false{% endif %}">
+                            <span>
+                                {% if group == "Schedule" %}<i class="bi bi-calendar-week me-2"></i>
+                                {% elif group == "Master" %}<i class="bi bi-database me-2"></i>
+                                {% else %}<i class="bi bi-globe-europe-africa me-2"></i>
+                                {% endif %}
+                                {{ group }}
+                            </span>
+                            <i class="bi bi-chevron-down small"></i>
+                        </a>
+                        <div class="collapse {% if current_section == 'creation' and current_group == group %}show{% endif %}" id="menu-creation-{{ forloop.counter }}">
+                            <ul class="nav flex-column sub-menu my-1">
+                                {% for item in items %}
+                                <li class="nav-item">
+                                    <a class="nav-link {% if current_model == item.key %}active{% endif %}"
+                                       href="{% if item.url_name %}
+                                                {% url item.url_name %}
+                                             {% else %}
+                                                {% url 'input_data:input_list' group item.key %}
+                                             {% endif %}">
+
+                                        <i class="bi bi-chevron-right"></i>
+                                        {{ item.name }}
+                                    </a>
+                                </li>
+                                {% endfor %}
+                            </ul>
+                        </div>
+                    </li>
+                    {% endfor %}
+                </ul>
+
                 <h6 class="sidebar-heading">Input Management</h6>
 
                 <ul class="nav flex-column">
                     <li class="nav-item">
                         <a href="{% url 'input_data:input_home' %}"
-                           class="nav-link {% if request.resolver_match.url_name == 'input_home' %}active{% endif %}">
+                           class="nav-link {% if current_model == 'input_home' %}active{% endif %}">
                             <i class="bi bi-speedometer2 me-2"></i> Dashboard
                         </a>
                     </li>
                     <li class="nav-item">
                         <a href="{% url 'input_data:scenario_list' %}"
-                           class="nav-link {% if request.resolver_match.url_name == 'scenario_list' %}active{% endif %}">
+                           class="nav-link {% if current_model == 'scenario_list' %}active{% endif %}">
                             <i class="bi bi-layers-half me-2"></i> Scenario List
                         </a>
                     </li>
@@ -81,15 +122,13 @@
 
                     {% for group, items in menu_structure.items %}
                     <li class="nav-item mt-1">
-                        <a class="nav-link d-flex justify-content-between align-items-center {% if current_group != group %}collapsed{% endif %}"
+                        <a class="nav-link d-flex justify-content-between align-items-center {% if current_section != 'input_management' or current_group != group %}collapsed{% endif %}"
                            data-bs-toggle="collapse"
                            href="#menu-{{ forloop.counter }}"
                            role="button"
-                           aria-expanded="{% if current_group == group %}true{% else %}false{% endif %}">
+                           aria-expanded="{% if current_section == 'input_management' and current_group == group %}true{% else %}false{% endif %}">
                             <span>
-                                {% if group == "Creation Data" %} <i class="bi bi-pencil-square me-2"></i>
-                                {% elif group == "Master Data" %} <i class="bi bi-database me-2"></i>
-                                {% elif group == "Schedule" %}<i class="bi bi-calendar-week me-2"></i>
+                                {% if group == "Schedule" %}<i class="bi bi-calendar-week me-2"></i>
                                 {% elif group == "Vessel" %}<i class="bi bi-globe me-2"></i>
                                 {% elif group == "Cost" %}<i class="bi bi-cash-coin me-2"></i>
                                 {% elif group == "Bunker" %}<i class="bi bi-fuel-pump me-2"></i>
@@ -99,7 +138,7 @@
                             </span>
                             <i class="bi bi-chevron-down small"></i>
                         </a>
-                        <div class="collapse {% if current_group == group %}show{% endif %}" id="menu-{{ forloop.counter }}">
+                        <div class="collapse {% if current_section == 'input_management' and current_group == group %}show{% endif %}" id="menu-{{ forloop.counter }}">
                             <ul class="nav flex-column sub-menu my-1">
                                 {% for item in items %}
                                 <li class="nav-item">

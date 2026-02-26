@@ -4,7 +4,13 @@ from django.db import transaction
 from django.shortcuts import get_object_or_404, redirect, render
 
 from common import messages as msg
-from common.menus import MENU_STRUCTURE
+from common.menus import (
+    CREATION_MENU_STRUCTURE,
+    MENU_STRUCTURE,
+    MenuGroup,
+    MenuItem,
+    MenuSection,
+)
 from input_data.models import CascadingSchedule, ScenarioInfo
 from input_data.services.cascading_service import CascadingService
 from input_data.services.long_range_service import LongRangeService
@@ -21,8 +27,10 @@ def cascading_create(request):
 
     context = {
         "menu_structure": MENU_STRUCTURE,
-        "current_group": "Creation Data",
-        "current_model": "cascading_create",
+        "creation_menu_structure": CREATION_MENU_STRUCTURE,
+        "current_section": MenuSection.CREATION,
+        "current_group": MenuGroup.SCHEDULE,
+        "current_model": MenuItem.CASCADING_CREATE,
         "scenarios": scenarios,
         "preserved_data": {},
         "restored_rows": [],
@@ -136,11 +144,12 @@ def cascading_list(request):
         qs = qs.filter(proforma__proforma_name=proforma_name)
 
     scenarios = ScenarioInfo.objects.all().order_by("-created_at")
-
     context = {
         "menu_structure": MENU_STRUCTURE,
-        "current_group": "Schedule",
-        "current_model": "cascading_list",
+        "creation_menu_structure": CREATION_MENU_STRUCTURE,
+        "current_section": MenuSection.INPUT_MANAGEMENT,
+        "current_group": MenuGroup.SCHEDULE,
+        "current_model": MenuItem.CASCADING_SCHEDULE,
         "scenarios": scenarios,
         "cascading_list": qs,
         "search_params": {
@@ -168,8 +177,10 @@ def cascading_detail(request, pk):
 
     context = {
         "menu_structure": MENU_STRUCTURE,
-        "current_group": "Schedule",
-        "current_model": "cascading_list",  # 메뉴 활성화를 위해 list로 유지
+        "creation_menu_structure": CREATION_MENU_STRUCTURE,
+        "current_section": MenuSection.INPUT_MANAGEMENT,
+        "current_group": MenuGroup.SCHEDULE,
+        "current_model": MenuItem.CASCADING_SCHEDULE,
         "cascading": cascading,
         "details": details,
     }

@@ -11,7 +11,12 @@ from django.utils import timezone
 from django.views.decorators.http import require_POST
 
 from common import messages as msg
-from common.menus import MENU_STRUCTURE
+from common.menus import (
+    CREATION_MENU_STRUCTURE,
+    MENU_STRUCTURE,
+    MenuItem,
+    MenuSection,
+)
 from input_data.models import ProformaSchedule, ScenarioInfo
 from input_data.services.scenario_service import create_scenario_from_base
 
@@ -25,6 +30,9 @@ def scenario_list(request):
 
     context = {
         "menu_structure": MENU_STRUCTURE,
+        "creation_menu_structure": CREATION_MENU_STRUCTURE,
+        "current_section": MenuSection.INPUT_MANAGEMENT,
+        "current_model": MenuItem.SCENARIO_LIST,
         "scenarios": scenarios,
         "default_base_ym": default_base_ym,
     }
@@ -229,7 +237,9 @@ def scenario_dashboard(request, scenario_id):
     # 5. Context 구성
     context = {
         "menu_structure": MENU_STRUCTURE,
-        "current_model": "scenario_list",  # 사이드바 메뉴 활성화 (Scenario List 하위 개념)
+        "creation_menu_structure": CREATION_MENU_STRUCTURE,
+        "current_section": MenuSection.INPUT_MANAGEMENT,
+        "current_model": MenuItem.SCENARIO_LIST,
         "scenario": scenario,
         "schedules": schedules,
         "summary": {

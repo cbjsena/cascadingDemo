@@ -1,47 +1,84 @@
 # common/menus.py (파일 생성 추천)
-MENU_STRUCTURE = {
-    # 1. 생성 관련 메뉴 그룹
-    "Creation Data": [
+
+
+# 메뉴 섹션 상수
+class MenuSection:
+    CREATION = "creation"
+    INPUT_MANAGEMENT = "input_management"
+
+
+# 메뉴 그룹 상수
+class MenuGroup:
+    SCHEDULE = "Schedule"
+    MASTER = "Master"
+    VESSEL = "Vessel"
+    COST = "Cost"
+    BUNKER = "Bunker"
+    CONSTRAINT = "Constraint"
+
+
+# 메뉴 모델 상수 (현재 활성화된 메뉴 항목)
+class MenuItem:
+    # Creation - Schedule
+    PROFORMA_CREATE = "proforma_create"
+    CASCADING_CREATE = "cascading_create"
+
+    # Input Management - Schedule
+    PROFORMA_SCHEDULE = "proforma_schedule"
+    CASCADING_SCHEDULE = "cascading_schedule"
+    LONG_RANGE_SCHEDULE = "long_range_schedule"
+
+    # Input Management - Dashboard & Scenario
+    DASHBOARD = "input_home"
+    SCENARIO_LIST = "scenario_list"
+
+
+# Creation 메뉴 구조 (별도 관리)
+CREATION_MENU_STRUCTURE = {
+    MenuGroup.SCHEDULE: [
         {
             "name": "Proforma Creation",
             "url_name": "input_data:proforma_create",
-            "key": "proforma_create",
+            "key": MenuItem.PROFORMA_CREATE,
         },
         {
             "name": "Cascading Creation",
             "url_name": "input_data:cascading_create",
-            "key": "cascading_create",
+            "key": MenuItem.CASCADING_CREATE,
         },
     ],
-    # "Master Data": [
-    #
-    #     {"name": "Lane Info", "key": "lane_info", "url_name": None},
-    #     {"name": "Port Info", "key": "port_info", "url_name": None},
-    #     # ... 기타 항목들 ...
-    # ],
-    "Schedule": [
+    MenuGroup.MASTER: [
+        {"name": "Lane Info", "key": "lane_info", "url_name": None},
+        {"name": "Port Info", "key": "port_info", "url_name": None},
+        # ... 기타 항목들 ...
+    ],
+}
+
+# Input Management 메뉴 구조
+MENU_STRUCTURE = {
+    MenuGroup.SCHEDULE: [
         {
             "name": "Proforma Schedule",
-            "key": "proforma_schedule",
+            "key": MenuItem.PROFORMA_SCHEDULE,
             "url_name": "input_data:proforma_list",
         },
         {
             "name": "Cascading Schedule",
-            "key": "cascading_schedule",
+            "key": MenuItem.CASCADING_SCHEDULE,
             "url_name": "input_data:cascading_list",
         },
         {
             "name": "Long Range Schedule",
-            "key": "long_range_schedule",
+            "key": MenuItem.LONG_RANGE_SCHEDULE,
             "url_name": "input_data:long_range_list",
         },
     ],
-    "Vessel": [
+    MenuGroup.VESSEL: [
         {"name": "Vessel Info", "key": "vessel_info"},
         {"name": "Charter Cost", "key": "charter_cost"},
         {"name": "Vessel Capacity", "key": "vessel_capacity"},
     ],
-    "Cost": [
+    MenuGroup.COST: [
         {"name": "Canal Fee", "key": "canal_fee"},
         {"name": "Distance", "key": "distance"},
         {"name": "TS Cost", "key": "ts_cost"},
@@ -49,13 +86,13 @@ MENU_STRUCTURE = {
         # {"name": "Own Vessel Cost", "key": "own_vessel_cost"},
         # {"name": "Port Charge", "key": "port_charge"},
     ],
-    "Bunker": [
+    MenuGroup.BUNKER: [
         {"name": "Bunker Consumption Sea", "key": "bunker_consumption_sea"},
         {"name": "Bunker Consumption Port", "key": "bunker_consumption_port"},
         # {"name": "Bunkering Port", "key": "bunkering_port"},
         {"name": "Bunker Price", "key": "bunker_price"},
     ],
-    "Constraint": [
+    MenuGroup.CONSTRAINT: [
         {"name": "Fix Lane Vessel", "key": "constraint_fixed_deployment"},
         {"name": "Fix Vessel Schedule", "key": "constraint_fixed_schedule_change"},
         {"name": "Constraint Port", "key": "constraint_port"},

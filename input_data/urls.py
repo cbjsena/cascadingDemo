@@ -9,7 +9,7 @@ urlpatterns = [
     #  데이터 홈 (대시보드 형태)
     path("", views.input_home, name="input_home"),
     # Scenario 목록 전용 URL (반드시 동적 URL보다 위에 위치)
-    path("scenarios/", views.scenario_list, name="scenario_list"),
+    path("scenario/list/", views.scenario_list, name="scenario_list"),
     path("scenarios/create/", views.scenario_create, name="scenario_create"),
     path(
         "scenarios/delete/<str:scenario_id>/",
