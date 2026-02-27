@@ -114,11 +114,18 @@ def proforma_detail(request):
 def vessel_list(request):
     """가용 선박 목록 조회 (VesselCapacity)"""
     scenario_id = request.GET.get("scenario_id")
+    lane_code = request.GET.get("lane_code")  # Lane별 필터링 지원
     data = {"vessels": []}
+
     if scenario_id:
+        qs = VesselCapacity.objects.filter(scenario_id=scenario_id)
+
+        # Lane 필터링이 있는 경우 적용
+        if lane_code:
+            qs = qs.filter(lane_code=lane_code)
+
         qs = (
-            VesselCapacity.objects.filter(scenario_id=scenario_id)
-            .values("vessel_code")
+            qs.values("vessel_code")
             .annotate(max_cap=Max("vessel_capacity"))
             .order_by("vessel_code")
         )

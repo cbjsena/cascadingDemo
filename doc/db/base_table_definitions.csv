@@ -1,5 +1,5 @@
 ﻿[Base Data Table Definition]
-Generated At,2026-02-16 04:02:24
+Generated At,2026-02-27 02:41:51
 
 Table Name,Column Name,Data Type,Nullable,Description (Comment)
 base_bunker_consumption_port,base_year_month,string,NO,Year and month used as the base period / YYYYMM
@@ -40,6 +40,14 @@ base_cost_distance,eca_distance,int,NO,Port-to-Port ECA Distance (NM)
 base_cost_ts_cost,base_year_month,string,NO,Year and month used as the base period / YYYYMM
 base_cost_ts_cost,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
 base_cost_ts_cost,ts_cost,int,NO,Transshipment Cost (USD)
+base_schedule_cascading,lane_code,string,NO,Lane Code
+base_schedule_cascading,proforma_name,string,NO,Proforma Name
+base_schedule_cascading,cascading_seq,int,NO,Cascading Sequence
+base_schedule_cascading,own_vessel_count,int,NO,Own Vessels Count
+base_schedule_cascading,effective_start_date,date,NO,Effective start date of the cascading schedule
+base_schedule_cascading,effective_end_date,date,YES,Effective end date of the cascading schedule
+base_schedule_cascading,vessel_code,string,NO,Vessel Code
+base_schedule_cascading,initial_start_date,date,NO,Initial Start Date
 base_schedule_long_range,lane_code,string,NO,Lane Code / 3 alphanum
 base_schedule_long_range,vessel_code,string,NO,Vessel Code / 4 alphanum
 base_schedule_long_range,voyage_number,string,NO,Voyage Number / 4 numeric digits

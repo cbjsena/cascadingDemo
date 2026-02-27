@@ -1,9 +1,13 @@
+from datetime import timedelta
+
 import pytest
 
 from django.contrib.auth.models import User
 from django.utils import timezone
 
 from input_data.models import (
+    CascadingSchedule,
+    CascadingScheduleDetail,
     Distance,
     LongRangeSchedule,
     ProformaSchedule,
@@ -292,3 +296,117 @@ def cascading_service():
 @pytest.fixture
 def lrs_service():
     return LongRangeService()
+
+
+# =========================================================
+# Cascading Fixtures
+# =========================================================
+@pytest.fixture
+def cascading_with_details(db, sample_schedule, user):
+    """
+    Cascading Schedule과 Detail이 포함된 테스트 데이터
+    CASCADING_VIEW_003, CASCADING_ACT_002, CASCADING_DETAIL_001/002 등에서 사용
+    ※ Detail 수는 sample_schedule.declared_count(=2)를 초과하지 않도록 한다.
+    """
+    cascading = CascadingSchedule.objects.create(
+        scenario=sample_schedule.scenario,
+        proforma=sample_schedule,
+        cascading_seq=1,
+        own_vessel_count=2,
+        proforma_start_etb_date=timezone.now().date(),
+        effective_start_date=timezone.now().date(),
+        effective_end_date=timezone.now().date() + timedelta(days=365),
+        created_by=user,
+        updated_by=user,
+    )
+
+    # Detail 데이터 2건 (= sample_schedule.declared_count)
+    vessels = ["V001", "V002"]
+    for i, vessel_code in enumerate(vessels):
+        CascadingScheduleDetail.objects.create(
+            cascading=cascading,
+            vessel_code=vessel_code,
+            initial_start_date=timezone.now().date() + timedelta(days=i * 7),
+            created_by=user,
+            updated_by=user,
+        )
+
+    return cascading
+
+
+@pytest.fixture
+def cascading_form_data(sample_schedule):
+    """
+    Cascading 생성/수정용 폼 데이터
+    CASCADING_ACT_001, CASCADING_ACT_002, CASCADING_ACT_003 등에서 사용
+    """
+    return {
+        "scenario_id": sample_schedule.scenario.id,
+        "lane_code": sample_schedule.lane_code,
+        "proforma_name": sample_schedule.proforma_name,
+        "cascading_seq": 1,
+        "own_vessel_count": 3,
+        "effective_start_date": "2026-02-15",
+        "effective_end_date": "2027-02-15",
+        "vessel_code[]": ["V001", "V002", "V003"],
+        "vessel_capacity[]": ["5000", "5000", "5000"],
+        "vessel_start_date[]": ["2026-02-15", "2026-02-22", "2026-03-01"],
+        "lane_code_list[]": ["TEST_LANE", "TEST_LANE", "TEST_LANE"],
+    }
+
+
+@pytest.fixture
+def cascading_invalid_form_data(sample_schedule):
+    """
+    Cascading 유효하지 않은 폼 데이터 (Own Vessels와 선박 수 불일치)
+    CASCADING_ACT_004, CASCADING_ACT_006 등에서 사용
+    """
+    return {
+        "scenario_id": sample_schedule.scenario.id,
+        "lane_code": sample_schedule.lane_code,
+        "proforma_name": sample_schedule.proforma_name,
+        "cascading_seq": 1,
+        "own_vessel_count": 3,  # 3대 요구
+        "effective_start_date": "2026-02-15",
+        "effective_end_date": "2027-02-15",
+        "vessel_code[]": ["V001", "V002"],  # 2대만 선택 (불일치)
+        "vessel_capacity[]": ["5000", "5000"],
+        "vessel_start_date[]": ["2026-02-15", "2026-02-22"],
+        "lane_code_list[]": ["TEST_LANE", "TEST_LANE"],
+    }
+
+
+@pytest.fixture
+def multiple_cascading_data(db, sample_schedule, user):
+    """
+    여러 Cascading 데이터 (목록 조회 테스트용)
+    CASCADING_LIST_001에서 사용
+    """
+    cascadings = []
+
+    # FE1 Lane에 2개의 Cascading
+    for seq in [1, 2]:
+        cascading = CascadingSchedule.objects.create(
+            scenario=sample_schedule.scenario,
+            proforma=sample_schedule,
+            cascading_seq=seq,
+            own_vessel_count=2,
+            proforma_start_etb_date=timezone.now().date(),
+            effective_start_date=timezone.now().date(),
+            effective_end_date=timezone.now().date() + timedelta(days=365),
+            created_by=user,
+            updated_by=user,
+        )
+        cascadings.append(cascading)
+
+        # 각각에 Detail 2건씩
+        for i in range(2):
+            CascadingScheduleDetail.objects.create(
+                cascading=cascading,
+                vessel_code=f"V{seq:02d}{i+1}",
+                initial_start_date=timezone.now().date() + timedelta(days=i * 7),
+                created_by=user,
+                updated_by=user,
+            )
+
+    return cascadings

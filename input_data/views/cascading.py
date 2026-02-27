@@ -11,7 +11,13 @@ from common.menus import (
     MenuItem,
     MenuSection,
 )
-from input_data.models import CascadingSchedule, ScenarioInfo
+from input_data.models import (
+    BaseVesselCapacity,
+    BaseVesselInfo,
+    CascadingSchedule,
+    ProformaSchedule,
+    ScenarioInfo,
+)
 from input_data.services.cascading_service import CascadingService
 from input_data.services.long_range_service import LongRangeService
 
@@ -25,6 +31,30 @@ def cascading_create(request):
     lrs_svc = LongRangeService()
     scenarios = ScenarioInfo.objects.all().order_by("-created_at")
 
+    # Vessel 목록 가져오기 (VesselInfo와 VesselCapacity 조인)
+    vessel_list = (
+        BaseVesselInfo.objects.all()
+        .values("vessel_code", "vessel_name")
+        .distinct()
+        .order_by("vessel_code")
+    )
+
+    # 각 vessel에 대한 capacity 정보 추가
+    vessel_data = []
+    for vessel in vessel_list:
+        # 해당 vessel의 capacity 정보를 가져오기 (첫 번째 것만)
+        capacity_info = BaseVesselCapacity.objects.filter(
+            vessel_code=vessel["vessel_code"]
+        ).first()
+
+        vessel_data.append(
+            {
+                "vessel_code": vessel["vessel_code"],
+                "vessel_name": vessel["vessel_name"],
+                "max_cap": capacity_info.vessel_capacity if capacity_info else 0,
+            }
+        )
+
     context = {
         "menu_structure": MENU_STRUCTURE,
         "creation_menu_structure": CREATION_MENU_STRUCTURE,
@@ -32,6 +62,7 @@ def cascading_create(request):
         "current_group": MenuGroup.SCHEDULE,
         "current_model": MenuItem.CASCADING_CREATE,
         "scenarios": scenarios,
+        "vessel_list": vessel_data,  # 선박 목록 추가
         "preserved_data": {},
         "restored_rows": [],
         "is_edit_mode": False,  # [추가] Edit 모드 플래그
@@ -52,9 +83,37 @@ def cascading_create(request):
                 q_scenario, q_lane, q_proforma, q_seq
             )
             if data:
-                context["preserved_data"] = data["header"]
+                # scenario_id를 문자열로 변환하여 저장 (템플릿 비교를 위해)
+                header = data["header"].copy()
+                if header.get("scenario_id"):
+                    header["scenario_id"] = str(header["scenario_id"])
+
+                context["preserved_data"] = header
                 context["restored_rows"] = data["details"]
                 context["is_edit_mode"] = True
+
+                # Edit 모드일 때 Lane Code와 Proforma Name 옵션들을 미리 로드
+                # 해당 시나리오의 모든 Lane Code 가져오기
+                lane_options = list(
+                    ProformaSchedule.objects.filter(scenario_id=q_scenario)
+                    .values_list("lane_code", flat=True)
+                    .distinct()
+                    .order_by("lane_code")
+                )
+
+                # 해당 시나리오와 Lane Code의 모든 Proforma Name 가져오기
+                proforma_options = list(
+                    ProformaSchedule.objects.filter(
+                        scenario_id=q_scenario, lane_code=q_lane
+                    )
+                    .values_list("proforma_name", flat=True)
+                    .distinct()
+                    .order_by("proforma_name")
+                )
+
+                context["lane_options"] = lane_options
+                context["proforma_options"] = proforma_options
+
             else:
                 messages.error(request, msg.CASCADING_NOT_FOUND)
 
@@ -92,7 +151,7 @@ def cascading_create(request):
                 "lane_code": data.get("lane_code", ""),
                 "proforma_name": data.get("proforma_name", ""),
                 "cascading_seq": data.get("cascading_seq", ""),
-                "own_vessels": data.get("own_vessel_count", ""),
+                "own_vessel_count": data.get("own_vessel_count", ""),
                 "required_count": data.get("required_count", ""),
                 "effective_start_date": data.get("effective_start_date", ""),
                 "effective_end_date": data.get("effective_end_date", ""),
@@ -132,7 +191,7 @@ def cascading_list(request):
     qs = (
         CascadingSchedule.objects.select_related("scenario", "proforma")
         .all()
-        .order_by("-created_at")
+        .order_by("-proforma__lane_code", "-proforma__proforma_name", "-cascading_seq")
     )
 
     # 2. 필터 적용 (Select Box이므로 정확한 일치로 변경)
@@ -175,6 +234,20 @@ def cascading_detail(request, pk):
     # 2. Detail 목록 가져오기 (역방향 참조명 details 활용)
     details = cascading.details.all().order_by("id")
 
+    # 3. 첫 번째 포트의 ETB 요일 정보 가져오기
+    first_port_day = None
+    try:
+        # Proforma의 첫 번째 포트 스케줄 가져오기
+        first_schedule = cascading.proforma.details.filter(
+            calling_port_seq=1  # 첫 번째 포트
+        ).first()
+
+        if first_schedule and first_schedule.etb_day_code:
+            first_port_day = first_schedule.etb_day_code
+    except Exception as e:
+        # 에러가 발생해도 페이지는 정상 표시
+        print(f"Error getting first port day: {e}")
+
     context = {
         "menu_structure": MENU_STRUCTURE,
         "creation_menu_structure": CREATION_MENU_STRUCTURE,
@@ -183,6 +256,7 @@ def cascading_detail(request, pk):
         "current_model": MenuItem.CASCADING_SCHEDULE,
         "cascading": cascading,
         "details": details,
+        "first_port_day": first_port_day,  # 첫 번째 포트 요일 코드 (SUN, MON 등)
     }
 
     return render(request, "input_data/cascading_detail.html", context)

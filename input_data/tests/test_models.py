@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import pytest
 
@@ -22,8 +22,8 @@ class TestScenarioModels:
 
     def test_scenario_creation_defaults(self, base_scenario):
         """
-        [관련 시나리오] INPUT_SCENARIO_CREATE_001
-        설명: 시나리오 생성 시 Default 값(Status) 확인
+        [MODEL_SCE_001] Scenario 모델 Default
+        ScenarioInfo 생성 시 Default 값(status=ACTIVE) 및 ID 자동 할당 검증
         """
         assert base_scenario.name == "Base Test Scenario"
         assert base_scenario.status == "ACTIVE"  # Default Value Check
@@ -32,8 +32,8 @@ class TestScenarioModels:
 
     def test_cascade_delete(self, scenario_with_data):
         """
-        [관련 시나리오] INPUT_SCENARIO_DELETE_001
-        설명: 부모(Scenario) 삭제 시 자식(ProformaSchedule)이 Cascade 삭제되는지 검증
+        [MODEL_SCE_002] Scenario Cascade Delete
+        Scenario 삭제 시 하위 ProformaSchedule이 Cascade 삭제되는지 검증
         """
         # Given: 부모와 자식 데이터가 존재함
         target_id = scenario_with_data.id
@@ -56,8 +56,8 @@ class TestProformaModels:
 
     def test_proforma_creation_link(self, base_scenario, user):
         """
-        [관련 시나리오] PROFORMA_SAVE_FULL
-        설명: Proforma Master 및 Detail 데이터 생성 시 FK 연결 완결성 확인
+        [MODEL_PF_001] Proforma Master-Detail FK
+        ProformaSchedule(Master)과 ProformaScheduleDetail(Detail) 생성 시 FK 연결 검증
         """
         # When
         eff_from_date = timezone.make_aware(datetime(2026, 1, 1))
@@ -98,8 +98,8 @@ class TestProformaModels:
 
     def test_master_unique_constraint(self, base_scenario, user):
         """
-        [DB Integrity Check - Master]
-        설명: 동일 시나리오 내 동일 Lane/Proforma Name 중복 생성 방지
+        [MODEL_PF_002] Proforma Master Unique
+        동일 시나리오 내 동일 Lane/Proforma Name 중복 생성 시 IntegrityError 발생 검증
         """
         # Given: 첫 번째 Master 데이터 생성
         common_master_data = {
@@ -121,8 +121,8 @@ class TestProformaModels:
 
     def test_detail_unique_constraint(self, base_scenario, user):
         """
-        [DB Integrity Check - Detail]
-        설명: 동일 Proforma 내 동일 포트/방향/순서 중복 생성 방지
+        [MODEL_PF_003] Proforma Detail Unique
+        동일 Proforma 내 동일 포트/방향/순서 중복 생성 시 IntegrityError 발생 검증
         """
         # Given: 부모 Master 생성
         master = ProformaSchedule.objects.create(
@@ -156,59 +156,115 @@ class TestProformaModels:
 
 @pytest.mark.django_db
 class TestCascadingModels:
-    """[신규] CascadingSchedule 관련 모델 무결성 테스트"""
+    """
+    CascadingSchedule 및 CascadingScheduleDetail 모델 테스트
+    """
 
-    def test_cascading_unique_constraint(self, sample_schedule, user):
+    def test_cascading_model_creation(self, sample_schedule, user):
         """
-        [DB Integrity Check - Master]
-        설명: 동일한 Proforma에 동일한 cascading_seq 중복 생성 방지
-        관련 시나리오: CASCADING_ACT_001 (Save 시 유일키 제약조건 방어)
+        [MODEL_CAS_001] Cascading 모델 생성
+        CascadingSchedule 생성 시 필드 값 및 __str__ 출력 검증
         """
-        CascadingSchedule.objects.create(
-            scenario=sample_schedule.scenario,
-            proforma=sample_schedule,
-            cascading_seq=1,
-            own_vessels=1,
-            initial_etb_date=timezone.now().date(),
-            effective_start_date=timezone.now().date(),
-            created_by=user,
-        )
-        with pytest.raises(IntegrityError):
-            CascadingSchedule.objects.create(
-                scenario=sample_schedule.scenario,
-                proforma=sample_schedule,
-                cascading_seq=1,
-                own_vessels=2,
-                initial_etb_date=timezone.now().date(),
-                effective_start_date=timezone.now().date(),
-                created_by=user,
-            )
-
-    def test_cascading_detail_unique_constraint(self, sample_schedule, user):
-        """
-        [DB Integrity Check - Detail]
-        설명: 동일 Cascading 내 동일 선박(vessel_code) 중복 등록 방지
-        관련 시나리오: CASCADING_ACT_001 (동일한 배 중복 투입 시 DB 에러)
-        """
+        # Given & When: CascadingSchedule 생성
         cascading = CascadingSchedule.objects.create(
             scenario=sample_schedule.scenario,
             proforma=sample_schedule,
             cascading_seq=1,
-            own_vessels=2,
-            initial_etb_date=timezone.now().date(),
+            own_vessel_count=3,
+            proforma_start_etb_date=timezone.now().date(),
+            effective_start_date=timezone.now().date(),
+            effective_end_date=timezone.now().date() + timedelta(days=365),
+            created_by=user,
+            updated_by=user,
+        )
+
+        # Then: 필드 검증
+        assert cascading.cascading_seq == 1
+        assert cascading.own_vessel_count == 3
+        assert cascading.proforma_start_etb_date is not None
+        assert cascading.scenario == sample_schedule.scenario
+        assert cascading.proforma == sample_schedule
+        assert (
+            str(cascading)
+            == f"[{sample_schedule.scenario.id}] {sample_schedule.proforma_name} - Seq 1"
+        )
+
+    def test_cascading_detail_creation(self, cascading_with_details):
+        """
+        [MODEL_CAS_002] Cascading Detail 생성 및 FK
+        CascadingScheduleDetail 생성 시 Master와의 FK 관계 검증
+        """
+        # Given: cascading_with_details fixture에서 생성된 데이터
+        details = CascadingScheduleDetail.objects.filter(
+            cascading=cascading_with_details
+        )
+
+        # Then: Detail 데이터 검증
+        assert details.count() == 2
+
+        for detail in details:
+            assert detail.cascading == cascading_with_details
+            assert detail.vessel_code in ["V001", "V002"]
+            assert detail.initial_start_date is not None
+
+    def test_cascading_unique_constraint(self, sample_schedule, user):
+        """
+        [MODEL_CAS_003] Cascading Unique
+        동일 proforma+seq 조합 중복 생성 시 IntegrityError 발생 검증
+        """
+        # Given: 첫 번째 Cascading 생성
+        CascadingSchedule.objects.create(
+            scenario=sample_schedule.scenario,
+            proforma=sample_schedule,
+            cascading_seq=1,
+            own_vessel_count=2,
+            proforma_start_etb_date=timezone.now().date(),
             effective_start_date=timezone.now().date(),
             created_by=user,
         )
-        CascadingScheduleDetail.objects.create(
-            cascading=cascading,
-            vessel_code="VESSEL_1",
-            initial_start_date=timezone.now().date(),
-            created_by=user,
-        )
+
+        # When & Then: 동일한 proforma + seq 조합으로 중복 생성 시도
+        with pytest.raises(IntegrityError):
+            CascadingSchedule.objects.create(
+                scenario=sample_schedule.scenario,
+                proforma=sample_schedule,
+                cascading_seq=1,  # 동일한 seq
+                own_vessel_count=3,
+                proforma_start_etb_date=timezone.now().date(),
+                effective_start_date=timezone.now().date(),
+                created_by=user,
+            )
+
+    def test_cascading_detail_unique_constraint(self, cascading_with_details, user):
+        """
+        [MODEL_CAS_004] Cascading Detail Unique
+        동일 cascading+vessel_code 중복 생성 시 IntegrityError 발생 검증
+        """
+        # When & Then: 동일한 cascading + vessel_code 조합으로 중복 생성 시도
         with pytest.raises(IntegrityError):
             CascadingScheduleDetail.objects.create(
-                cascading=cascading,
-                vessel_code="VESSEL_1",
+                cascading=cascading_with_details,
+                vessel_code="V001",  # 이미 존재하는 vessel_code
                 initial_start_date=timezone.now().date(),
                 created_by=user,
             )
+
+    def test_cascading_cascade_delete(self, cascading_with_details):
+        """
+        [MODEL_CAS_005] Cascading Cascade Delete
+        CascadingSchedule 삭제 시 Detail 데이터도 함께 삭제되는지 검증
+        """
+        # Given: Detail 데이터 존재 확인
+        detail_count = CascadingScheduleDetail.objects.filter(
+            cascading=cascading_with_details
+        ).count()
+        assert detail_count == 2
+
+        # When: Master 삭제
+        cascading_with_details.delete()
+
+        # Then: Detail 데이터도 함께 삭제됨
+        remaining_details = CascadingScheduleDetail.objects.filter(
+            cascading_id=cascading_with_details.id
+        ).count()
+        assert remaining_details == 0

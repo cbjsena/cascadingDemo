@@ -22,7 +22,7 @@
                             <option value="">Select Scenario</option>
                             {% for scenario in scenarios %}
                             <option value="{{ scenario.id }}"
-                                {% if preserved_data.scenario_id == scenario.id %}selected{% endif %}>
+                                {% if preserved_data.scenario_id and preserved_data.scenario_id|stringformat:"s" == scenario.id|stringformat:"s" %}selected{% endif %}>
                                 {{ scenario.name }}
                             </option>
                             {% endfor %}
@@ -32,7 +32,7 @@
                     <div class="col-md-3">
                         <label class="form-label small text-muted">Lane Code</label>
                         <select class="form-select" id="laneSelect" name="lane_code" required
-                                {% if not is_error_state %}disabled{% endif %}>
+                                {% if not is_error_state and not is_edit_mode %}disabled{% endif %}>
                             <option value="">Select Lane</option>
                             {% for opt in lane_options %}
                             <option value="{{ opt }}"
@@ -46,7 +46,7 @@
                     <div class="col-md-3">
                         <label class="form-label small text-muted">Proforma Name</label>
                         <select class="form-select" id="proformaSelect" name="proforma_name" required
-                                {% if not is_error_state %}disabled{% endif %}>
+                                {% if not is_error_state and not is_edit_mode %}disabled{% endif %}>
                             <option value="">Select Proforma</option>
                             {% for opt in proforma_options %}
                             <option value="{{ opt }}"
@@ -58,7 +58,7 @@
                     </div>
                     <div class="col-md-3">
                         <button type="button" class="btn btn-primary w-100" id="btnLoadProforma"
-                                {% if not is_error_state %}disabled{% endif %}>
+                                {% if not is_error_state and not is_edit_mode %}disabled{% endif %}>
                             <i class="bi bi-arrow-down-circle"></i> Load Info
                         </button>
                     </div>
@@ -73,7 +73,7 @@
                 <div class="card-body">
                     <div class="row g-3">
                         <div class="col-md-2">
-                            <label class="form-label small text-muted">Required Vessels</label>
+                            <label class="form-label small text-muted">Declared Count</label>
                             <input type="text" class="form-control bg-light" id="requiredCount" readonly
                                    value="{% if preserved_data.required_count %}{{ preserved_data.required_count }}
                                           {% elif restored_rows %}{{ restored_rows|length }}
@@ -100,7 +100,7 @@
                         </div>
                         <div class="col-md-3">
                             <label class="form-label fw-bold">End Date</label>
-                            <input type="date" class="form-control" name="effective_end_date" required
+                            <input type="date" class="form-control" id="lrsEndDate" name="effective_end_date" required
                                    value="{{ preserved_data.effective_end_date|default:'' }}">
                         </div>
                         <input type="hidden" id="pfFirstDay" value="">
@@ -179,12 +179,12 @@
 
             <div class="d-flex justify-content-end pb-5">
                 <button type="submit" name="action" value="save" class="btn btn-primary btn-lg px-4" id="btnSaveCascading"
-                        {% if not is_error_state %}disabled{% endif %}>
+                        {% if not is_error_state and not is_edit_mode %}disabled{% endif %}>
                     <i class="bi bi-save"></i> Save Cascading
                 </button>
 
                 <button type="submit" name="action" value="create_lrs" class="btn btn-success btn-lg px-4" id="btnCreateLRS"
-                        {% if not is_error_state %}disabled{% endif %}>
+                        {% if not is_error_state and not is_edit_mode %}disabled{% endif %}>
                     <i class="bi bi-play-circle"></i> Create LRS
                 </button>
             </div>
@@ -228,7 +228,7 @@
         startDayHint: document.getElementById('startDayHint'),
         ownInput: document.getElementById('ownVesselCount'),
         startDate: document.getElementById('lrsStartDate'),
-        endDate: document.querySelector('input[name="effective_end_date"]'),
+        endDate: document.getElementById('lrsEndDate'),
         tbody: document.getElementById('vesselTableBody'),
         createBtn: document.getElementById('btnCreateLRS')
     };
@@ -249,26 +249,61 @@
             // 우선 시나리오에 묶인 전체 선박 리스트를 가져와서 캐싱해 둠 (Row 조작을 위해 필요)
             CommonApi.loadVesselList(API_URLS.vessel_list, initData.scenario, (data) => {
                 vesselDataList = data;
-            });
 
-            // 선박 목록을 불러온 직후, Edit 모드로 채워진 테이블 Row들의 Select Option을 채워줌
-            document.querySelectorAll('.vessel-select').forEach(select => {
-                const hiddenInput = select.closest('tr').querySelector('.vessel-code-hidden');
+                // 선박 목록을 불러온 직후, Edit 모드로 채워진 테이블 Row들의 Select Option을 채워줌
+                document.querySelectorAll('.vessel-select').forEach(select => {
+                    const hiddenInput = select.closest('tr').querySelector('.vessel-code-hidden');
 
-                // Select Box에 전체 선박 Option 채워넣기
-                let optionsHtml = '<option value="">Select Vessel</option>';
-                vesselDataList.forEach(v => {
-                    optionsHtml += `<option value="${v.vessel_code}" data-cap="${v.max_cap}">${v.vessel_code}</option>`;
+                    // Select Box에 전체 선박 Option 채워넣기
+                    let optionsHtml = '<option value="">Select Vessel</option>';
+                    vesselDataList.forEach(v => {
+                        optionsHtml += `<option value="${v.vessel_code}" data-cap="${v.max_cap}">${v.vessel_code}</option>`;
+                    });
+                    select.innerHTML = optionsHtml;
+
+                    // 만약 체크된 Row(저장된 데이터)라면 기존 선택값 복원
+                    if (hiddenInput && hiddenInput.value) {
+                        select.value = hiddenInput.value;
+                        select.dispatchEvent(new Event('change')); // Capacity 등 연동 이벤트 강제 발생
+                    }
                 });
-                select.innerHTML = optionsHtml;
-
-                // 만약 체크된 Row(저장된 데이터)라면 기존 선택값 복원
-                if (hiddenInput && hiddenInput.value) {
-                    select.value = hiddenInput.value;
-                    select.dispatchEvent(new Event('change')); // Capacity 등 연동 이벤트 강제 발생
-                }
             });
 
+            {% if is_edit_mode and lane_options and proforma_options %}
+            // Edit 모드: 서버에서 전달된 옵션들 사용
+            // Lane 옵션 채우기
+            let laneOptionsHtml = '<option value="">Select Lane</option>';
+            {% for lane in lane_options %}
+                laneOptionsHtml += '<option value="{{ lane }}" {% if preserved_data.lane_code == lane %}selected{% endif %}>{{ lane }}</option>';
+            {% endfor %}
+            els.lane.innerHTML = laneOptionsHtml;
+            els.lane.disabled = false;
+
+            // Proforma 옵션 채우기
+            let proformaOptionsHtml = '<option value="">Select Proforma</option>';
+            {% for proforma in proforma_options %}
+                proformaOptionsHtml += '<option value="{{ proforma }}" {% if preserved_data.proforma_name == proforma %}selected{% endif %}>{{ proforma }}</option>';
+            {% endfor %}
+            els.proforma.innerHTML = proformaOptionsHtml;
+            els.proforma.disabled = false;
+            els.loadBtn.disabled = false;
+
+            // Edit 모드에서 pfFirstDay 값을 API로부터 가져오기
+            if (initData.scenario && initData.lane && initData.proforma) {
+                console.log('Edit mode - loading proforma detail for pfFirstDay');
+                fetch(`${API_URLS.detail}?scenario_id=${initData.scenario}&lane_code=${initData.lane}&proforma_name=${initData.proforma}`)
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.status === 'success' && data.first_port_day) {
+                            els.pfFirstDay.value = data.first_port_day;
+                            console.log('Edit mode - Set pfFirstDay to:', data.first_port_day);
+                        }
+                    })
+                    .catch(error => console.error('Error loading pfFirstDay:', error));
+            }
+
+            {% else %}
+            // 일반 모드: API를 통해 동적 로드
             // Lane 목록 동적 로드
             CommonApi.loadLanes(API_URLS.options, initData.scenario, els.lane, () => {
                 // Lane 로드가 완료되면 기존 선택값 복구
@@ -285,6 +320,7 @@
                     });
                 }
             });
+            {% endif %}
         }
 
         // 2. 이미 렌더링된 Row들이 존재하면 이벤트 다시 연결 (Edit 모드에서 테이블 조작 시 필요)
@@ -348,10 +384,14 @@
 
         if (!sid || !lane || !pf) return;
 
+        console.log('Loading proforma info for:', sid, lane, pf);
+
         // 상세 정보 조회는 UI 로직이 복잡하므로 여기서 직접 fetch 사용 (URL은 상수 활용)
         fetch(`${API_URLS.detail}?scenario_id=${sid}&lane_code=${lane}&proforma_name=${pf}`)
             .then(res => res.json())
             .then(data => {
+                console.log('Proforma detail response:', data);
+
                 if (data.status === 'success') {
                     els.settingsArea.style.display = 'block';
 
@@ -364,84 +404,152 @@
                     els.pfFirstDay.value = data.first_port_day;
                     els.startDayHint.textContent = `Proforma starts on: ${data.first_port_day}`;
 
+                    console.log('Set pfFirstDay to:', data.first_port_day);
+                    console.log('Required count:', data.declared_count);
+
                     // 입력 필드 초기화
                     els.startDate.value = "";
                     els.ownInput.value = 0;
-                    els.tbody.innerHTML = '<tr><td colspan="6" class="text-muted">Select LRS Start Date to generate rows...</td></tr>';
+
+                    // Declared Count 수만큼 행 생성
+                    generateRowsBasedOnRequiredCount();
 
                     validateCreateButton();
 
                 } else {
+                    console.error('API Error:', data.message);
                     alert("Error: " + data.message);
                     els.settingsArea.style.display = 'none';
                 }
+            })
+            .catch(error => {
+                console.error('Fetch Error:', error);
+                alert("Network error occurred");
             });
     });
 
 
-    // --- 4. Row Generation Logic ---
+    // --- 4. Simple Row Generation Logic ---
 
-    els.startDate.addEventListener('change', function() {
-        const inputDateStr = this.value;
-        const targetDayStr = els.pfFirstDay.value;
+    // Declared Count 수가 변경되면 항상 그 수만큼 행 생성
+    function generateRowsBasedOnRequiredCount() {
         const count = parseInt(els.requiredCount.value) || 0;
+        if (count <= 0) {
+            els.tbody.innerHTML = '<tr><td colspan="6" class="text-muted">No vessels required...</td></tr>';
+            return;
+        }
 
-        if (!inputDateStr || !targetDayStr || count <= 0) return;
+        console.log('Generating', count, 'rows based on Declared Count');
 
-        // 1. 날짜 계산
-        const inputDate = new Date(inputDateStr);
-        const targetDayIdx = DAY_MAP[targetDayStr];
-        const currentDayIdx = inputDate.getDay();
-
-        let diff = targetDayIdx - currentDayIdx;
-        if (diff < 0) diff += 7;
-
-        const baseDate = new Date(inputDate);
-        baseDate.setDate(inputDate.getDate() + diff);
-
-        // 2. Select Option HTML 생성 (캐싱된 데이터 사용)
+        // Select Option HTML 생성 (캐싱된 데이터 사용)
         let optionsHtml = '<option value="">Select Vessel</option>';
         vesselDataList.forEach(v => {
             optionsHtml += `<option value="${v.vessel_code}" data-cap="${v.max_cap}">${v.vessel_code}</option>`;
         });
 
-        // 3. 행 생성
+        // 행 생성
         els.tbody.innerHTML = '';
         for (let i = 0; i < count; i++) {
-            const rowDate = new Date(baseDate);
-            rowDate.setDate(baseDate.getDate() + (i * 7));
-            const dateStr = rowDate.toISOString().split('T')[0];
-
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${i + 1}</td>
                 <td>
                     <div class="form-check d-flex justify-content-center">
-                        <input class="form-check-input own-vessel-check" type="checkbox" value="${i}" style="transform: scale(1.3);">
+                        <input class="form-check-input own-vessel-check" type="checkbox" value="${i}"
+                               style="transform: scale(1.3);">
                     </div>
                 </td>
                 <td>
                     <select class="form-select vessel-select" disabled>
                         ${optionsHtml}
                     </select>
-                    <input type="hidden" name="vessel_code[]" class="vessel-code-hidden" >
+                    <input type="hidden" name="vessel_code[]" class="vessel-code-hidden" value="">
                 </td>
                 <td>
-                    <input type="text" class="form-control bg-light text-end" name="vessel_capacity[]" readonly tabindex="-1">
+                    <input type="text" class="form-control bg-light text-end" name="vessel_capacity[]"
+                           value="" readonly tabindex="-1">
                 </td>
                 <td>
-                    <input type="date" class="form-control" name="vessel_start_date[]" value="${dateStr}" readonly tabindex="-1">
+                    <input type="date" class="form-control" name="vessel_start_date[]" value="" readonly tabindex="-1">
                 </td>
                 <td>
-                    <input type="text" class="form-control" name="lane_code_list[]" placeholder="">
+                    <input type="text" class="form-control" name="lane_code_list[]" value="" placeholder="">
                 </td>
             `;
+
             els.tbody.appendChild(tr);
         }
 
-        // 4. 이벤트 연결
+        // 이벤트 연결
         attachRowEvents();
-        validateCreateButton();
+        console.log('Generated', count, 'rows and attached events');
+    }
+
+    // Start Date가 변경되면 날짜 업데이트
+    els.startDate.addEventListener('change', function() {
+        const inputDateStr = this.value;
+        const targetDayStr = els.pfFirstDay.value;
+
+        // End Date를 Start Date의 1년 후로 자동 설정 (기존 값이 없는 경우에만)
+        if (inputDateStr && (!els.endDate.value || els.endDate.value === '')) {
+            const startDate = new Date(inputDateStr);
+            const endDate = new Date(startDate);
+            endDate.setFullYear(startDate.getFullYear() + 1);
+
+            const endDateStr = endDate.getFullYear() + '-' +
+                             String(endDate.getMonth() + 1).padStart(2, '0') + '-' +
+                             String(endDate.getDate()).padStart(2, '0');
+
+            els.endDate.value = endDateStr;
+            console.log('Auto-set End Date to:', endDateStr);
+        }
+
+        if (!inputDateStr || !targetDayStr) {
+            console.log('Missing date or target day');
+            return;
+        }
+
+        // 날짜 계산
+        function findNextTargetDay(startDateStr, targetDay) {
+            const targetDayIdx = DAY_MAP[targetDay];
+            let currentDate = new Date(startDateStr + 'T00:00:00');
+
+            if (currentDate.getDay() === targetDayIdx) {
+                return currentDate;
+            }
+
+            let daysToAdd = 0;
+            let testDate = new Date(currentDate.getTime());
+
+            while (testDate.getDay() !== targetDayIdx && daysToAdd < 7) {
+                daysToAdd++;
+                testDate.setDate(currentDate.getDate() + daysToAdd);
+            }
+
+            return testDate;
+        }
+
+        function getLocalDateString(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        const baseDate = findNextTargetDay(inputDateStr, targetDayStr);
+
+        // 기존 행들의 날짜만 업데이트
+        const rows = els.tbody.querySelectorAll('tr');
+        rows.forEach((tr, i) => {
+            const dateInput = tr.querySelector('input[name="vessel_start_date[]"]');
+            if (dateInput) {
+                const rowDate = new Date(baseDate.getTime());
+                rowDate.setDate(baseDate.getDate() + (i * 7));
+                dateInput.value = getLocalDateString(rowDate);
+            }
+        });
+
+        console.log('Updated dates for existing rows');
     });
 
 
@@ -499,6 +607,9 @@
                 } else {
                     laneInput.value = "";
                 }
+
+                // 선박 선택 변경 시 버튼 활성화 상태 재검증
+                validateCreateButton();
             });
         });
     }
@@ -528,27 +639,91 @@
 
     // --- 6. Validation & Init ---
 
+    // Own Vessels 입력 시 검증만 수행
     els.ownInput.addEventListener('input', validateCreateButton);
 
     function validateCreateButton() {
         const targetCount = parseInt(els.ownInput.value) || 0;
         const checkedCount = document.querySelectorAll('.own-vessel-check:checked').length;
 
-        // 조건: 입력한 Own Vessel 대수와 그리드에서 체크된 선박 대수가 같아야 함
-        const isValid = (targetCount > 0 && targetCount === checkedCount);
+        // 체크된 행들 중에서 실제로 선박이 선택된 개수 계산
+        let selectedVesselCount = 0;
+        document.querySelectorAll('.own-vessel-check:checked').forEach(checkbox => {
+            const row = checkbox.closest('tr');
+            const vesselSelect = row.querySelector('.vessel-select');
+            if (vesselSelect && vesselSelect.value.trim() !== '') {
+                selectedVesselCount++;
+            }
+        });
+
+        // 조건: 입력한 Own Vessel 대수와 실제 선박이 선택된 대수가 같아야 함
+        const isValid = (targetCount > 0 && targetCount === selectedVesselCount);
+
+        console.log('Validation:', {
+            targetCount,
+            checkedCount,
+            selectedVesselCount,
+            isValid
+        });
 
         // 두 버튼 모두 활성화/비활성화 처리
         document.getElementById('btnSaveCascading').disabled = !isValid;
         document.getElementById('btnCreateLRS').disabled = !isValid;
     }
 
-    // 초기화 (에러 복구 시 이벤트 재연결)
-    window.addEventListener('DOMContentLoaded', () => {
-        if (document.querySelector('.own-vessel-check')) {
-            attachRowEvents();
-            validateCreateButton();
+    // --- 7. DEBUG FUNCTIONS (브라우저 콘솔에서 사용 가능) ---
+
+    window.testDateCalculation = function(dateStr, targetDay) {
+        console.log(`\n=== Testing ${dateStr} -> ${targetDay} ===`);
+
+        const inputDate = new Date(dateStr + 'T00:00:00');
+        const targetDayIdx = DAY_MAP[targetDay];
+        const currentDayIdx = inputDate.getDay();
+
+        console.log(`Input: ${dateStr} (${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][currentDayIdx]}, index: ${currentDayIdx})`);
+        console.log(`Target: ${targetDay} (index: ${targetDayIdx})`);
+
+        // Use the same logic as the main function
+        if (currentDayIdx === targetDayIdx) {
+            console.log(`Same day - using selected date`);
+            var resultDate = inputDate;
+        } else {
+            let daysToAdd = 0;
+            let testDate = new Date(inputDate.getTime());
+
+            while (testDate.getDay() !== targetDayIdx && daysToAdd < 7) {
+                daysToAdd++;
+                testDate.setDate(inputDate.getDate() + daysToAdd);
+            }
+
+            console.log(`Next occurrence after ${daysToAdd} days`);
+            var resultDate = testDate;
         }
-    });
+
+        // Use local date string function
+        function getLocalDateString(date) {
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, '0');
+            const day = String(date.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+
+        const resultStr = getLocalDateString(resultDate);
+
+        console.log(`Result: ${resultDate.toDateString()} (${resultStr})`);
+        console.log(`Verification: Expected ${targetDay}, Got ${['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][resultDate.getDay()]}`);
+
+        return {
+            input: dateStr,
+            target: targetDay,
+            result: resultStr,
+            correct: resultDate.getDay() === targetDayIdx
+        };
+    };
+
+    // 브라우저 콘솔에서 사용 예시:
+    // testDateCalculation('2026-02-15', 'SUN')
+    // testDateCalculation('2026-02-14', 'SUN')
 
 </script>
 {% endblock %}

@@ -40,7 +40,7 @@ class CascadingService:
 
         # 4. 전체 Slot 개수(total_slots)만큼 Row 생성
         rows = []
-        base_date = master.initial_etb_date
+        base_date = master.proforma_start_etb_date
 
         for i in range(total_slots):
             # i번째 주차의 예상 투입일 계산
@@ -78,7 +78,7 @@ class CascadingService:
                 "lane_code": lane_code,
                 "proforma_name": proforma_name,
                 "cascading_seq": master.cascading_seq,  # Seq 번호 반환
-                "own_vessel_count": master.own_vessels,
+                "own_vessel_count": master.own_vessel_count,
                 "effective_start_date": (
                     master.effective_start_date.strftime("%Y-%m-%d")
                     if master.effective_start_date
@@ -148,16 +148,18 @@ class CascadingService:
             if vessel_start_dates and vessel_start_dates[0]
             else start_date_str
         )
-        initial_etb_date = datetime.strptime(first_row_date_str, "%Y-%m-%d").date()
+        proforma_start_etb_date = datetime.strptime(
+            first_row_date_str, "%Y-%m-%d"
+        ).date()
 
         cascading = CascadingSchedule.objects.create(
             scenario=scenario,
             proforma=master_proforma,
             cascading_seq=cascading_seq,
-            own_vessels=len([v for v in vessel_codes if v.strip()]),
+            own_vessel_count=len([v for v in vessel_codes if v.strip()]),
             effective_start_date=datetime.strptime(start_date_str, "%Y-%m-%d").date(),
             effective_end_date=datetime.strptime(end_date_str, "%Y-%m-%d").date(),
-            initial_etb_date=initial_etb_date,
+            proforma_start_etb_date=proforma_start_etb_date,
             created_by=user,
             updated_by=user,
         )

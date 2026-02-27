@@ -73,11 +73,21 @@ def create_scenario_from_base(scenario_name, description="Base Scenario", user=N
     proforma_summary = _copy_proforma_to_scenario(scenario, user, now)
     result_summary.update(proforma_summary)
 
-    # 4. 나머지 일반 데이터 복사 (Base -> Scenario 1:1 복사)
+    # 4. Cascading 모델 특수 처리 (proforma_start_etb_date 계산 포함)
+    cascading_summary = _copy_cascading_to_scenario(scenario, user, now)
+    result_summary.update(cascading_summary)
+
+    # 5. 나머지 일반 데이터 복사 (Base -> Scenario 1:1 복사)
     for base_model, sce_model in MODEL_MAPPING:
         # Proforma 계열은 이미 위(_copy_proforma_to_scenario)에서
+        # Cascading 계열은 이미 위(_copy_cascading_to_scenario)에서
         # Master-Detail로 분리 처리했으므로 일반 복사 루프에서는 건너뜁니다!
-        if sce_model.__name__ in ["ProformaSchedule", "ProformaScheduleDetail"]:
+        if sce_model.__name__ in [
+            "ProformaSchedule",
+            "ProformaScheduleDetail",
+            "CascadingSchedule",
+            "CascadingScheduleDetail",
+        ]:
             continue
 
         table_name = sce_model._meta.db_table
@@ -204,5 +214,150 @@ def _copy_proforma_to_scenario(scenario, user, now):
     if details_to_create:
         ProformaScheduleDetail.objects.bulk_create(details_to_create)
         summary["sce_proforma_schedule_detail"] = len(details_to_create)
+
+    return summary
+
+
+def _copy_cascading_to_scenario(scenario, user, now):
+    """
+    [Cascading 전용 처리 함수]
+    Flat 구조의 BaseCascadingSchedule을 Master(CascadingSchedule)와
+    Detail(CascadingScheduleDetail)로 분리하여 복사합니다.
+    proforma_start_etb_date는 ProformaScheduleDetail의 첫 번째 포트 ETB 정보로 계산합니다.
+    """
+    from datetime import timedelta
+
+    from input_data.models import (
+        BaseCascadingSchedule,
+        CascadingSchedule,
+        CascadingScheduleDetail,
+        ProformaScheduleDetail,
+    )
+
+    summary = {"sce_schedule_cascading": 0, "sce_schedule_cascading_detail": 0}
+
+    base_qs = BaseCascadingSchedule.objects.all()
+    if not base_qs.exists():
+        return summary
+
+    # 요일 매핑 (ProformaScheduleDetail etb_day_code -> Python datetime weekday)
+    DAY_MAP = {"SUN": 6, "MON": 0, "TUE": 1, "WED": 2, "THU": 3, "FRI": 4, "SAT": 5}
+
+    def calculate_proforma_start_etb_date(proforma, effective_start_date):
+        """
+        ProformaScheduleDetail에서 calling_port_seq=1인 포트의 etb_day_code와
+        effective_start_date를 이용하여 proforma_start_etb_date를 계산
+        """
+        try:
+            # 첫 번째 포트 찾기 (calling_port_seq = 1)
+            first_port = ProformaScheduleDetail.objects.filter(
+                proforma=proforma, calling_port_seq=1
+            ).first()
+
+            if not first_port:
+                return effective_start_date  # 첫 번째 포트가 없으면 effective_start_date 사용
+
+            target_day_code = first_port.etb_day_code
+            target_weekday = DAY_MAP.get(target_day_code)
+
+            if target_weekday is None:
+                return (
+                    effective_start_date  # 잘못된 요일 코드면 effective_start_date 사용
+                )
+
+            # effective_start_date부터 target_weekday에 해당하는 날짜 찾기
+            current_date = effective_start_date
+            current_weekday = current_date.weekday()
+
+            # 같은 요일이면 그대로 사용
+            if current_weekday == target_weekday:
+                return current_date
+
+            # 다음 해당 요일 찾기 (최대 7일 이내)
+            days_ahead = (target_weekday - current_weekday) % 7
+            if days_ahead == 0:
+                days_ahead = 7  # 다음 주 같은 요일
+
+            return current_date + timedelta(days=days_ahead)
+
+        except Exception as e:
+            print(f"Error calculating proforma_start_etb_date: {e}")
+            return effective_start_date
+
+    # 1. Master(Header) 추출 및 생성
+    master_cache = {}
+    masters_to_create = []
+
+    # Proforma 매핑을 위한 캐시 (scenario의 proforma들)
+    proforma_map = {
+        (p.lane_code, p.proforma_name): p
+        for p in ProformaSchedule.objects.filter(scenario=scenario)
+    }
+
+    for base in base_qs:
+        master_key = (base.lane_code, base.proforma_name, base.cascading_seq)
+        if master_key not in master_cache:
+            # 해당하는 Proforma 찾기
+            proforma = proforma_map.get((base.lane_code, base.proforma_name))
+            if not proforma:
+                continue  # Proforma가 없으면 스킵
+
+            # proforma_start_etb_date 계산
+            calculated_start_etb_date = calculate_proforma_start_etb_date(
+                proforma, base.effective_start_date
+            )
+
+            master = CascadingSchedule(
+                scenario=scenario,
+                proforma=proforma,
+                cascading_seq=base.cascading_seq,
+                own_vessel_count=base.own_vessel_count,
+                proforma_start_etb_date=calculated_start_etb_date,  # 계산된 값 사용
+                effective_start_date=base.effective_start_date,
+                effective_end_date=base.effective_end_date,
+                created_by=user,
+                updated_by=user,
+                created_at=now,
+                updated_at=now,
+            )
+            master_cache[master_key] = master
+            masters_to_create.append(master)
+
+    if masters_to_create:
+        CascadingSchedule.objects.bulk_create(masters_to_create)
+        summary["sce_schedule_cascading"] = len(masters_to_create)
+
+    # DB에 생성된 Master 객체들을 다시 조회하여 PK(id)를 확보합니다.
+    created_masters = CascadingSchedule.objects.filter(scenario=scenario)
+    master_db_map = {
+        (m.proforma.lane_code, m.proforma.proforma_name, m.cascading_seq): m
+        for m in created_masters
+    }
+
+    # 2. Detail 추출 및 생성
+    details_to_create = []
+
+    for base in base_qs:
+        # DB에서 PK를 발급받은 실제 Master 객체를 매핑
+        real_master = master_db_map.get(
+            (base.lane_code, base.proforma_name, base.cascading_seq)
+        )
+        if not real_master:
+            continue  # Master가 없으면 스킵
+
+        detail = CascadingScheduleDetail(
+            cascading=real_master,  # 외래키 연결
+            vessel_code=base.vessel_code,
+            initial_start_date=base.initial_start_date,
+            created_by=user,
+            updated_by=user,
+            created_at=now,
+            updated_at=now,
+        )
+        details_to_create.append(detail)
+
+    if details_to_create:
+        CascadingScheduleDetail.objects.bulk_create(details_to_create)
+        summary["sce_schedule_cascading_detail"] = len(details_to_create)
 
     return summary

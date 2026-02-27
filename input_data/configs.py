@@ -3,6 +3,7 @@ from input_data.models import (
     BaseBunkerConsumptionSea,
     BaseBunkerPrice,
     BaseCanalFee,
+    BaseCascadingSchedule,
     BaseCharterCost,
     BaseDistance,
     BaseFixedScheduleChange,
@@ -17,6 +18,7 @@ from input_data.models import (
     BunkerConsumptionSea,
     BunkerPrice,
     CanalFee,
+    CascadingSchedule,
     CharterCost,
     Distance,
     FixedScheduleChange,
@@ -34,6 +36,7 @@ from input_data.models import (
 # ---------------------------------------------------------
 MODEL_MAPPING = [
     (BaseProformaSchedule, ProformaSchedule),
+    (BaseCascadingSchedule, CascadingSchedule),
     (BaseLongRangeSchedule, LongRangeSchedule),
     (BaseVesselInfo, VesselInfo),
     (BaseCharterCost, CharterCost),

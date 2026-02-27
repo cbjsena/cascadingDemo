@@ -22,7 +22,7 @@
         <div class="card-header bg-light fw-bold">Global Settings</div>
         <div class="card-body">
             <div class="row g-3">
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="small text-muted d-block">Scenario</label>
                     <span class="fw-bold">{{ cascading.scenario.name }}</span>
                 </div>
@@ -30,7 +30,7 @@
                     <label class="small text-muted d-block">Lane Code</label>
                     <span class="badge bg-secondary">{{ cascading.proforma.lane_code }}</span>
                 </div>
-                <div class="col-md-3">
+                <div class="col-md-2">
                     <label class="small text-muted d-block">Proforma Name</label>
                     <span class="fw-bold">{{ cascading.proforma.proforma_name }}</span>
                 </div>
@@ -38,17 +38,37 @@
                     <label class="small text-muted d-block">Seq</label>
                     <span class="badge bg-info text-dark fs-6">{{ cascading.cascading_seq }}</span>
                 </div>
-                <div class="col-md-1">
+                <div class="col-md-2">
+                    <label class="small text-muted d-block">Declared Count</label>
+                    <span class="fw-bold">{{ cascading.proforma.declared_count }}</span>
+                </div>
+                <div class="col-md-2">
                     <label class="small text-muted d-block">Own Vessels</label>
-                    <span class="fw-bold text-primary">{{ cascading.own_vessels }}</span>
+                    <span class="fw-bold text-primary">{{ cascading.own_vessel_count }}</span>
+                </div>
+            </div>
+
+            <div class="row g-3 mt-2">
+                <div class="col-md-2">
+                    <label class="small text-muted d-block">First Port ETB Day</label>
+                    {% if first_port_day %}
+                        <span class="badge bg-warning text-dark fs-6">{{ first_port_day }}</span>
+                    {% else %}
+                        <span class="badge bg-secondary fs-6">N/A</span>
+                        <small class="text-muted d-block">Not Available</small>
+                    {% endif %}
                 </div>
                 <div class="col-md-2">
-                    <label class="small text-muted d-block">Initial ETB</label>
-                    <span class="fw-bold text-success">{{ cascading.initial_etb_date|date:"Y-m-d" }}</span>
+                    <label class="small text-muted d-block">Proforma Start ETB</label>
+                    <span class="fw-bold text-success">{{ cascading.proforma_start_etb_date|date:"Y-m-d" }}</span>
                 </div>
-                <div class="col-md-2">
-                    <label class="small text-muted d-block">Term (Start ~ End)</label>
-                    <span class="fw-bold">{{ cascading.effective_start_date|date:"Y-m-d" }} <br>~ {{ cascading.effective_end_date|date:"Y-m-d" }}</span>
+                <div class="col-md-3">
+                    <label class="small text-muted d-block">Effective Period (Start ~ End)</label>
+                    <div class="d-flex align-items-center">
+                        <span class="fw-bold me-2">{{ cascading.effective_start_date|date:"Y-m-d" }}</span>
+                        <i class="bi bi-arrow-right text-muted"></i>
+                        <span class="fw-bold ms-2">{{ cascading.effective_end_date|date:"Y-m-d" }}</span>
+                    </div>
                 </div>
             </div>
         </div>
