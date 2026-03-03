@@ -461,7 +461,7 @@ class CascadingSchedule(ScenarioBaseModel):
     class Meta:
         db_table = "sce_schedule_cascading"
         # Proforma ID + Seq 조합은 유일해야 함
-        unique_together = ("proforma", "cascading_seq")
+        unique_together = ("scenario", "proforma", "cascading_seq")
 
     def __str__(self):
         return f"[{self.scenario.id}] {self.proforma.proforma_name} - Seq {self.cascading_seq}"
@@ -582,6 +582,9 @@ class LongRangeSchedule(AbsLongRangeSchedule, ScenarioBaseModel):
                 "calling_port_indicator",
             ),
         )
+
+    def __str__(self):
+        return f"{self.lane_code} - {self.vessel_code}{self.voyage_number}{self.direction} - {self.port_code} ({self.calling_port_indicator})"
 
 
 # ==========================================

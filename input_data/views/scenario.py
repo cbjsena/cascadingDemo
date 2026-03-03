@@ -262,8 +262,12 @@ def scenario_dashboard(request, scenario_id):
 
 def _clone_scenario_data(source_id, target_scenario):
     """
-    시나리오 하위의 모든 데이터를 동적으로 탐색하여 복제하는 메인 로직
+    시나리오 하위의 모든 데이터를 동적으로 탐색하여 복제하는 메인 로직.
+    교차 FK(예: CascadingSchedule → ProformaSchedule)가 있는 경우,
+    먼저 복제된 모델의 old→new ID 매핑을 누적하여 후속 모델에서 재매핑합니다.
     """
+    from input_data.models import CascadingSchedule, ProformaSchedule
+
     app_config = apps.get_app_config("input_data")
 
     # 1. ScenarioInfo를 제외하고 'scenario' 필드가 있는 모든 Master 모델 추출
@@ -273,8 +277,27 @@ def _clone_scenario_data(source_id, target_scenario):
         if m.__name__ != "ScenarioInfo" and hasattr(m, "scenario")
     ]
 
+    # 2. 복제 순서 보장: ProformaSchedule → CascadingSchedule (교차 FK 의존성)
+    #    ProformaSchedule이 먼저 복제되어야 CascadingSchedule의 proforma FK를 재매핑 가능
+    def _model_sort_key(m):
+        priority = {
+            "ProformaSchedule": 0,
+            "CascadingSchedule": 1,
+        }
+        return priority.get(m.__name__, 0)
+
+    master_models.sort(key=_model_sort_key)
+
+    # 3. 모델 간 교차 FK 매핑 정보 누적 (모델 클래스 → {old_id: new_obj})
+    cross_fk_maps = {}
+
+    # 4. 교차 FK 매핑 규칙 정의: (대상 모델, FK 필드명, 참조 모델)
+    CROSS_FK_RULES = [
+        (CascadingSchedule, "proforma", ProformaSchedule),
+    ]
+
     for model_class in master_models:
-        # 2. 해당 Master 모델과 연결된 Detail 관계(related_name="*details*") 탐색
+        # 해당 Master 모델과 연결된 Detail 관계(related_name="*details*") 탐색
         detail_rels = [
             rel
             for rel in model_class._meta.related_objects
@@ -282,19 +305,51 @@ def _clone_scenario_data(source_id, target_scenario):
             and "details" in (rel.related_name or "")
         ]
 
-        # 3. Master와 Detail들을 일괄 복제 실행
-        _clone_relation_data(model_class, detail_rels, source_id, target_scenario)
+        # 이 모델에 적용할 교차 FK 규칙 추출
+        applicable_cross_fks = {
+            fk_field: ref_model
+            for target_model, fk_field, ref_model in CROSS_FK_RULES
+            if target_model == model_class
+        }
+
+        # Master와 Detail들을 일괄 복제 실행
+        id_map = _clone_relation_data(
+            model_class,
+            detail_rels,
+            source_id,
+            target_scenario,
+            cross_fk_maps=cross_fk_maps,
+            cross_fk_rules=applicable_cross_fks,
+        )
+
+        # 복제 결과(old→new 매핑)를 교차 FK 매핑에 누적
+        if id_map:
+            cross_fk_maps[model_class] = id_map
 
 
-def _clone_relation_data(master_model, detail_rels, source_id, target_scenario):
+def _clone_relation_data(
+    master_model,
+    detail_rels,
+    source_id,
+    target_scenario,
+    cross_fk_maps=None,
+    cross_fk_rules=None,
+):
     """
-    특정 Master 모델과 그에 속한 여러 Detail 모델들을 Bulk로 복제
-    related_name에 "details"가 포함된 모든 하위 테이블
+    특정 Master 모델과 그에 속한 여러 Detail 모델들을 Bulk로 복제.
+    cross_fk_rules: {fk_field_name: ref_model_class} - 교차 FK 재매핑 규칙
+    cross_fk_maps: {model_class: {old_id: new_obj}} - 이전에 복제된 모델의 매핑
+    Returns: {old_id: new_obj} 매핑 (후속 모델에서 교차 FK 재매핑에 사용)
     """
+    if cross_fk_maps is None:
+        cross_fk_maps = {}
+    if cross_fk_rules is None:
+        cross_fk_rules = {}
+
     # 1. 원본 Master 데이터 조회
     originals = list(master_model.objects.filter(scenario_id=source_id))
     if not originals:
-        return
+        return {}
 
     # 2. Master 복제 (Bulk Create)
     old_ids = [obj.pk for obj in originals]
@@ -302,6 +357,15 @@ def _clone_relation_data(master_model, detail_rels, source_id, target_scenario):
     for obj in originals:
         obj.pk = None
         obj.scenario = target_scenario
+
+        # 교차 FK 재매핑: 이미 복제된 참조 모델의 새 객체로 FK 교체
+        for fk_field, ref_model in cross_fk_rules.items():
+            ref_map = cross_fk_maps.get(ref_model, {})
+            old_ref_id = getattr(obj, f"{fk_field}_id")
+            new_ref_obj = ref_map.get(old_ref_id)
+            if new_ref_obj:
+                setattr(obj, fk_field, new_ref_obj)
+
         new_masters.append(obj)
 
     # PostgreSQL 등에서 신규 PK를 객체에 채워줌
@@ -337,3 +401,5 @@ def _clone_relation_data(master_model, detail_rels, source_id, target_scenario):
 
         if new_details:
             detail_model.objects.bulk_create(new_details)
+
+    return id_map

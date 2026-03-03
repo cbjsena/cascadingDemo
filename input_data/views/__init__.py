@@ -1,5 +1,6 @@
 from .cascading import (  # noqa: F401
     cascading_create,
+    cascading_dashboard,
     cascading_detail,
     cascading_list,
 )

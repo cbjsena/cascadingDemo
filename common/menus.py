@@ -26,6 +26,7 @@ class MenuItem:
     # Input Management - Schedule
     PROFORMA_SCHEDULE = "proforma_schedule"
     CASCADING_SCHEDULE = "cascading_schedule"
+    CASCADING_DASHBOARD = "cascading_dashboard"
     LONG_RANGE_SCHEDULE = "long_range_schedule"
 
     # Input Management - Dashboard & Scenario
@@ -48,9 +49,9 @@ CREATION_MENU_STRUCTURE = {
         },
     ],
     MenuGroup.MASTER: [
+        {"name": "Trade Info", "key": "trade_info", "url_name": None},
         {"name": "Lane Info", "key": "lane_info", "url_name": None},
         {"name": "Port Info", "key": "port_info", "url_name": None},
-        # ... 기타 항목들 ...
     ],
 }
 
@@ -66,6 +67,11 @@ MENU_STRUCTURE = {
             "name": "Cascading Schedule",
             "key": MenuItem.CASCADING_SCHEDULE,
             "url_name": "input_data:cascading_list",
+        },
+        {
+            "name": "Cascading Dashboard",
+            "key": MenuItem.CASCADING_DASHBOARD,
+            "url_name": "input_data:cascading_dashboard",
         },
         {
             "name": "Long Range Schedule",

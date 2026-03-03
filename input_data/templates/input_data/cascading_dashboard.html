@@ -1,0 +1,261 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Cascading Dashboard{% endblock %}
+
+{% block content %}
+<style>
+    .slot-cell {
+        width: 36px;
+        min-width: 36px;
+        max-width: 36px;
+        height: 32px;
+        text-align: center;
+        vertical-align: middle !important;
+        padding: 2px !important;
+        font-size: 0.75rem;
+    }
+    .slot-assigned {
+        background-color: #198754 !important;
+        color: #fff;
+        font-weight: 700;
+        border-radius: 4px;
+    }
+    .slot-empty {
+        background-color: #e9ecef !important;
+        color: #adb5bd;
+        border-radius: 4px;
+    }
+    .slot-header {
+        width: 36px;
+        min-width: 36px;
+        max-width: 36px;
+        font-size: 0.7rem;
+        padding: 4px 2px !important;
+        text-align: center;
+    }
+    .lane-group-separator td {
+        padding: 0 !important;
+        height: 3px;
+        background-color: #6c757d;
+    }
+    .dashboard-table th, .dashboard-table td {
+        white-space: nowrap;
+    }
+    .vessel-tooltip {
+        cursor: default;
+    }
+</style>
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h2 class="h4"><i class="bi bi-grid-3x3-gap me-2"></i>Cascading Dashboard</h2>
+    </div>
+
+    <!-- Scenario 선택 -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light fw-bold">Scenario Selection</div>
+        <div class="card-body">
+            <form method="get" action="{% url 'input_data:cascading_dashboard' %}" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label small text-muted">Scenario Name</label>
+                    <select class="form-select" id="scenarioSelect" name="scenario_id" onchange="this.form.submit()">
+                        <option value="">Select Scenario</option>
+                        {% for scenario in scenarios %}
+                        <option value="{{ scenario.id }}"
+                            {% if selected_scenario_id|stringformat:"s" == scenario.id|stringformat:"s" %}selected{% endif %}>
+                            {{ scenario.name }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-secondary w-100">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                </div>
+                <div class="col-md-1">
+                    <a href="{% url 'input_data:cascading_dashboard' %}" class="btn btn-outline-secondary w-100" title="Reset">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if selected_scenario_id %}
+    <!-- Dashboard 결과 -->
+    <div class="card shadow-sm">
+        <div class="card-header bg-light fw-bold d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-table me-2"></i>Cascading Results by Lane</span>
+            <div>
+                <span class="badge bg-success me-2"><i class="bi bi-check-circle me-1"></i>Assigned</span>
+                <span class="badge bg-secondary me-2">Empty</span>
+                <span class="badge bg-primary">{{ dashboard_data|length }} records</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-center dashboard-table">
+                    <thead class="table-light">
+                        <tr>
+                            <th rowspan="2" style="min-width:40px;">No</th>
+                            <th rowspan="2" style="min-width:90px;">Lane</th>
+                            <th rowspan="2" style="min-width:90px;">Proforma</th>
+                            <th rowspan="2" style="min-width:90px;">Start Week</th>
+                            <th rowspan="2" style="min-width:60px;">Declared</th>
+                            <th rowspan="2" style="min-width:50px;">Own</th>
+                            <th colspan="{{ max_declared }}" class="text-center bg-light">Vessel Slot Assignment</th>
+                        </tr>
+                        <tr>
+                            {% for sn in slot_headers %}
+                            <th class="slot-header">{{ sn }}</th>
+                            {% endfor %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% regroup dashboard_data by lane_code as lane_groups %}
+                        {% for lane_group in lane_groups %}
+                            {% for row in lane_group.list %}
+                            <tr>
+                                <td class="small">{{ forloop.parentloop.counter }}</td>
+                                <td>
+                                    {% if forloop.first %}
+                                    <span class="badge bg-dark">{{ row.lane_code }}</span>
+                                    {% else %}
+                                    <span class="text-muted small">{{ row.lane_code }}</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-start small">{{ row.proforma_name }}</td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ row.start_week }}</span>
+                                </td>
+                                <td>
+                                    <span class="fw-bold">{{ row.declared_count }}</span>
+                                </td>
+                                <td>
+                                    {% if row.own_vessel_count < row.declared_count %}
+                                    <span class="text-danger fw-bold">{{ row.own_vessel_count }}</span>
+                                    {% else %}
+                                    <span class="text-success fw-bold">{{ row.own_vessel_count }}</span>
+                                    {% endif %}
+                                </td>
+                                {% for slot in row.slots %}
+                                <td class="slot-cell">
+                                    {% if slot.assigned %}
+                                    <span class="d-inline-block w-100 slot-assigned vessel-tooltip"
+                                          title="{{ slot.vessel_code }}"
+                                          data-bs-toggle="tooltip">
+                                        {{ slot.index }}
+                                    </span>
+                                    {% else %}
+                                    <span class="d-inline-block w-100 slot-empty">
+                                        ·
+                                    </span>
+                                    {% endif %}
+                                </td>
+                                {% endfor %}
+                                {# 빈 셀 채우기: declared_count < max_declared 인 경우 #}
+                                {% with remaining=max_declared|add:0 %}
+                                {% for sn in slot_headers %}
+                                    {% if sn > row.declared_count %}
+                                    <td class="slot-cell">
+                                        <span class="d-inline-block w-100" style="background:#f8f9fa; border-radius:4px;">-</span>
+                                    </td>
+                                    {% endif %}
+                                {% endfor %}
+                                {% endwith %}
+                            </tr>
+                            {% endfor %}
+                            <!-- Lane 그룹 구분선 -->
+                            {% if not forloop.last %}
+                            <tr class="lane-group-separator">
+                                <td colspan="{{ max_declared|add:6 }}"></td>
+                            </tr>
+                            {% endif %}
+                        {% endfor %}
+
+                        {% if not dashboard_data %}
+                        <tr>
+                            <td colspan="{{ max_declared|add:6 }}" class="text-muted py-4">
+                                <i class="bi bi-info-circle me-1"></i>
+                                No cascading schedules found for this scenario.
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- 요약 카드 -->
+    {% if dashboard_data %}
+    <div class="row mt-4">
+        <div class="col-md-4">
+            <div class="card shadow-sm text-center">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Total Lanes</h6>
+                    <p class="display-6 fw-bold text-primary" id="totalLanes">-</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm text-center">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Total Declared Vessels</h6>
+                    <p class="display-6 fw-bold text-dark" id="totalDeclared">-</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-4">
+            <div class="card shadow-sm text-center">
+                <div class="card-body">
+                    <h6 class="card-title text-muted">Total Own Vessels</h6>
+                    <p class="display-6 fw-bold text-success" id="totalOwn">-</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    {% else %}
+    <!-- 시나리오 미선택 시 안내 -->
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-arrow-up-circle display-4 text-muted"></i>
+            <h5 class="mt-3 text-muted">Please select a scenario to view the Cascading Dashboard</h5>
+            <p class="text-muted">위 Scenario를 선택하면 Lane 별 Cascading 결과를 한눈에 확인할 수 있습니다.</p>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+{% if dashboard_data %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Bootstrap Tooltip 활성화
+    const tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+    tooltipTriggerList.forEach(function(el) {
+        new bootstrap.Tooltip(el);
+    });
+
+    // 요약 데이터 계산
+    const data = [
+        {% for row in dashboard_data %}
+        { lane: "{{ row.lane_code }}", declared: {{ row.declared_count }}, own: {{ row.own_vessel_count }} }{% if not forloop.last %},{% endif %}
+        {% endfor %}
+    ];
+
+    const uniqueLanes = [...new Set(data.map(d => d.lane))];
+    document.getElementById('totalLanes').textContent = uniqueLanes.length;
+
+    const totalDeclared = data.reduce((sum, d) => sum + d.declared, 0);
+    const totalOwn = data.reduce((sum, d) => sum + d.own, 0);
+    document.getElementById('totalDeclared').textContent = totalDeclared;
+    document.getElementById('totalOwn').textContent = totalOwn;
+});
+</script>
+{% endif %}
+{% endblock %}
+

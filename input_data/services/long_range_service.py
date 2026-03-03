@@ -83,7 +83,7 @@ class LongRangeService:
         processed_vessels = set()
 
         for i, v_code in enumerate(vessel_codes):
-            if not v_code:
+            if not v_code or not v_code.strip():
                 continue
 
             # 중복 선박 코드 방지 로직
@@ -218,6 +218,12 @@ class LongRangeService:
 
         # 6. Bulk Create
         if new_lrs_list:
+            print(f"new_lrs_list length: {len(new_lrs_list)}")
+            for i, lrs in enumerate(new_lrs_list):
+                print(
+                    f"[{i}] Vessel: {lrs.vessel_code}{lrs.voyage_number}{lrs.direction} Port: {lrs.port_code}"
+                )
+
             LongRangeSchedule.objects.bulk_create(new_lrs_list)
 
     def _get_expanded_sequence(self, rows):

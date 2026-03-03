@@ -157,18 +157,22 @@ def cascading_create(request):
                 "effective_end_date": data.get("effective_end_date", ""),
             }
             error_restored = []
-            for v_code, v_date, v_cap, l_list in zip(
-                data.getlist("vessel_code[]"),
-                data.getlist("vessel_start_date[]"),
-                data.getlist("vessel_capacity[]"),
-                data.getlist("lane_code_list[]"),
+            vessel_codes = data.getlist("vessel_code[]")
+            vessel_dates = data.getlist("vessel_start_date[]")
+            vessel_caps = data.getlist("vessel_capacity[]")
+            lane_lists = data.getlist("lane_code_list[]")
+
+            for i, (v_code, v_date, v_cap, l_list) in enumerate(
+                zip(vessel_codes, vessel_dates, vessel_caps, lane_lists)
             ):
                 error_restored.append(
                     {
+                        "seq": i + 1,
+                        "is_checked": bool(v_code and v_code.strip()),
                         "vessel_code": v_code,
-                        "vessel_start_date": v_date,
+                        "start_date": v_date,
                         "capacity": v_cap,
-                        "lane_code_list": l_list,
+                        "lane_code": l_list,
                     }
                 )
             context["restored_rows"] = error_restored
@@ -191,7 +195,12 @@ def cascading_list(request):
     qs = (
         CascadingSchedule.objects.select_related("scenario", "proforma")
         .all()
-        .order_by("-proforma__lane_code", "-proforma__proforma_name", "-cascading_seq")
+        .order_by(
+            "-scenario__id",
+            "-proforma__lane_code",
+            "-proforma__proforma_name",
+            "-cascading_seq",
+        )
     )
 
     # 2. 필터 적용 (Select Box이므로 정확한 일치로 변경)
@@ -260,3 +269,93 @@ def cascading_detail(request, pk):
     }
 
     return render(request, "input_data/cascading_detail.html", context)
+
+
+@login_required
+def cascading_dashboard(request):
+    """
+    Cascading Dashboard: Scenario를 선택하면 Lane 별 Cascading 결과를 한눈에 조회
+    선박 배치 슬롯을 가로로 시각화하여 표시
+    """
+    from datetime import timedelta
+
+    scenario_id = request.GET.get("scenario_id", "")
+    scenarios = ScenarioInfo.objects.all().order_by("-created_at")
+
+    dashboard_data = []
+    max_declared = 0  # 테이블 헤더 동적 생성용
+
+    if scenario_id:
+        # 해당 시나리오의 모든 Cascading Schedule을 Lane 기준으로 조회
+        qs = (
+            CascadingSchedule.objects.select_related("scenario", "proforma")
+            .prefetch_related("details")
+            .filter(scenario_id=scenario_id)
+            .order_by(
+                "proforma__lane_code",
+                "proforma__proforma_name",
+                "cascading_seq",
+            )
+        )
+
+        for cascading in qs:
+            declared_count = cascading.proforma.declared_count
+            if declared_count > max_declared:
+                max_declared = declared_count
+
+            # 시작 주차 계산 (proforma_start_etb_date 기준 ISO week)
+            start_week = ""
+            if cascading.proforma_start_etb_date:
+                iso = cascading.proforma_start_etb_date.isocalendar()
+                start_week = f"{iso[0]}-W{iso[1]:02d}"
+
+            # 슬롯 배치 계산: 어떤 순번에 vessel이 배정되었는지
+            base_date = cascading.proforma_start_etb_date
+            saved_details = list(cascading.details.all())
+
+            slots = []
+            for i in range(declared_count):
+                row_date = base_date + timedelta(days=i * 7) if base_date else None
+                matched = next(
+                    (d for d in saved_details if d.initial_start_date == row_date),
+                    None,
+                )
+                slots.append(
+                    {
+                        "index": i + 1,
+                        "assigned": matched is not None,
+                        "vessel_code": matched.vessel_code if matched else "",
+                    }
+                )
+
+            dashboard_data.append(
+                {
+                    "lane_code": cascading.proforma.lane_code,
+                    "proforma_name": cascading.proforma.proforma_name,
+                    "cascading_seq": cascading.cascading_seq,
+                    "declared_count": declared_count,
+                    "own_vessel_count": cascading.own_vessel_count,
+                    "start_week": start_week,
+                    "start_date": cascading.proforma_start_etb_date,
+                    "slots": slots,
+                    "pk": cascading.pk,
+                }
+            )
+
+    # 슬롯 헤더 번호 리스트 (1 ~ max_declared)
+    slot_headers = list(range(1, max_declared + 1))
+
+    context = {
+        "menu_structure": MENU_STRUCTURE,
+        "creation_menu_structure": CREATION_MENU_STRUCTURE,
+        "current_section": MenuSection.INPUT_MANAGEMENT,
+        "current_group": MenuGroup.SCHEDULE,
+        "current_model": MenuItem.CASCADING_DASHBOARD,
+        "scenarios": scenarios,
+        "dashboard_data": dashboard_data,
+        "selected_scenario_id": scenario_id,
+        "slot_headers": slot_headers,
+        "max_declared": max_declared,
+    }
+
+    return render(request, "input_data/cascading_dashboard.html", context)
