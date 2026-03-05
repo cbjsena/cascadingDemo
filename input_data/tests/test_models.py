@@ -170,7 +170,6 @@ class TestCascadingModels:
             scenario=sample_schedule.scenario,
             proforma=sample_schedule,
             cascading_seq=1,
-            own_vessel_count=3,
             proforma_start_etb_date=timezone.now().date(),
             effective_start_date=timezone.now().date(),
             effective_end_date=timezone.now().date() + timedelta(days=365),
@@ -178,9 +177,13 @@ class TestCascadingModels:
             updated_by=user,
         )
 
+        # ProformaSchedule에 own_vessel_count 설정
+        sample_schedule.own_vessel_count = 3
+        sample_schedule.save(update_fields=["own_vessel_count"])
+
         # Then: 필드 검증
         assert cascading.cascading_seq == 1
-        assert cascading.own_vessel_count == 3
+        assert sample_schedule.own_vessel_count == 3
         assert cascading.proforma_start_etb_date is not None
         assert cascading.scenario == sample_schedule.scenario
         assert cascading.proforma == sample_schedule
@@ -217,7 +220,6 @@ class TestCascadingModels:
             scenario=sample_schedule.scenario,
             proforma=sample_schedule,
             cascading_seq=1,
-            own_vessel_count=2,
             proforma_start_etb_date=timezone.now().date(),
             effective_start_date=timezone.now().date(),
             created_by=user,
@@ -229,7 +231,6 @@ class TestCascadingModels:
                 scenario=sample_schedule.scenario,
                 proforma=sample_schedule,
                 cascading_seq=1,  # 동일한 seq
-                own_vessel_count=3,
                 proforma_start_etb_date=timezone.now().date(),
                 effective_start_date=timezone.now().date(),
                 created_by=user,

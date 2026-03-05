@@ -1,5 +1,5 @@
 ﻿[Base Data Table Definition]
-Generated At,2026-02-27 02:41:51
+Generated At,2026-03-05 05:02:20
 
 Table Name,Column Name,Data Type,Nullable,Description (Comment)
 base_bunker_consumption_port,base_year_month,string,NO,Year and month used as the base period / YYYYMM
@@ -43,7 +43,6 @@ base_cost_ts_cost,ts_cost,int,NO,Transshipment Cost (USD)
 base_schedule_cascading,lane_code,string,NO,Lane Code
 base_schedule_cascading,proforma_name,string,NO,Proforma Name
 base_schedule_cascading,cascading_seq,int,NO,Cascading Sequence
-base_schedule_cascading,own_vessel_count,int,NO,Own Vessels Count
 base_schedule_cascading,effective_start_date,date,NO,Effective start date of the cascading schedule
 base_schedule_cascading,effective_end_date,date,YES,Effective end date of the cascading schedule
 base_schedule_cascading,vessel_code,string,NO,Vessel Code
@@ -68,6 +67,7 @@ base_schedule_proforma,effective_from_date,datetime,NO,Effective date from which
 base_schedule_proforma,duration,numeric,NO,Total number of days from the ETB of the first port to the ETB of the last port
 base_schedule_proforma,declared_capacity,string,NO,"Declared vessel capacity (TEU) for the lane, Currently equal to vessel_capacity"
 base_schedule_proforma,declared_count,int,NO,Declared number of vessels for the lane
+base_schedule_proforma,own_vessel_count,int,NO,Number of own vessels assigned via cascading
 base_schedule_proforma,direction,string,NO,"Direction {W, E, S, N}"
 base_schedule_proforma,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
 base_schedule_proforma,calling_port_indicator,string,NO,Port call order for each direction and port within the lane

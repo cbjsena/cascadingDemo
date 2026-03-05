@@ -194,6 +194,10 @@ class BaseProformaSchedule(models.Model):
     declared_count = models.IntegerField(
         verbose_name="Declared number of vessels for the lane"
     )
+    own_vessel_count = models.IntegerField(
+        default=0,
+        verbose_name="Number of own vessels assigned via cascading",
+    )
     direction = models.CharField(
         max_length=2, choices=DIRECTION_CHOICES, verbose_name="Direction {W, E, S, N}"
     )
@@ -319,6 +323,10 @@ class ProformaSchedule(ScenarioBaseModel):
     declared_count = models.IntegerField(
         verbose_name="Declared number of vessels for the lane"
     )
+    own_vessel_count = models.IntegerField(
+        default=0,
+        verbose_name="Number of own vessels assigned via cascading",
+    )
 
     class Meta:
         db_table = "sce_schedule_proforma"
@@ -430,6 +438,42 @@ class ProformaScheduleDetail(CommonModel):
 
 
 # 2. Cascading
+
+
+class BaseCascadingSchedule(models.Model):
+    """[BASE] 기준 Cascading Schedule - Flat Structure for CSV Import"""
+
+    lane_code = models.CharField(max_length=10, verbose_name="Lane Code")
+    proforma_name = models.CharField(max_length=30, verbose_name="Proforma Name")
+    cascading_seq = models.IntegerField(verbose_name="Cascading Sequence")
+    effective_start_date = models.DateField(
+        verbose_name="Effective start date of the cascading schedule"
+    )
+    effective_end_date = models.DateField(
+        verbose_name="Effective end date of the cascading schedule",
+        null=True,
+        blank=True,
+    )
+    vessel_code = models.CharField(max_length=20, verbose_name="Vessel Code")
+    initial_start_date = models.DateField(verbose_name="Initial Start Date")
+
+    class Meta:
+        db_table = "base_schedule_cascading"
+        verbose_name = "Base Cascading Schedule"
+        verbose_name_plural = "Base Cascading Schedules"
+        unique_together = (
+            (
+                "lane_code",
+                "proforma_name",
+                "cascading_seq",
+                "vessel_code",
+            ),
+        )
+
+    def __str__(self):
+        return f"{self.lane_code} - {self.proforma_name} - Seq {self.cascading_seq} - {self.vessel_code}"
+
+
 class CascadingSchedule(ScenarioBaseModel):
     """Cascading Schedule 헤더 (Proforma 1 : N Cascading)"""
 
@@ -445,7 +489,6 @@ class CascadingSchedule(ScenarioBaseModel):
     )
 
     cascading_seq = models.IntegerField(verbose_name="Sequence")
-    own_vessel_count = models.IntegerField(verbose_name="Own Vessels Count")
     proforma_start_etb_date = models.DateField(
         verbose_name="ETB date of the first vessel at the first port in proforma"
     )
@@ -1531,38 +1574,3 @@ class KPISnapshot(CommonModel):
 
     def __str__(self):
         return f"KPI - {self.scenario.id} ({self.snapshot_date.date()})"
-
-
-class BaseCascadingSchedule(models.Model):
-    """[BASE] 기준 Cascading Schedule - Flat Structure for CSV Import"""
-
-    lane_code = models.CharField(max_length=10, verbose_name="Lane Code")
-    proforma_name = models.CharField(max_length=30, verbose_name="Proforma Name")
-    cascading_seq = models.IntegerField(verbose_name="Cascading Sequence")
-    own_vessel_count = models.IntegerField(verbose_name="Own Vessels Count")
-    effective_start_date = models.DateField(
-        verbose_name="Effective start date of the cascading schedule"
-    )
-    effective_end_date = models.DateField(
-        verbose_name="Effective end date of the cascading schedule",
-        null=True,
-        blank=True,
-    )
-    vessel_code = models.CharField(max_length=20, verbose_name="Vessel Code")
-    initial_start_date = models.DateField(verbose_name="Initial Start Date")
-
-    class Meta:
-        db_table = "base_schedule_cascading"
-        verbose_name = "Base Cascading Schedule"
-        verbose_name_plural = "Base Cascading Schedules"
-        unique_together = (
-            (
-                "lane_code",
-                "proforma_name",
-                "cascading_seq",
-                "vessel_code",
-            ),
-        )
-
-    def __str__(self):
-        return f"{self.lane_code} - {self.proforma_name} - Seq {self.cascading_seq} - {self.vessel_code}"

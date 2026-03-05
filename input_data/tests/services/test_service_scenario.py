@@ -302,7 +302,7 @@ class TestScenarioCreationService:
 
         master = masters.first()
         assert master.cascading_seq == 1
-        assert master.own_vessel_count == 3
+        assert master.proforma.own_vessel_count == 3
         assert master.scenario == scenario
         assert master.created_by == user
 

@@ -78,7 +78,7 @@ class CascadingService:
                 "lane_code": lane_code,
                 "proforma_name": proforma_name,
                 "cascading_seq": master.cascading_seq,  # Seq 번호 반환
-                "own_vessel_count": master.own_vessel_count,
+                "own_vessel_count": master_proforma.own_vessel_count,
                 "effective_start_date": (
                     master.effective_start_date.strftime("%Y-%m-%d")
                     if master.effective_start_date
@@ -152,11 +152,12 @@ class CascadingService:
             first_row_date_str, "%Y-%m-%d"
         ).date()
 
+        own_count = len([v for v in vessel_codes if v.strip()])
+
         cascading = CascadingSchedule.objects.create(
             scenario=scenario,
             proforma=master_proforma,
             cascading_seq=cascading_seq,
-            own_vessel_count=len([v for v in vessel_codes if v.strip()]),
             effective_start_date=datetime.strptime(start_date_str, "%Y-%m-%d").date(),
             effective_end_date=datetime.strptime(end_date_str, "%Y-%m-%d").date(),
             proforma_start_etb_date=proforma_start_etb_date,
@@ -179,5 +180,9 @@ class CascadingService:
                 )
         if details_to_create:
             CascadingScheduleDetail.objects.bulk_create(details_to_create)
+
+        # 3. ProformaSchedule의 own_vessel_count 동기화
+        master_proforma.own_vessel_count = own_count
+        master_proforma.save(update_fields=["own_vessel_count"])
 
         return cascading

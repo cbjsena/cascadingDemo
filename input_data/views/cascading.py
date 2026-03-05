@@ -334,7 +334,7 @@ def cascading_dashboard(request):
                     "proforma_name": cascading.proforma.proforma_name,
                     "cascading_seq": cascading.cascading_seq,
                     "declared_count": declared_count,
-                    "own_vessel_count": cascading.own_vessel_count,
+                    "own_vessel_count": cascading.proforma.own_vessel_count,
                     "start_week": start_week,
                     "start_date": cascading.proforma_start_etb_date,
                     "slots": slots,

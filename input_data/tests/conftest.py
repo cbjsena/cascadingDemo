@@ -308,11 +308,14 @@ def cascading_with_details(db, sample_schedule, user):
     CASCADING_VIEW_003, CASCADING_ACT_002, CASCADING_DETAIL_001/002 등에서 사용
     ※ Detail 수는 sample_schedule.declared_count(=2)를 초과하지 않도록 한다.
     """
+    # ProformaSchedule에 own_vessel_count 설정
+    sample_schedule.own_vessel_count = 2
+    sample_schedule.save(update_fields=["own_vessel_count"])
+
     cascading = CascadingSchedule.objects.create(
         scenario=sample_schedule.scenario,
         proforma=sample_schedule,
         cascading_seq=1,
-        own_vessel_count=2,
         proforma_start_etb_date=timezone.now().date(),
         effective_start_date=timezone.now().date(),
         effective_end_date=timezone.now().date() + timedelta(days=365),
@@ -384,13 +387,16 @@ def multiple_cascading_data(db, sample_schedule, user):
     """
     cascadings = []
 
+    # ProformaSchedule에 own_vessel_count 설정
+    sample_schedule.own_vessel_count = 2
+    sample_schedule.save(update_fields=["own_vessel_count"])
+
     # FE1 Lane에 2개의 Cascading
     for seq in [1, 2]:
         cascading = CascadingSchedule.objects.create(
             scenario=sample_schedule.scenario,
             proforma=sample_schedule,
             cascading_seq=seq,
-            own_vessel_count=2,
             proforma_start_etb_date=timezone.now().date(),
             effective_start_date=timezone.now().date(),
             effective_end_date=timezone.now().date() + timedelta(days=365),

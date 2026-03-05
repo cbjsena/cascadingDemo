@@ -159,6 +159,7 @@ def _copy_proforma_to_scenario(scenario, user, now):
                 duration=base.duration,
                 declared_capacity=base.declared_capacity,
                 declared_count=base.declared_count,
+                own_vessel_count=base.own_vessel_count,
                 created_by=user,
                 updated_by=user,
                 created_at=now,
@@ -311,7 +312,6 @@ def _copy_cascading_to_scenario(scenario, user, now):
                 scenario=scenario,
                 proforma=proforma,
                 cascading_seq=base.cascading_seq,
-                own_vessel_count=base.own_vessel_count,
                 proforma_start_etb_date=calculated_start_etb_date,  # 계산된 값 사용
                 effective_start_date=base.effective_start_date,
                 effective_end_date=base.effective_end_date,

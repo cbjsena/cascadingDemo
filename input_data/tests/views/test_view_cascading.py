@@ -84,7 +84,7 @@ class TestCascadingView:
         # DB에 저장된 데이터 검증
         cascading = CascadingSchedule.objects.first()
         assert cascading is not None
-        assert cascading.own_vessel_count == 3
+        assert cascading.proforma.own_vessel_count == 3
         assert cascading.proforma_start_etb_date is not None  # 자동 계산됨
 
         # Detail 데이터 검증
@@ -104,7 +104,7 @@ class TestCascadingView:
         기존 Cascading 수정 시 덮어쓰기 로직 검증
         """
         # Given: 기존 Cascading 데이터 존재 (Own Vessels=2)
-        assert cascading_with_details.own_vessel_count == 2
+        assert cascading_with_details.proforma.own_vessel_count == 2
 
         # When: Own Vessels를 5로 변경하여 수정
         url = reverse("input_data:cascading_create")
@@ -131,9 +131,9 @@ class TestCascadingView:
         # Then: 기존 Cascading이 삭제 후 재생성됨
         assert response.status_code == 302
 
-        # 새로운 데이터로 저장됨
+        # 새로운 데이터로 저장됨 (own_vessel_count는 ProformaSchedule에 저장)
         cascading = CascadingSchedule.objects.first()
-        assert cascading.own_vessel_count == 5
+        assert cascading.proforma.own_vessel_count == 5
 
         # Detail 테이블도 새로운 선박 배정으로 갱신됨
         details = CascadingScheduleDetail.objects.filter(cascading=cascading)
@@ -179,7 +179,7 @@ class TestCascadingView:
         assert response.status_code == 302
         cascading = CascadingSchedule.objects.first()
         assert cascading is not None
-        assert cascading.own_vessel_count == 2  # 폼의 3이 아니라 실제 2로 저장
+        assert cascading.proforma.own_vessel_count == 2  # 폼의 3이 아니라 실제 2로 저장
         assert CascadingScheduleDetail.objects.filter(cascading=cascading).count() == 2
 
     def test_cascading_act_005_auto_end_date(self, auth_client, cascading_form_data):
@@ -281,7 +281,7 @@ class TestCascadingView:
 
         # 새 필드들이 정상 출력되는지 확인
         content = response.content.decode()
-        assert str(cascading.own_vessel_count) in content
+        assert str(cascading.proforma.own_vessel_count) in content
 
         # Edit 버튼의 href에 올바른 파라미터 포함
         edit_url = reverse("input_data:cascading_create")
