@@ -5,6 +5,7 @@ import pytest
 from django.contrib.auth.models import User
 from django.utils import timezone
 
+from common import constants
 from input_data.models import (
     CascadingSchedule,
     CascadingScheduleDetail,
@@ -54,9 +55,9 @@ def auth_client(client, user):
 def base_scenario(db, user):
     """기본 시나리오 (데이터 없음)"""
     return ScenarioInfo.objects.create(
-        name="Base Test Scenario",
+        code="SC_TEST_BASE",
         description="Base Test Scenario for testing",
-        base_year_month="202602",
+        base_year_week=constants.DEFAULT_BASE_YEAR_WEEK,
         scenario_type="BASELINE",
         status="ACTIVE",
         created_by=user,
@@ -69,9 +70,9 @@ def scenario_with_data(db, user):
     """하위 데이터가 포함된 시나리오"""
     # 1. 부모 생성 (Scenario)
     scenario = ScenarioInfo.objects.create(
-        name="Scenario With Test Data",
+        code="SC_TEST_DATA",
         description="Scenario for Cascade Test",
-        base_year_month="202602",
+        base_year_week=constants.DEFAULT_BASE_YEAR_WEEK,
         scenario_type="WHAT_IF",
         status="ACTIVE",
         created_by=user,
@@ -235,7 +236,7 @@ def pf_complex_data(db, base_scenario, user):
 def lrs_integration_data(db, user):
     """[추가됨] LRS 통합 테스트용 공통 데이터"""
     scenario = ScenarioInfo.objects.create(
-        name="Integration Test Scenario",
+        code="SC_LRS_TEST",
         description="Integration Test",
         scenario_type="WHAT_IF",
         status="ACTIVE",

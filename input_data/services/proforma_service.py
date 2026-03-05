@@ -576,7 +576,7 @@ class ProformaService:
         # 2. Header 구성
         header = {
             "scenario_id": master.scenario_id,
-            "scenario_name": master.scenario.name,  # 시나리오 이름 추가
+            "scenario_code": master.scenario.code,  # 시나리오 코드 추가
             "lane_code": master.lane_code,
             "proforma_name": master.proforma_name,
             "effective_from_date": (

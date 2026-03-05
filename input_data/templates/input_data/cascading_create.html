@@ -17,13 +17,13 @@
             <div class="card-body">
                 <div class="row g-3 align-items-end">
                     <div class="col-md-3">
-                        <label class="form-label small text-muted">Scenario Name</label>
+                        <label class="form-label small text-muted">Scenario Code</label>
                         <select class="form-select" id="scenarioSelect" name="scenario_id" required>
                             <option value="">Select Scenario</option>
                             {% for scenario in scenarios %}
                             <option value="{{ scenario.id }}"
                                 {% if preserved_data.scenario_id and preserved_data.scenario_id|stringformat:"s" == scenario.id|stringformat:"s" %}selected{% endif %}>
-                                {{ scenario.name }}
+                                {{ scenario.code }}
                             </option>
                             {% endfor %}
                         </select>
@@ -190,12 +190,12 @@
 <script src="{% static 'js/common_api.js' %}"></script>
 
 <script>
-    // API URL 정의 (api 앱의 URL Name 사용)
+    // API URL ?�의 (api ?�의 URL Name ?�용)
     const API_URLS = {
         options: "{% url 'api:proforma_options' %}",       // Lane, Proforma 공용
-        detail: "{% url 'api:proforma_detail' %}",    // 상세 정보 (Load Info)
-        vessel_list: "{% url 'api:vessel_list' %}",        // 선박 목록 (Capacity 포함)
-        vessel_check: "{% url 'api:vessel_lane_check' %}"  // 기간 점유 확인
+        detail: "{% url 'api:proforma_detail' %}",    // ?�세 ?�보 (Load Info)
+        vessel_list: "{% url 'api:vessel_list' %}",        // ?�박 목록 (Capacity ?�함)
+        vessel_check: "{% url 'api:vessel_lane_check' %}"  // 기간 ?�유 ?�인
     };
 
     const initData = {
@@ -204,10 +204,10 @@
         proforma: "{{ preserved_data.proforma_name|default:'' }}"
     };
 
-    // 요일 매핑 (Proforma Day Code -> JS Date Day Index)
+    // ?�일 매핑 (Proforma Day Code -> JS Date Day Index)
     const DAY_MAP = { "SUN": 0, "MON": 1, "TUE": 2, "WED": 3, "THU": 4, "FRI": 5, "SAT": 6 };
 
-    // 시나리오의 선박 정보 캐싱 [{'vessel_code':.., 'max_cap':..}]
+    // ?�나리오???�박 ?�보 캐싱 [{'vessel_code':.., 'max_cap':..}]
     let vesselDataList = [];
 
     // DOM Elements
@@ -228,7 +228,7 @@
         createBtn: document.getElementById('btnCreateLRS')
     };
 
-    // [Server-Side Data Recovery] 에러 발생 후 페이지 리로드 시 데이터 복구
+    // [Server-Side Data Recovery] ?�러 발생 ???�이지 리로?????�이??복구
     {% if vessel_list %}
         vesselDataList = [
             {% for v in vessel_list %}
@@ -237,36 +237,36 @@
         ];
     {% endif %}
 
-    // 2.0 화면 로드 완료 시 Edit 모드 Select Box 연쇄 복구
+    // 2.0 ?�면 로드 ?�료 ??Edit 모드 Select Box ?�쇄 복구
     window.addEventListener('DOMContentLoaded', () => {
-        // 1. Edit 모드이거나 에러 발생 후 돌아온 경우 (initData가 존재할 때)
+        // 1. Edit 모드?�거???�러 발생 ???�아??경우 (initData가 존재????
         if (initData.scenario) {
-            // 우선 시나리오에 묶인 전체 선박 리스트를 가져와서 캐싱해 둠 (Row 조작을 위해 필요)
+            // ?�선 ?�나리오??묶인 ?�체 ?�박 리스?��? 가?��???캐싱????(Row 조작???�해 ?�요)
             CommonApi.loadVesselList(API_URLS.vessel_list, initData.scenario, (data) => {
                 vesselDataList = data;
 
-                // 선박 목록을 불러온 직후, Edit 모드로 채워진 테이블 Row들의 Select Option을 채워줌
+                // ?�박 목록??불러??직후, Edit 모드�?채워�??�이�?Row?�의 Select Option??채워�?
                 document.querySelectorAll('.vessel-select').forEach(select => {
                     const hiddenInput = select.closest('tr').querySelector('.vessel-code-hidden');
 
-                    // Select Box에 전체 선박 Option 채워넣기
+                    // Select Box???�체 ?�박 Option 채워?�기
                     let optionsHtml = '<option value="">Select Vessel</option>';
                     vesselDataList.forEach(v => {
                         optionsHtml += `<option value="${v.vessel_code}" data-cap="${v.max_cap}">${v.vessel_code}</option>`;
                     });
                     select.innerHTML = optionsHtml;
 
-                    // 만약 체크된 Row(저장된 데이터)라면 기존 선택값 복원
+                    // 만약 체크??Row(?�?�된 ?�이???�면 기존 ?�택�?복원
                     if (hiddenInput && hiddenInput.value) {
                         select.value = hiddenInput.value;
-                        select.dispatchEvent(new Event('change')); // Capacity 등 연동 이벤트 강제 발생
+                        select.dispatchEvent(new Event('change')); // Capacity ???�동 ?�벤??강제 발생
                     }
                 });
             });
 
             {% if is_edit_mode and lane_options and proforma_options %}
-            // Edit 모드: 서버에서 전달된 옵션들 사용
-            // Lane 옵션 채우기
+            // Edit 모드: ?�버?�서 ?�달???�션???�용
+            // Lane ?�션 채우�?
             let laneOptionsHtml = '<option value="">Select Lane</option>';
             {% for lane in lane_options %}
                 laneOptionsHtml += '<option value="{{ lane }}" {% if preserved_data.lane_code == lane %}selected{% endif %}>{{ lane }}</option>';
@@ -274,7 +274,7 @@
             els.lane.innerHTML = laneOptionsHtml;
             els.lane.disabled = false;
 
-            // Proforma 옵션 채우기
+            // Proforma ?�션 채우�?
             let proformaOptionsHtml = '<option value="">Select Proforma</option>';
             {% for proforma in proforma_options %}
                 proformaOptionsHtml += '<option value="{{ proforma }}" {% if preserved_data.proforma_name == proforma %}selected{% endif %}>{{ proforma }}</option>';
@@ -283,7 +283,7 @@
             els.proforma.disabled = false;
             els.loadBtn.disabled = false;
 
-            // Edit 모드에서 pfFirstDay 값을 API로부터 가져오기
+            // Edit 모드?�서 pfFirstDay 값을 API로�???가?�오�?
             if (initData.scenario && initData.lane && initData.proforma) {
                 console.log('Edit mode - loading proforma detail for pfFirstDay');
                 fetch(`${API_URLS.detail}?scenario_id=${initData.scenario}&lane_code=${initData.lane}&proforma_name=${initData.proforma}`)
@@ -298,16 +298,16 @@
             }
 
             {% else %}
-            // 일반 모드: API를 통해 동적 로드
-            // Lane 목록 동적 로드
+            // ?�반 모드: API�??�해 ?�적 로드
+            // Lane 목록 ?�적 로드
             CommonApi.loadLanes(API_URLS.options, initData.scenario, els.lane, () => {
-                // Lane 로드가 완료되면 기존 선택값 복구
+                // Lane 로드가 ?�료?�면 기존 ?�택�?복구
                 if (initData.lane) {
                     els.lane.value = initData.lane;
 
-                    // 해당 Lane에 묶인 Proforma 목록 동적 로드
+                    // ?�당 Lane??묶인 Proforma 목록 ?�적 로드
                     CommonApi.loadProformas(API_URLS.options, initData.scenario, initData.lane, els.proforma, () => {
-                        // Proforma 로드가 완료되면 기존 선택값 복구
+                        // Proforma 로드가 ?�료?�면 기존 ?�택�?복구
                         if (initData.proforma) {
                             els.proforma.value = initData.proforma;
                             if (els.loadBtn) els.loadBtn.disabled = false;
@@ -318,7 +318,7 @@
             {% endif %}
         }
 
-        // 2. 이미 렌더링된 Row들이 존재하면 이벤트 다시 연결 (Edit 모드에서 테이블 조작 시 필요)
+        // 2. ?��? ?�더링된 Row?�이 존재?�면 ?�벤???�시 ?�결 (Edit 모드?�서 ?�이�?조작 ???�요)
         if (document.querySelector('.own-vessel-check')) {
             attachRowEvents();
             validateCreateButton();
@@ -329,19 +329,19 @@
     els.scenario.addEventListener('change', function() {
         const sid = this.value;
 
-        // 초기화
+        // 초기??
         CommonApi.resetSelect(els.lane, "Select Lane");
         CommonApi.resetSelect(els.proforma, "Select Proforma");
         els.loadBtn.disabled = true;
 
-        // 데이터 리셋 (서버 복구 데이터가 없는 경우)
+        // ?�이??리셋 (?�버 복구 ?�이?��? ?�는 경우)
         if (!vesselDataList.length) vesselDataList = [];
 
         if (sid) {
-            // Lane 로드 (UI 업데이트)
+            // Lane 로드 (UI ?�데?�트)
             CommonApi.loadLanes(API_URLS.options, sid, els.lane);
 
-            // Vessel List 로드 (데이터 캐싱 -> 행 생성 시 사용)
+            // Vessel List 로드 (?�이??캐싱 -> ???�성 ???�용)
             CommonApi.loadVesselList(API_URLS.vessel_list, sid, (data) => {
                 vesselDataList = data;
             });
@@ -358,7 +358,7 @@
         els.loadBtn.disabled = true;
 
         if (lane) {
-            // Proforma 로드 (UI 업데이트)
+            // Proforma 로드 (UI ?�데?�트)
             CommonApi.loadProformas(API_URLS.options, sid, lane, els.proforma);
         } else {
             els.proforma.disabled = true;
@@ -381,7 +381,7 @@
 
         console.log('Loading proforma info for:', sid, lane, pf);
 
-        // 상세 정보 조회는 UI 로직이 복잡하므로 여기서 직접 fetch 사용 (URL은 상수 활용)
+        // ?�세 ?�보 조회??UI 로직??복잡?��?�??�기??직접 fetch ?�용 (URL?� ?�수 ?�용)
         fetch(`${API_URLS.detail}?scenario_id=${sid}&lane_code=${lane}&proforma_name=${pf}`)
             .then(res => res.json())
             .then(data => {
@@ -390,7 +390,7 @@
                 if (data.status === 'success') {
                     els.settingsArea.style.display = 'block';
 
-                    // Global Settings 적용
+                    // Global Settings ?�용
                     els.requiredCount.value = data.declared_count;
                     els.slotBadge.textContent = `Total Slots: ${data.declared_count}`;
 
@@ -400,11 +400,11 @@
                     console.log('Set pfFirstDay to:', data.first_port_day);
                     console.log('Required count:', data.declared_count);
 
-                    // 입력 필드 초기화
+                    // ?�력 ?�드 초기??
                     els.startDate.value = "";
                     els.ownInput.value = 0;
 
-                    // Declared Count 수만큼 행 생성
+                    // Declared Count ?�만?????�성
                     generateRowsBasedOnRequiredCount();
 
                     validateCreateButton();
@@ -424,7 +424,7 @@
 
     // --- 4. Simple Row Generation Logic ---
 
-    // Declared Count 수가 변경되면 항상 그 수만큼 행 생성
+    // Declared Count ?��? 변경되�???�� �??�만?????�성
     function generateRowsBasedOnRequiredCount() {
         const count = parseInt(els.requiredCount.value) || 0;
         if (count <= 0) {
@@ -434,13 +434,13 @@
 
         console.log('Generating', count, 'rows based on Declared Count');
 
-        // Select Option HTML 생성 (캐싱된 데이터 사용)
+        // Select Option HTML ?�성 (캐싱???�이???�용)
         let optionsHtml = '<option value="">Select Vessel</option>';
         vesselDataList.forEach(v => {
             optionsHtml += `<option value="${v.vessel_code}" data-cap="${v.max_cap}">${v.vessel_code}</option>`;
         });
 
-        // 행 생성
+        // ???�성
         els.tbody.innerHTML = '';
         for (let i = 0; i < count; i++) {
             const tr = document.createElement('tr');
@@ -473,17 +473,17 @@
             els.tbody.appendChild(tr);
         }
 
-        // 이벤트 연결
+        // ?�벤???�결
         attachRowEvents();
         console.log('Generated', count, 'rows and attached events');
     }
 
-    // Start Date가 변경되면 날짜 업데이트
+    // Start Date가 변경되�??�짜 ?�데?�트
     els.startDate.addEventListener('change', function() {
         const inputDateStr = this.value;
         const targetDayStr = els.pfFirstDay.value;
 
-        // End Date를 Start Date의 1년 후로 자동 설정 (기존 값이 없는 경우에만)
+        // End Date�?Start Date??1???�로 ?�동 ?�정 (기존 값이 ?�는 경우?�만)
         if (inputDateStr && (!els.endDate.value || els.endDate.value === '')) {
             const startDate = new Date(inputDateStr);
             const endDate = new Date(startDate);
@@ -502,7 +502,7 @@
             return;
         }
 
-        // 날짜 계산
+        // ?�짜 계산
         function findNextTargetDay(startDateStr, targetDay) {
             const targetDayIdx = DAY_MAP[targetDay];
             let currentDate = new Date(startDateStr + 'T00:00:00');
@@ -531,7 +531,7 @@
 
         const baseDate = findNextTargetDay(inputDateStr, targetDayStr);
 
-        // 기존 행들의 날짜만 업데이트
+        // 기존 ?�들???�짜�??�데?�트
         const rows = els.tbody.querySelectorAll('tr');
         rows.forEach((tr, i) => {
             const dateInput = tr.querySelector('input[name="vessel_start_date[]"]');
@@ -587,10 +587,10 @@
                 const capInput = tr.querySelector('input[name="vessel_capacity[]"]');
                 const laneInput = tr.querySelector('input[name="lane_code_list[]"]');
 
-                // 값 동기화
+                // �??�기??
                 hiddenInput.value = this.value;
 
-                // Capacity 채우기
+                // Capacity 채우�?
                 const selectedOption = this.options[this.selectedIndex];
                 capInput.value = selectedOption.getAttribute('data-cap') || '';
 
@@ -601,7 +601,7 @@
                     laneInput.value = "";
                 }
 
-                // 선박 선택 변경 시 버튼 활성화 상태 재검증
+                // ?�박 ?�택 변�???버튼 ?�성???�태 ?��?�?
                 validateCreateButton();
             });
         });
@@ -616,7 +616,7 @@
         };
 
         if (params.scenario_id && params.start_date && params.end_date) {
-            // CommonApi 활용
+            // CommonApi ?�용
             CommonApi.checkVesselLane(API_URLS.vessel_check, params, (data) => {
                 if (data.lane_code) {
                     laneInput.value = data.lane_code;
@@ -632,14 +632,14 @@
 
     // --- 6. Validation & Init ---
 
-    // Own Vessels 입력 시 검증만 수행
+    // Own Vessels ?�력 ??검증만 ?�행
     els.ownInput.addEventListener('input', validateCreateButton);
 
     function validateCreateButton() {
         const targetCount = parseInt(els.ownInput.value) || 0;
         const checkedCount = document.querySelectorAll('.own-vessel-check:checked').length;
 
-        // 체크된 행들 중에서 실제로 선박이 선택된 개수 계산
+        // 체크???�들 중에???�제�??�박???�택??개수 계산
         let selectedVesselCount = 0;
         document.querySelectorAll('.own-vessel-check:checked').forEach(checkbox => {
             const row = checkbox.closest('tr');
@@ -649,7 +649,7 @@
             }
         });
 
-        // 조건: 입력한 Own Vessel 대수와 실제 선박이 선택된 대수가 같아야 함
+        // 조건: ?�력??Own Vessel ?�?��? ?�제 ?�박???�택???�?��? 같아????
         const isValid = (targetCount > 0 && targetCount === selectedVesselCount);
 
         console.log('Validation:', {
@@ -659,12 +659,12 @@
             isValid
         });
 
-        // 두 버튼 모두 활성화/비활성화 처리
+        // ??버튼 모두 ?�성??비활?�화 처리
         document.getElementById('btnSaveCascading').disabled = !isValid;
         document.getElementById('btnCreateLRS').disabled = !isValid;
     }
 
-    // --- 7. DEBUG FUNCTIONS (브라우저 콘솔에서 사용 가능) ---
+    // --- 7. DEBUG FUNCTIONS (브라?��? 콘솔?�서 ?�용 가?? ---
 
     window.testDateCalculation = function(dateStr, targetDay) {
         console.log(`\n=== Testing ${dateStr} -> ${targetDay} ===`);
@@ -714,9 +714,10 @@
         };
     };
 
-    // 브라우저 콘솔에서 사용 예시:
+    // 브라?��? 콘솔?�서 ?�용 ?�시:
     // testDateCalculation('2026-02-15', 'SUN')
     // testDateCalculation('2026-02-14', 'SUN')
 
 </script>
 {% endblock %}
+

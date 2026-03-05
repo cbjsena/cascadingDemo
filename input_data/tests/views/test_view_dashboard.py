@@ -46,5 +46,5 @@ class TestDashboardView:
         content = response.content.decode("utf-8")
 
         # 화면에 Scenario ID가 출력되어야 함 (scenario.id 사용 여부 확인)
-        assert base_scenario.name in content
+        assert base_scenario.code in content
         assert base_scenario.description in content

@@ -25,10 +25,10 @@ class TestScenarioModels:
         [MODEL_SCE_001] Scenario 모델 Default
         ScenarioInfo 생성 시 Default 값(status=ACTIVE) 및 ID 자동 할당 검증
         """
-        assert base_scenario.name == "Base Test Scenario"
+        assert base_scenario.code == "SC_TEST_BASE"
         assert base_scenario.status == "ACTIVE"  # Default Value Check
         assert base_scenario.id is not None  # ID가 자동 할당됨
-        assert str(base_scenario) == f"Base Test Scenario (ID: {base_scenario.id})"
+        assert str(base_scenario) == f"SC_TEST_BASE (ID: {base_scenario.id})"
 
     def test_cascade_delete(self, scenario_with_data):
         """
@@ -90,7 +90,7 @@ class TestProformaModels:
         # Then
         # Master -> Scenario 연결 확인
         assert master.scenario == base_scenario
-        assert master.scenario.name == "Base Test Scenario"
+        assert master.scenario.code == "SC_TEST_BASE"
 
         # Detail -> Master 및 Scenario 연결 확인
         assert detail.proforma == master

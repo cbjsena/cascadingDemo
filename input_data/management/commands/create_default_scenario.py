@@ -4,37 +4,39 @@ from input_data.services.scenario_service import create_scenario_from_base
 
 
 class Command(BaseCommand):
-    help = "Create a default scenario from Base data"
+    help = "Create a default scenario from base data"
 
     def add_arguments(self, parser):
-        parser.add_argument(
-            "--name",
-            type=str,
-            default="Base Scenario",
-            help="Name for the default scenario",
-        )
         parser.add_argument(
             "--description",
             type=str,
             default="Base scenario created from initial data",
             help="Description for the default scenario",
         )
+        parser.add_argument(
+            "--base-year-week",
+            type=str,
+            default=None,
+            help="Base year week (YYYY-WXX format)",
+        )
 
     def handle(self, *args, **kwargs):
-        scenario_name = kwargs["name"]
         description = kwargs["description"]
+        base_year_week = kwargs.get("base_year_week")
 
         self.stdout.write(
-            self.style.MIGRATE_HEADING(f"Creating Default Scenario: '{scenario_name}'")
+            self.style.MIGRATE_HEADING("Creating Default Scenario from Base Data")
         )
 
         try:
             # 서비스 호출 (새로운 시그니처 사용)
-            scenario, summary = create_scenario_from_base(scenario_name, description)
+            scenario, summary = create_scenario_from_base(
+                description=description, base_year_week=base_year_week
+            )
 
             self.stdout.write(
                 self.style.SUCCESS(
-                    f"Scenario '{scenario_name}' (ID: {scenario.id}) created successfully."
+                    f"Scenario '{scenario.code}' (ID: {scenario.id}) created successfully."
                 )
             )
 

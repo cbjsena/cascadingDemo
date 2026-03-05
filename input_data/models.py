@@ -44,12 +44,13 @@ class ScenarioInfo(CommonModel):
     # Auto-incrementing ID (Django standard)
     id = models.AutoField(primary_key=True, verbose_name="Scenario ID")
 
-    # User-friendly unique name
-    name = models.CharField(
-        max_length=100,
+    # Auto-generated unique code (SCYYYYMMDD_000)
+    code = models.CharField(
+        max_length=20,
         unique=True,
-        verbose_name="Scenario Name",
-        help_text="Unique, user-friendly name for this simulation scenario",
+        verbose_name="Scenario Code",
+        help_text="Auto-generated unique code (SCYYYYMMDD_NNN)",
+        blank=True,
     )
 
     description = models.TextField(
@@ -76,12 +77,12 @@ class ScenarioInfo(CommonModel):
     )
 
     # Planning period
-    base_year_month = models.CharField(
+    base_year_week = models.CharField(
         max_length=6,
         null=True,
         blank=True,
-        verbose_name="Base Year-Month / YYYYMM",
-        help_text="Planning period start",
+        verbose_name="Base Year-Week / YYYYWK",
+        help_text="Planning period start week (e.g., 202610)",
     )
     planning_horizon_months = models.PositiveIntegerField(
         default=12,
@@ -129,12 +130,65 @@ class ScenarioInfo(CommonModel):
         ordering = ["-created_at"]
 
     def __str__(self):
-        return f"{self.name} (ID: {self.id})"
+        return f"{self.code} (ID: {self.id})"
+
+    def save(self, *args, **kwargs):
+        """Auto-generate code if not provided (format: SCYYYYMMDD_NNN)"""
+        if not self.code:
+            from datetime import date
+
+            from django.db.models import Max
+
+            today_str = date.today().strftime("%Y%m%d")
+            prefix = f"SC{today_str}_"
+
+            # 오늘 날짜로 생성된 시나리오 중 가장 큰 번호 찾기
+            last_code = ScenarioInfo.objects.filter(code__startswith=prefix).aggregate(
+                max_code=Max("code")
+            )["max_code"]
+
+            if last_code:
+                # 기존 번호에서 숫자 추출 후 +1
+                last_num = int(last_code.split("_")[-1])
+                new_num = last_num + 1
+            else:
+                new_num = 1
+
+            self.code = f"{prefix}{new_num:03d}"
+
+        super().save(*args, **kwargs)
 
     @property
     def is_baseline(self):
         """Check if this is a baseline scenario"""
         return self.scenario_type == "BASELINE"
+
+    @property
+    def to_year_week(self):
+        """Calculate end week based on base_year_week and planning_horizon_months"""
+        if not self.base_year_week or not self.planning_horizon_months:
+            return None
+
+        try:
+            # base_year_week format: YYYYWK (e.g., 202610)
+            year = int(self.base_year_week[:4])
+            week = int(self.base_year_week[4:])
+
+            # planning_horizon_months를 주차로 변환 (1개월 ≈ 4.33주)
+            weeks_to_add = int(self.planning_horizon_months * 4.33)
+
+            # 종료 주차 계산
+            end_week = week + weeks_to_add
+            end_year = year
+
+            # 연도 넘김 처리 (52주 기준)
+            while end_week > 52:
+                end_week -= 52
+                end_year += 1
+
+            return f"{end_year}{end_week:02d}"
+        except (ValueError, TypeError):
+            return None
 
     @property
     def tag_list(self):

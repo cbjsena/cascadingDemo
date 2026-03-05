@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 {% load static %}
 
 {% block title %}Proforma List - Cascading Opt{% endblock %}
@@ -11,13 +11,13 @@
             <form method="get" action="{% url 'input_data:proforma_list' %}" class="row g-3 align-items-end">
 
                 <div class="col-md-3">
-                    <label class="form-label fw-bold small text-muted">Scenario Name</label>
+                    <label class="form-label fw-bold small text-muted">Scenario Code</label>
                     <select class="form-select" id="scenarioSelect" name="scenario_id">
                         <option value="">Select Scenario</option>
                         {% for scenario in scenarios %}
                         <option value="{{ scenario.id }}"
                             {% if search_params.scenario_id == scenario.id %}selected{% endif %}>
-                            {{ scenario.name }}
+                            {{ scenario.code }}
                         </option>
                         {% endfor %}
                     </select>
@@ -66,7 +66,7 @@
                         {% for item in proforma_list %}
                         <tr>
                             <td class="text-center">{{ forloop.counter }}</td>
-                            <td class="fw-bold text-primary">{{ item.scenario.name }}</td>
+                            <td class="fw-bold text-primary">{{ item.scenario.code }}</td>
                             <td><span class="badge bg-secondary">{{ item.lane_code }}</span></td>
                             <td class="fw-bold">{{ item.proforma_name }}</td>
 
@@ -98,18 +98,18 @@
 </div>
 <script src="{% static 'js/common_api.js' %}"></script>
 <script>
-    // 1. API URL 세팅
+    // 1. API URL Settings
     const API_URLS = {
         options: "{% url 'api:proforma_options' %}"
     };
 
-    // 2. 서버에서 렌더링 시점에 받아온 초기 파라미터 저장
+    // 2. Initial parameters from server-side render
     const initData = {
         scenario: "{{ search_params.scenario_id|default:'' }}",
         lane: "{{ search_params.lane_code|default:'' }}"
     };
 
-    // 3. DOM 요소 매핑
+    // 3. DOM Element Mapping
     const els = {
         scenario: document.getElementById('scenarioSelect'),
         lane: document.getElementById('laneSelect')
@@ -117,12 +117,12 @@
 
     document.addEventListener('DOMContentLoaded', function() {
         // ======================================================
-        // [초기화 렌더링] 검색 조건이 이미 있다면 하위 목록을 로드해둠
+        // Initial Load: Load sub-lists if search conditions exist
         // ======================================================
         if (initData.scenario) {
-            // 시나리오가 선택되어 있으면 Lane 목록을 그려줌
+            // If scenario is selected, load Lane list
             CommonApi.loadLanes(API_URLS.options, initData.scenario, els.lane, () => {
-                // 로드가 끝난 후(콜백), 기존에 선택했던 Lane이 있다면 선택(select) 처리
+                // Callback after load: re-select previously selected Lane
                 if (initData.lane) {
                     els.lane.value = initData.lane;
                 }
@@ -130,19 +130,20 @@
         }
 
         // ======================================================
-        // [이벤트 리스너] 사용자가 직접 셀렉트 박스를 조작할 때
+        // Event Listeners: When user manipulates select boxes
         // ======================================================
         els.scenario.addEventListener('change', function() {
             const sid = this.value;
 
-            // 시나리오가 바뀌면 하위 Select 목록 리셋
+            // Reset sub-select when scenario changes
             CommonApi.resetSelect(els.lane, "Select Lane");
 
             if (sid) {
-                // 시나리오에 해당하는 Lane 목록 로드
+                // Load Lane list for selected scenario
                 CommonApi.loadLanes(API_URLS.options, sid, els.lane);
             }
         });
     });
 </script>
 {% endblock %}
+

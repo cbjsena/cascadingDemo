@@ -241,9 +241,7 @@ class TestCascadingView:
         response = auth_client.get(
             url,
             {
-                "scenario_id": multiple_cascading_data[
-                    0
-                ].scenario.id,  # scenario_name 대신 scenario_id 사용
+                "scenario_id": multiple_cascading_data[0].scenario.id,
                 "lane_code": "TEST_LANE",
             },
         )

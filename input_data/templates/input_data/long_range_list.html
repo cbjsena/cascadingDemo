@@ -21,13 +21,13 @@
         <div class="card-body">
             <form method="get" class="row g-3 align-items-end">
                 <div class="col-md-2">
-                    <label class="form-label small text-muted">Scenario Name</label>
+                    <label class="form-label small text-muted">Scenario Code</label>
                     <select class="form-select" id="scenarioSelect" name="scenario_id">
                         <option value="">Select Scenario</option>
                         {% for scenario in scenarios %}
                         <option value="{{ scenario.id }}"
                                 {% if search_params.scenario_id == scenario.id %}selected{% endif %}>
-                            {{ scenario.name }}
+                            {{ scenario.code }}
                         </option>
                         {% endfor %}
                     </select>
@@ -120,13 +120,13 @@
 <script src="{% static 'js/common_api.js' %}"></script>
 
 <script>
-    // 1. API URL 정의 (Django Template 태그는 HTML 파일 내에서만 작동)
+    // 1. API URL ?�의 (Django Template ?�그??HTML ?�일 ?�에?�만 ?�동)
     const API_URLS = {
         options: "{% url 'api:proforma_options' %}", // Lane, Proforma 공용
         vessel_options: "{% url 'api:vessel_options' %}"
     };
 
-    // 2. DOM 요소 및 초기 데이터
+    // 2. DOM ?�소 �?초기 ?�이??
     const els = {
         scenario: document.getElementById('scenarioSelect'),
         lane: document.getElementById('laneSelect'),
@@ -140,14 +140,14 @@
         vessel: "{{ search_params.vessel_code|default:'' }}"
     };
 
-    // 3. [핵심] 안전한 데이터 페칭 및 UI 렌더링 함수
+    // 3. [?�심] ?�전???�이???�칭 �?UI ?�더�??�수
     function fetchAndFill(url, targetSelect, placeholder, selectedValue = null) {
-        targetSelect.disabled = true; // 통신 중 비활성화
+        targetSelect.disabled = true; // ?�신 �?비활?�화
 
         fetch(url)
             .then(res => res.json())
             .then(data => {
-                // 데이터가 존재할 때만 활성화
+                // ?�이?��? 존재???�만 ?�성??
                 if (data.options && data.options.length > 0) {
                     let html = `<option value="">${placeholder}</option>`;
                     data.options.forEach(opt => {
@@ -157,7 +157,7 @@
                     targetSelect.innerHTML = html;
                     targetSelect.disabled = false;
                 } else {
-                    // 데이터가 없으면 명시적으로 표시하고 비활성화 유지
+                    // ?�이?��? ?�으�?명시?�으�??�시?�고 비활?�화 ?��?
                     targetSelect.innerHTML = `<option value="">No Data</option>`;
                     targetSelect.disabled = true;
                 }
@@ -168,41 +168,41 @@
             });
     }
 
-    // 4. 초기화 로직 (검색 후 값 유지)
+    // 4. 초기??로직 (검????�??��?)
     window.addEventListener('DOMContentLoaded', () => {
         if (els.scenario.value) {
             const sid = els.scenario.value;
 
-            // Lane 로드 & 초기값 세팅
+            // Lane 로드 & 초기�??�팅
             CommonApi.loadLanes(API_URLS.options, sid, els.lane, () => {
                 if (initData.lane) {
                     els.lane.value = initData.lane;
-                    // Lane 세팅 후 Proforma 로드
+                    // Lane ?�팅 ??Proforma 로드
                     CommonApi.loadProformas(API_URLS.options, sid, initData.lane, els.proforma, () => {
                         if(initData.proforma) els.proforma.value = initData.proforma;
                     });
                 }
             });
 
-            // Vessel Options 로드 & 초기값 세팅
+            // Vessel Options 로드 & 초기�??�팅
             CommonApi.loadVesselOptions(API_URLS.vessel_options, sid, initData.lane, els.vessel, () => {
                 if(initData.vessel) els.vessel.value = initData.vessel;
             });
         }
     });
 
-    // 5. 이벤트 리스너 (매우 간결해짐)
+    // 5. ?�벤??리스??(매우 간결?�짐)
     els.scenario.addEventListener('change', function() {
         const sid = this.value;
 
-        // 하위 Select 초기화
+        // ?�위 Select 초기??
         CommonApi.resetSelect(els.lane, "Select Lane");
         CommonApi.resetSelect(els.proforma, "Select Proforma");
         CommonApi.resetSelect(els.vessel, "Select Vessel");
 
         if (sid) {
             CommonApi.loadLanes(API_URLS.options, sid, els.lane);
-            CommonApi.loadVesselOptions(API_URLS.vessel_options, sid, null, els.vessel); // 전체 선박
+            CommonApi.loadVesselOptions(API_URLS.vessel_options, sid, null, els.vessel); // ?�체 ?�박
         }
     });
 
@@ -215,11 +215,12 @@
 
         if (lane) {
             CommonApi.loadProformas(API_URLS.options, sid, lane, els.proforma);
-            CommonApi.loadVesselOptions(API_URLS.vessel_options, sid, lane, els.vessel); // Lane 필터링
+            CommonApi.loadVesselOptions(API_URLS.vessel_options, sid, lane, els.vessel); // Lane ?�터�?
         } else {
-            // Lane 선택 해제 시 전체 선박으로 복구
+            // Lane ?�택 ?�제 ???�체 ?�박?�로 복구
             CommonApi.loadVesselOptions(API_URLS.vessel_options, sid, null, els.vessel);
         }
     });
 </script>
 {% endblock %}
+

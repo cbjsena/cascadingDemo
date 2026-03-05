@@ -12,7 +12,6 @@ from input_data.models import (
     CascadingScheduleDetail,
     ProformaSchedule,
     ProformaScheduleDetail,
-    ScenarioInfo,
     VesselCapacity,
     VesselInfo,
 )
@@ -159,10 +158,14 @@ class TestScenarioCreationService:
         Master-Detail 분리가 없는 일반 테이블들이 Base에서 Scenario로 정상 복사되는지 검증
         """
         # When
-        scenario, summary = create_scenario_from_base("Test Scenario 001", user=user)
 
-        # Then: ScenarioInfo 생성 확인
-        assert ScenarioInfo.objects.filter(name="Test Scenario 001").exists()
+        scenario, summary = create_scenario_from_base(
+            description="Test Scenario 001", user=user
+        )
+
+        # Then: ScenarioInfo 생성 확인 (code는 자동 생성)
+        assert scenario.code is not None
+        assert scenario.code.startswith("SC")
         assert scenario.created_by == user
 
         # VesselInfo 1:1 복사 확인
@@ -184,10 +187,12 @@ class TestScenarioCreationService:
         assert vessel_capacities.first().vessel_code == "V001"
         assert vessel_capacities.first().scenario == scenario
 
-    def test_sce_svc_002_overwrite_scenario(self, setup_base_data, user):
-        """[SCE_SVC_002] 기존 시나리오 덮어쓰기 (Reset) 검증"""
+    def test_sce_svc_002_multiple_scenario_creation(self, setup_base_data, user):
+        """[SCE_SVC_002] 여러 시나리오 생성 검증"""
         # Given: 첫 번째 생성
-        first_scenario, _ = create_scenario_from_base("Test Scenario 002", user=user)
+        first_scenario, _ = create_scenario_from_base(
+            description="First Scenario", user=user
+        )
         assert (
             ProformaScheduleDetail.objects.filter(
                 proforma__scenario_id=first_scenario.id
@@ -214,10 +219,13 @@ class TestScenarioCreationService:
             terminal_code="PORT_301",
         )
 
-        # When: 동일한 Name으로 두 번째 생성
-        second_scenario, _ = create_scenario_from_base("Test Scenario 002", user=user)
+        # When: 두 번째 생성 (새로운 코드 생성)
+        second_scenario, _ = create_scenario_from_base(
+            description="Second Scenario", user=user
+        )
 
-        # Then: 기존 데이터는 사라지고 최신 Base 데이터 기준으로 재적재됨 (Master 2개, Detail 3개)
+        # Then: 두 시나리오 모두 존재하고 코드가 다름
+        assert first_scenario.code != second_scenario.code
         assert (
             ProformaSchedule.objects.filter(scenario_id=second_scenario.id).count() == 2
         )
@@ -231,7 +239,9 @@ class TestScenarioCreationService:
     def test_sce_svc_003_system_user_creation(self, setup_base_data):
         """[SCE_SVC_003] 시스템 유저 자동 할당 검증"""
         # When: user 없이 생성
-        scenario, summary = create_scenario_from_base("System Test Scenario", user=None)
+        scenario, summary = create_scenario_from_base(
+            description="System Test Scenario", user=None
+        )
 
         # Then
         system_user = User.objects.get(username="cascading")
@@ -249,7 +259,9 @@ class TestScenarioCreationService:
         BaseProformaSchedule Flat 데이터가 ProformaSchedule(Master)와 ProformaScheduleDetail로 정상 분리되는지 검증
         """
         # When
-        scenario, summary = create_scenario_from_base("Test Scenario 004", user=user)
+        scenario, summary = create_scenario_from_base(
+            description="Test Scenario 004", user=user
+        )
 
         # Then: Master 1건 생성 확인
         masters = ProformaSchedule.objects.filter(scenario=scenario)
@@ -288,7 +300,9 @@ class TestScenarioCreationService:
         BaseCascadingSchedule Flat 데이터가 CascadingSchedule(Master)와 CascadingScheduleDetail로 정상 분리되는지 검증
         """
         # When
-        scenario, summary = create_scenario_from_base("Test Scenario 005", user=user)
+        scenario, summary = create_scenario_from_base(
+            description="Test Scenario 005", user=user
+        )
 
         # Then: Master 1건 생성 확인
         masters = CascadingSchedule.objects.filter(scenario=scenario)

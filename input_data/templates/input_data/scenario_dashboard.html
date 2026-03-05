@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}{{ scenario.name }} Dashboard{% endblock %}
+{% block title %}{{ scenario.code }} Dashboard{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -18,7 +18,7 @@
             </h1>
             <div class="d-flex flex-wrap gap-3">
                 <div>
-                    <strong class="fs-4">{{ scenario.name }}</strong>
+                    <strong class="fs-4">{{ scenario.code }}</strong>
                 </div>
                 {% if scenario.base_year_month %}
                 <div class="text-muted">
@@ -142,7 +142,7 @@
                         <div class="col-md-6">
                             <small class="text-muted">Base Scenario:</small>
                             <a href="{% url 'input_data:scenario_dashboard' scenario.base_scenario.id %}" class="text-decoration-none">
-                                <i class="bi bi-link-45deg"></i> {{ scenario.base_scenario.name }}
+                                <i class="bi bi-link-45deg"></i> {{ scenario.base_scenario.code }}
                             </a>
                         </div>
                         {% endif %}
@@ -226,3 +226,4 @@
     </div>
 </div>
 {% endblock %}
+

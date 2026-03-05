@@ -1,4 +1,4 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Dashboard - Cascading Opt{% endblock %}
 
@@ -67,11 +67,10 @@
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light">
                     <tr>
-                        <th scope="col" class="ps-4">Scenario Name</th>
+                        <th scope="col" class="ps-4">Scenario Code</th>
                         <th scope="col">Type</th>
-                        <th scope="col">Base YM</th>
+                        <th scope="col">From Week</th>
                         <th scope="col">Created By</th>
-                        <th scope="col">Created At</th>
                         <th scope="col" class="text-end pe-4">Actions</th>
                     </tr>
                 </thead>
@@ -80,7 +79,7 @@
                     <tr>
                         <td class="ps-4">
                             <div>
-                                <strong class="text-primary fs-5">{{ scenario.name }}</strong>
+                                <strong class="text-primary fs-5">{{ scenario.code }}</strong>
                                 {% if scenario.description %}
                                     <div class="small text-muted mt-1">{{ scenario.description|truncatechars:50 }}</div>
                                 {% endif %}
@@ -94,8 +93,8 @@
                             {% endif %}
                         </td>
                         <td>
-                            {% if scenario.base_year_month %}
-                                <span class="badge bg-secondary">{{ scenario.base_year_month }}</span>
+                            {% if scenario.base_year_week %}
+                                <span class="badge bg-secondary">{{ scenario.base_year_week }}</span>
                             {% else %}
                                 -
                             {% endif %}
@@ -109,7 +108,6 @@
                                 -
                             {% endif %}
                         </td>
-                        <td>{{ scenario.created_at|date:"Y-m-d H:i" }}</td>
                         <td class="text-end pe-4">
                             <a href="{% url 'input_data:scenario_dashboard' scenario.id %}" class="btn btn-sm btn-outline-primary">
                                 <i class="bi bi-speedometer2"></i> Dashboard
@@ -118,7 +116,7 @@
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="6" class="text-center py-4 text-muted">
+                        <td colspan="5" class="text-center py-4 text-muted">
                             No scenarios yet.
                         </td>
                     </tr>
@@ -166,31 +164,24 @@
 
         if (btnCreateBase) {
             btnCreateBase.addEventListener('click', function() {
-                // 사용자로부터 시나리오 이름 입력받기
-                const scenarioName = prompt("Enter a name for the new base scenario:", "Base Scenario");
-                if (!scenarioName || scenarioName.trim() === "") {
+                // Confirm before creating
+                if (!confirm('Are you sure you want to create a new Base Scenario from Master Data?')) {
                     return;
                 }
 
-                // 1. 실행 확인 (데이터 삭제 경고)
-                if (!confirm(`Are you sure you want to create '${scenarioName.trim()}'?\nExisting data for this scenario will be deleted if it already exists.`)) {
-                    return;
-                }
-
-                // 2. 로딩 상태 표시 (버튼 비활성화)
+                // Show loading state
                 const originalText = btnCreateBase.innerHTML;
                 btnCreateBase.disabled = true;
                 btnCreateBase.innerHTML = '<span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span> Processing...';
 
-                // 3. API 호출
+                // API call
                 fetch("{% url 'input_data:create_base_scenario' %}", {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
-                        'X-CSRFToken': '{{ csrf_token }}' // Django CSRF Token 필수
+                        'X-CSRFToken': '{{ csrf_token }}'
                     },
                     body: JSON.stringify({
-                        'scenario_name': scenarioName.trim(),
                         'description': 'Base Scenario (Initialized from Dashboard)'
                     })
                 })
@@ -198,10 +189,9 @@
                 .then(data => {
                     if (data.status === 'success') {
                         alert("Success: " + data.message);
-                        location.reload(); // 성공 시 페이지 새로고침하여 데이터 반영
+                        location.reload();
                     } else {
                         alert("Error: " + data.message);
-                        // 에러 시 버튼 원상복구
                         btnCreateBase.disabled = false;
                         btnCreateBase.innerHTML = originalText;
                     }
@@ -217,3 +207,4 @@
     });
 </script>
 {% endblock %}
+

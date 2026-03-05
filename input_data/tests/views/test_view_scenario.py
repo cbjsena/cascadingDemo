@@ -3,7 +3,7 @@ import pytest
 from django.contrib.messages import get_messages
 from django.urls import reverse
 
-from common import messages as msg
+from common import constants, messages as msg
 from input_data.models import ProformaSchedule, ProformaScheduleDetail, ScenarioInfo
 
 
@@ -33,7 +33,7 @@ class TestScenarioView:
         assert base_scenario in scenarios
 
         # 기본값 (ID는 자동 생성)
-        assert "default_base_ym" in response.context
+        assert "default_base_week" in response.context
 
     def test_anonymous_access_control(self, client):
         """
@@ -58,9 +58,8 @@ class TestScenarioView:
         """
         url = reverse("input_data:scenario_create")
         data = {
-            "name": "Test Scenario Creation",
             "description": "Test Create",
-            "base_year_month": "202602",
+            "base_year_week": constants.DEFAULT_BASE_YEAR_WEEK,
             "scenario_type": "WHAT_IF",
         }
 
@@ -70,31 +69,34 @@ class TestScenarioView:
         assert response.status_code == 302
         assert response.url == reverse("input_data:scenario_list")
 
-        # DB 저장 확인 (Name으로 조회, ID는 자동 할당)
-        obj = ScenarioInfo.objects.get(name="Test Scenario Creation")
-        assert obj.description == "Test Create"
+        # DB 저장 확인 (자동 생성된 code로 조회)
+        obj = ScenarioInfo.objects.filter(description="Test Create").first()
+        assert obj is not None
+        assert obj.code.startswith("SC")  # 자동 생성된 코드 확인
         assert obj.created_by == user
         assert obj.id is not None  # ID가 자동 할당됨
 
-    def test_scenario_create_duplicate_fail(self, auth_client, base_scenario):
+    def test_scenario_create_code_auto_increment(self, auth_client, user):
         """
-        [INPUT_SCENARIO_CREATE_002] 중복 Name 생성 시도 (실패)
+        [INPUT_SCENARIO_CREATE_002] code 자동 채번 검증
         """
         url = reverse("input_data:scenario_create")
-        data = {
-            "name": base_scenario.name,  # 이미 존재하는 Name
-            "description": "Duplicate",
-        }
 
-        # Follow Redirect to check messages
-        response = auth_client.post(url, data, follow=True)
+        # 첫 번째 생성
+        response1 = auth_client.post(url, {"description": "First"})
+        assert response1.status_code == 302
 
-        # 데이터 개수 변동 없음
-        assert ScenarioInfo.objects.filter(name=base_scenario.name).count() == 1
+        # 두 번째 생성
+        response2 = auth_client.post(url, {"description": "Second"})
+        assert response2.status_code == 302
 
-        # 에러 메시지 확인
-        messages = list(get_messages(response.wsgi_request))
-        assert any("already exists" in str(m) for m in messages)
+        # 생성된 시나리오들 확인
+        scenarios = ScenarioInfo.objects.filter(created_by=user).order_by("id")
+        assert scenarios.count() >= 2
+
+        # code가 다른지 확인
+        codes = list(scenarios.values_list("code", flat=True))
+        assert len(codes) == len(set(codes))  # 모두 유니크
 
     # ==========================================================================
     # 3. 복제 (Clone)
@@ -105,29 +107,27 @@ class TestScenarioView:
         """
         # Given: scenario_with_data에는 하위 Proforma Master/Detail 데이터가 각 1건씩 있음
         source_id = scenario_with_data.id
+        initial_count = ScenarioInfo.objects.count()
 
         url = reverse("input_data:scenario_create")
         data = {
-            "name": "Cloned Test Scenario",
             "source_scenario_id": source_id,
-            "description": "Cloned",
+            "description": "Cloned Scenario",
         }
 
         # [수정] follow=True 추가하여 에러 메시지 확인 가능하도록 함
         response = auth_client.post(url, data, follow=True)
 
-        # 만약 생성이 안되었다면 에러 메시지가 있을 것임
-        if (
-            response.status_code == 200
-            and not ScenarioInfo.objects.filter(name="Cloned Test Scenario").exists()
-        ):
-            messages = list(get_messages(response.wsgi_request))
-            # 에러 메시지 출력 (pytest -s 옵션 사용 시 보임)
-            print("Messages:", [str(m) for m in messages])
+        assert response.status_code == 200
+        # 시나리오가 1개 추가되었는지 확인
+        assert ScenarioInfo.objects.count() == initial_count + 1
 
-        # 1. 시나리오 생성 확인 (Name으로 조회)
-        cloned_scenario = ScenarioInfo.objects.get(name="Cloned Test Scenario")
-        assert cloned_scenario.description == "Cloned"
+        # 1. 시나리오 생성 확인 (description으로 조회)
+        cloned_scenario = ScenarioInfo.objects.filter(
+            description="Cloned Scenario"
+        ).first()
+        assert cloned_scenario is not None
+        assert cloned_scenario.code.startswith("SC")  # 자동 생성된 코드
 
         # 1-1. 복사 시 원본 시나리오가 base_scenario로 자동 설정되었는지 검증
         assert cloned_scenario.base_scenario == scenario_with_data
@@ -180,7 +180,7 @@ class TestScenarioView:
         """
         # 타인(other_user) 소유의 시나리오 생성
         other_scenario = ScenarioInfo.objects.create(
-            name="Other User Scenario", created_by=other_user
+            code="SC_OTHER_USER", created_by=other_user
         )
 
         url = reverse("input_data:scenario_delete", args=[other_scenario.id])
@@ -189,7 +189,7 @@ class TestScenarioView:
         response = auth_client.post(url, follow=True)
 
         # 삭제되지 않아야 함
-        assert ScenarioInfo.objects.filter(name="Other User Scenario").exists()
+        assert ScenarioInfo.objects.filter(code="SC_OTHER_USER").exists()
 
         # 권한 에러 메시지
         messages = list(get_messages(response.wsgi_request))
@@ -201,7 +201,7 @@ class TestScenarioView:
         """
         # 타인 소유 시나리오
         target = ScenarioInfo.objects.create(
-            name="Target for Admin", created_by=other_user
+            code="SC_TARGET_ADMIN", created_by=other_user
         )
 
         # 관리자 로그인
@@ -211,4 +211,4 @@ class TestScenarioView:
         response = client.post(url)
 
         assert response.status_code == 302
-        assert not ScenarioInfo.objects.filter(name="Target for Admin").exists()
+        assert not ScenarioInfo.objects.filter(code="SC_TARGET_ADMIN").exists()

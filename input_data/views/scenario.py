@@ -25,8 +25,10 @@ from input_data.services.scenario_service import create_scenario_from_base
 def scenario_list(request):
     scenarios = ScenarioInfo.objects.all().order_by("-created_at")
 
-    # 기본값 생성 로직 (시나리오 이름 기반)
-    default_base_ym = timezone.now().strftime("%Y%m")
+    # 기본값 생성 로직 (현재 주차 기반, YYYYWK 형식)
+    now = timezone.now()
+    iso = now.date().isocalendar()
+    default_base_week = f"{iso[0]}{iso[1]:02d}"
 
     context = {
         "menu_structure": MENU_STRUCTURE,
@@ -34,7 +36,7 @@ def scenario_list(request):
         "current_section": MenuSection.INPUT_MANAGEMENT,
         "current_model": MenuItem.SCENARIO_LIST,
         "scenarios": scenarios,
-        "default_base_ym": default_base_ym,
+        "default_base_week": default_base_week,
     }
     return render(request, "input_data/scenario_list.html", context)
 
@@ -43,47 +45,24 @@ def scenario_list(request):
 @transaction.atomic
 def scenario_create(request):
     if request.method == "POST":
-        name = request.POST.get("name", "").strip()
         source_scenario_id = request.POST.get("source_scenario_id")
         description = request.POST.get("description", "")
-        base_ym = request.POST.get("base_year_month")
+        base_year_week = request.POST.get("base_year_week")
         scenario_type = request.POST.get("scenario_type", "WHAT_IF")
-        base_scenario_id = request.POST.get("base_scenario_id")
         planning_horizon_months = request.POST.get("planning_horizon_months", 12)
         tags = request.POST.get("tags", "")
 
-        if not name:
-            messages.error(request, "Scenario name is required.")
-            return redirect("input_data:scenario_list")
-
-        if ScenarioInfo.objects.filter(name=name).exists():
-            messages.error(
-                request,
-                f"Scenario name '{name}' already exists. Please use a different name.",
-            )
-            return redirect("input_data:scenario_list")
-
-        # 베이스 시나리오 참조 설정
+        # source_scenario_id가 있는 경우 복사 원본을 base_scenario로 자동 설정
         base_scenario = None
-
-        # 1. 명시적으로 base_scenario_id가 지정된 경우 우선 사용
-        if base_scenario_id:
-            try:
-                base_scenario = ScenarioInfo.objects.get(id=base_scenario_id)
-            except ScenarioInfo.DoesNotExist:
-                pass
-
-        # 2. source_scenario_id가 있는 경우 (복사), 복사 원본을 base_scenario로 자동 설정
-        if source_scenario_id and not base_scenario:
+        if source_scenario_id:
             try:
                 base_scenario = ScenarioInfo.objects.get(id=source_scenario_id)
             except ScenarioInfo.DoesNotExist:
                 pass
 
         new_scenario = ScenarioInfo.objects.create(
-            name=name,
             description=description,
-            base_year_month=base_ym,
+            base_year_week=base_year_week,
             scenario_type=scenario_type,
             base_scenario=base_scenario,  # 복사 시 자동으로 원본 시나리오 참조
             planning_horizon_months=int(planning_horizon_months or 12),
@@ -95,18 +74,20 @@ def scenario_create(request):
         if source_scenario_id:
             try:
                 _clone_scenario_data(source_scenario_id, new_scenario)
-                source_name = (
-                    base_scenario.name if base_scenario else source_scenario_id
+                source_code = (
+                    base_scenario.code if base_scenario else source_scenario_id
                 )
                 messages.success(
                     request,
-                    f"Scenario '{name}' created successfully (Cloned from '{source_name}').",
+                    f"Scenario '{new_scenario.code}' created successfully (Cloned from '{source_code}').",
                 )
             except Exception as e:
                 messages.error(request, msg.SCENARIO_CLONE_ERROR.format(error=str(e)))
                 return redirect("input_data:scenario_list")
         else:
-            messages.success(request, f"Scenario '{name}' created successfully.")
+            messages.success(
+                request, f"Scenario '{new_scenario.code}' created successfully."
+            )
 
         return redirect("input_data:scenario_list")
     return redirect("input_data:scenario_list")
@@ -139,26 +120,25 @@ def create_base_scenario_view(request):
     """
     try:
         # JSON Body 혹은 Form Data 처리
-        # (Fetch API 사용 시 body, Form submit 시 POST dict)
         if request.content_type == "application/json":
             data = json.loads(request.body)
-            scenario_name = data.get("scenario_name", "Base Scenario")
             description = data.get("description", "Base Scenario created from Web")
+            base_year_week = data.get("base_year_week")
         else:
-            scenario_name = request.POST.get("scenario_name", "Base Scenario")
             description = request.POST.get(
                 "description", "Base Scenario created from Web"
             )
+            base_year_week = request.POST.get("base_year_week")
 
         # 새로운 서비스 시그니처에 맞게 호출
         scenario, summary = create_scenario_from_base(
-            scenario_name=scenario_name, description=description, user=request.user
+            description=description, user=request.user, base_year_week=base_year_week
         )
 
         return JsonResponse(
             {
                 "status": "success",
-                "message": f"Scenario '{scenario_name}' (ID: {scenario.id}) created successfully.",
+                "message": f"Scenario '{scenario.code}' (ID: {scenario.id}) created successfully.",
                 "summary": summary,
             }
         )

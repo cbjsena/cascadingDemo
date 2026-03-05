@@ -2,7 +2,6 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
 
-from common.constants import DEFAULT_BASE_YEAR_MONTH
 from input_data.configs import MODEL_MAPPING, SCENARIO_CREATION_FILTERS
 from input_data.models import (
     BaseProformaSchedule,
@@ -35,12 +34,14 @@ def get_system_user():
 
 
 @transaction.atomic
-def create_scenario_from_base(scenario_name, description="Base Scenario", user=None):
+def create_scenario_from_base(
+    description="Base Scenario", user=None, base_year_week=None
+):
     """
     Base 데이터를 복사하여 새로운 시나리오를 생성하는 서비스 함수.
-    - scenario_name: 생성할 시나리오의 이름 (name 필드)
     - description: 시나리오 설명
     - user: 이 작업을 수행한 사용자 (created_by에 저장)
+    - base_year_week: 기준 주차 (YYYY-WXX 형식)
     """
 
     now = timezone.now()
@@ -48,15 +49,15 @@ def create_scenario_from_base(scenario_name, description="Base Scenario", user=N
     if user is None:
         user = get_system_user()
 
-    # 1. 기존 시나리오가 있다면 삭제 (Reset)
-    if ScenarioInfo.objects.filter(name=scenario_name).exists():
-        ScenarioInfo.objects.filter(name=scenario_name).delete()
+    # base_year_week 기본값 설정 (현재 주차, YYYYWK 형식)
+    if not base_year_week:
+        iso = now.date().isocalendar()
+        base_year_week = f"{iso[0]}{iso[1]:02d}"
 
-    # 2. 시나리오 마스터(ScenarioInfo) 생성
+    # 시나리오 마스터(ScenarioInfo) 생성 (code는 save()에서 자동 생성)
     scenario = ScenarioInfo(
-        name=scenario_name,
         description=description,
-        base_year_month=DEFAULT_BASE_YEAR_MONTH,
+        base_year_week=base_year_week,
         scenario_type="BASELINE",  # 기본 데이터에서 생성되는 시나리오는 BASELINE
         status="ACTIVE",
     )

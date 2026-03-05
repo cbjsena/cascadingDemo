@@ -18,13 +18,13 @@
             <form method="get" action="{% url 'input_data:cascading_list' %}" class="row g-3 align-items-end">
 
                 <div class="col-md-3">
-                    <label class="form-label small text-muted">Scenario Name</label>
+                    <label class="form-label small text-muted">Scenario Code</label>
                     <select class="form-select" id="scenarioSelect" name="scenario_id">
                         <option value="">Select Scenario</option>
                         {% for scenario in scenarios %}
                         <option value="{{ scenario.id }}"
                             {% if search_params.scenario_id == scenario.id %}selected{% endif %}>
-                            {{ scenario.name }}
+                            {{ scenario.code }}
                         </option>
                         {% endfor %}
                     </select>
@@ -79,7 +79,7 @@
                         {% for row in cascading_list %}
                         <tr>
                             <td>{{ forloop.counter }}</td>
-                            <td class="text-start fw-bold">{{ row.scenario.name }}</td>
+                            <td class="text-start fw-bold">{{ row.scenario.code }}</td>
                             <td>{{ row.proforma.lane_code }}</td>
                             <td class="text-start">{{ row.proforma.proforma_name }}</td>
                             <td>{{ row.proforma.own_vessel_count }}</td>
@@ -121,7 +121,7 @@
     };
 
     document.addEventListener('DOMContentLoaded', function() {
-        // [초기 로드] 검색 조건이 있을 경우 순차적으로 데이터 채우기
+        // [초기 로드] 검??조건???�을 경우 ?�차?�으�??�이??채우�?
         if (initData.scenario) {
             CommonApi.loadLanes(API_URLS.options, initData.scenario, els.lane, () => {
                 if (initData.lane) {
@@ -133,7 +133,7 @@
             });
         }
 
-        // [이벤트 리스너] 시나리오 변경 시
+        // [?�벤??리스?? ?�나리오 변�???
         els.scenario.addEventListener('change', function() {
             const sid = this.value;
             CommonApi.resetSelect(els.lane, "Select Lane");
@@ -141,7 +141,7 @@
             if (sid) CommonApi.loadLanes(API_URLS.options, sid, els.lane);
         });
 
-        // [이벤트 리스너] Lane 변경 시
+        // [?�벤??리스?? Lane 변�???
         els.lane.addEventListener('change', function() {
             const sid = els.scenario.value;
             const lane = this.value;
@@ -151,3 +151,4 @@
     });
 </script>
 {% endblock %}
+

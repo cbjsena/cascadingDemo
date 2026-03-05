@@ -26,7 +26,7 @@ def auth_client(client, user):
 def base_scenario(db, user):
     """기본 시나리오 (API 테스트용)"""
     return ScenarioInfo.objects.create(
-        name="API Test Scenario",
+        code="SC20260201_001",
         description="Scenario for API testing",
         scenario_type="BASELINE",
         status="ACTIVE",

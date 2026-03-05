@@ -1,18 +1,18 @@
-{% extends "base.html" %}
+﻿{% extends "base.html" %}
 
 {% block title %}Create Proforma - Cascading Opt{% endblock %}
 
 {% block content %}
 <style>
     .cell-readonly {
-        background-color: #e2e3e5 !important; /* 진한 회색 배경 */
-        color: #495057; /* 진한 회색 글자 */
+        background-color: #e2e3e5 !important; /* Dark gray background */
+        color: #495057; /* Dark gray text */
     }
     .cell-readonly input, .cell-readonly select {
-        font-weight: 600; /* 글자 두껍게 */
+        font-weight: 600; /* Bold text */
         color: #495057 !important;
     }
-    /* Select 박스 화살표 숨기기 (Readonly 느낌 강화) */
+    /* Remove select arrow for readonly feel */
     .cell-readonly select {
         -webkit-appearance: none;
         -moz-appearance: none;
@@ -56,7 +56,7 @@
                         <select class="form-select" name="scenario_id">
                             {% for scenario in scenarios  %}
                             <option value="{{ scenario.id }}" {% if header.scenario_id == scenario.id %}selected{% endif %}>
-                                {{ scenario.name }}
+                                {{ scenario.code }}
                             </option>
                             {% endfor %}
                         </select>
@@ -341,7 +341,7 @@
 </div>
 
 <script>
-    // 1. 체크박스 전체 선택/해제
+    // 1. Select/Deselect All Checkboxes
     document.getElementById('checkAll').addEventListener('change', function() {
         var checkboxes = document.querySelectorAll('input[name="row_check"]');
         for (var checkbox of checkboxes) {
@@ -349,13 +349,13 @@
         }
     });
 
-    // 2. 행 클릭 시 선택 인덱스 저장 (Insert Row용)
+    // 2. Row Click Selection (for Insert Row)
     var rows = document.querySelectorAll('#scheduleTable tbody tr');
     rows.forEach((row, index) => {
         row.addEventListener('click', function(e) {
-            // 체크박스나 인풋 클릭시는 제외 (행 선택 UX)
+            // Exclude checkbox/input clicks (row selection UX)
             if (e.target.tagName !== 'INPUT' && e.target.tagName !== 'SELECT') {
-                // 기존 선택 제거 및 신규 선택
+                // Remove existing selection and add new
                 rows.forEach(r => r.classList.remove('table-active'));
                 this.classList.add('table-active');
                 document.getElementById('selectedIndex').value = index;
@@ -363,7 +363,7 @@
         });
     });
 
-    // 3. Close 버튼 클릭 시 Confirm
+    // 3. Close Button Confirmation
     document.querySelector('button[value="close"]').addEventListener('click', function(e) {
         if (!confirm("Have you saved your changes? Unsaved data will be lost.")) {
             e.preventDefault();
@@ -371,46 +371,46 @@
     });
 
     /**
-     * ETB No 유효성 검사
-     * 현재 행의 ETB No가 직전 행의 ETD No보다 작을 수 없도록 방지
+     * ETB No Validation
+     * Prevent current row's ETB No from being less than previous row's ETD No
      */
     document.addEventListener('DOMContentLoaded', function() {
         const tableBody = document.querySelector('#scheduleTable tbody');
 
-        // 이벤트 위임 (동적으로 행이 추가되어도 작동하도록)
+        // Event delegation (works even when rows are dynamically added)
         tableBody.addEventListener('change', function(e) {
-            // 변경된 요소가 'etb_no[]' 인풋인지 확인
+            // Check if changed element is 'etb_no[]' input
             if (e.target.name === 'etb_no[]') {
                 validateEtbNo(e.target);
             }
         });
 
         function validateEtbNo(currentInput) {
-            // 현재 행(tr) 찾기
+            // Find current row (tr)
             const currentRow = currentInput.closest('tr');
-            const currentRowIndex = currentRow.rowIndex; // 헤더 포함 인덱스
+            const currentRowIndex = currentRow.rowIndex; // Index including header
 
-            // 첫 번째 데이터 행(No.1)은 비교 대상(이전 행)이 없으므로 패스
-            // (헤더가 1줄이므로 rowIndex 1부터 데이터 시작. rowIndex 1은 첫 행)
+            // Skip first row (No.1) as there's no previous row to compare
+            // (Header is 1 row, so data starts at rowIndex 1. rowIndex 1 is first data row)
             if (currentRowIndex <= 1) return;
 
-            // 이전 행 찾기
+            // Find previous row
             const prevRow = currentRow.previousElementSibling;
             if (!prevRow) return;
 
-            // 이전 행의 ETD No 값 가져오기
+            // Get previous row's ETD No value
             const prevEtdInput = prevRow.querySelector('input[name="etd_no[]"]');
             const prevEtdNo = parseInt(prevEtdInput.value) || 0;
             const currentEtbNo = parseInt(currentInput.value) || 0;
 
-            // 유효성 검사: 현재 ETB No < 이전 ETD No 이면 경고
+            // Validation: Alert if current ETB No < previous ETD No
             if (currentEtbNo < prevEtdNo) {
                 alert(`ETB No (${currentEtbNo}) cannot be less than previous ETD No (${prevEtdNo}).`);
 
-                // 값을 이전 ETD No로 강제 리셋 (최소값 보정)
+                // Force reset value to previous ETD No (minimum correction)
                 currentInput.value = prevEtdNo;
 
-                // 시각적 강조 (잠깐 빨간색 깜빡임)
+                // Visual highlight (brief red flash)
                 currentInput.classList.add('bg-danger', 'text-white');
                 setTimeout(() => {
                     currentInput.classList.remove('bg-danger', 'text-white');
@@ -420,3 +420,4 @@
     });
 </script>
 {% endblock %}
+
