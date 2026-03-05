@@ -65,15 +65,14 @@
                     <thead class="table-light">
                         <tr>
                             <th style="width: 5%;">No</th>
-                            <th style="width: 15%;">Scenario</th>
-                            <th style="width: 10%;">Lane Code</th>
+                            <th style="width: 18%;">Scenario</th>
+                            <th style="width: 12%;">Lane Code</th>
                             <th style="width: 15%;">Proforma Name</th>
-                            <th style="width: 10%;">Cascading Seq</th>
-                            <th style="width: 8%;">Own Vessels</th>
-                            <th style="width: 10%;">Initial ETB Date</th>
+                            <th style="width: 10%;">Own Vessels</th>
+                            <th style="width: 12%;">Initial ETB Date</th>
                             <th style="width: 10%;">Start Date</th>
                             <th style="width: 10%;">End Date</th>
-                            <th style="width: 7%;">Actions</th>
+                            <th style="width: 8%;">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -83,8 +82,7 @@
                             <td class="text-start fw-bold">{{ row.scenario.name }}</td>
                             <td>{{ row.proforma.lane_code }}</td>
                             <td class="text-start">{{ row.proforma.proforma_name }}</td>
-                            <td><span class="badge bg-info text-dark">Seq {{ row.cascading_seq }}</span></td>
-                            <td>{{ row.own_vessel_count }}</td>
+                            <td>{{ row.proforma.own_vessel_count }}</td>
                             <td>{{ row.proforma_start_etb_date|date:"Y-m-d"|default:"-" }}</td>
                             <td>{{ row.effective_start_date|date:"Y-m-d" }}</td>
                             <td>{{ row.effective_end_date|date:"Y-m-d" }}</td>

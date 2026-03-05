@@ -75,13 +75,10 @@ def cascading_create(request):
         q_scenario = request.GET.get("scenario_id")
         q_lane = request.GET.get("lane_code")
         q_proforma = request.GET.get("proforma_name")
-        q_seq = request.GET.get("cascading_seq")  # [핵심] Seq 파라미터 수신
 
-        if q_scenario and q_lane and q_proforma and q_seq:
+        if q_scenario and q_lane and q_proforma:
             # Edit 모드: 서비스에서 데이터 로드
-            data = cascading_svc.get_cascading_data(
-                q_scenario, q_lane, q_proforma, q_seq
-            )
+            data = cascading_svc.get_cascading_data(q_scenario, q_lane, q_proforma)
             if data:
                 # scenario_id를 문자열로 변환하여 저장 (템플릿 비교를 위해)
                 header = data["header"].copy()
@@ -150,7 +147,6 @@ def cascading_create(request):
                 "scenario_id": data.get("scenario_id", ""),
                 "lane_code": data.get("lane_code", ""),
                 "proforma_name": data.get("proforma_name", ""),
-                "cascading_seq": data.get("cascading_seq", ""),
                 "own_vessel_count": data.get("own_vessel_count", ""),
                 "required_count": data.get("required_count", ""),
                 "effective_start_date": data.get("effective_start_date", ""),
@@ -199,7 +195,6 @@ def cascading_list(request):
             "-scenario__id",
             "-proforma__lane_code",
             "-proforma__proforma_name",
-            "-cascading_seq",
         )
     )
 
@@ -294,7 +289,6 @@ def cascading_dashboard(request):
             .order_by(
                 "proforma__lane_code",
                 "proforma__proforma_name",
-                "cascading_seq",
             )
         )
 
@@ -332,7 +326,6 @@ def cascading_dashboard(request):
                 {
                     "lane_code": cascading.proforma.lane_code,
                     "proforma_name": cascading.proforma.proforma_name,
-                    "cascading_seq": cascading.cascading_seq,
                     "declared_count": declared_count,
                     "own_vessel_count": cascading.proforma.own_vessel_count,
                     "start_week": start_week,

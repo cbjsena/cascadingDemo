@@ -296,7 +296,7 @@ def _copy_cascading_to_scenario(scenario, user, now):
     }
 
     for base in base_qs:
-        master_key = (base.lane_code, base.proforma_name, base.cascading_seq)
+        master_key = (base.lane_code, base.proforma_name)
         if master_key not in master_cache:
             # 해당하는 Proforma 찾기
             proforma = proforma_map.get((base.lane_code, base.proforma_name))
@@ -311,7 +311,6 @@ def _copy_cascading_to_scenario(scenario, user, now):
             master = CascadingSchedule(
                 scenario=scenario,
                 proforma=proforma,
-                cascading_seq=base.cascading_seq,
                 proforma_start_etb_date=calculated_start_etb_date,  # 계산된 값 사용
                 effective_start_date=base.effective_start_date,
                 effective_end_date=base.effective_end_date,
@@ -330,8 +329,7 @@ def _copy_cascading_to_scenario(scenario, user, now):
     # DB에 생성된 Master 객체들을 다시 조회하여 PK(id)를 확보합니다.
     created_masters = CascadingSchedule.objects.filter(scenario=scenario)
     master_db_map = {
-        (m.proforma.lane_code, m.proforma.proforma_name, m.cascading_seq): m
-        for m in created_masters
+        (m.proforma.lane_code, m.proforma.proforma_name): m for m in created_masters
     }
 
     # 2. Detail 추출 및 생성
@@ -339,9 +337,7 @@ def _copy_cascading_to_scenario(scenario, user, now):
 
     for base in base_qs:
         # DB에서 PK를 발급받은 실제 Master 객체를 매핑
-        real_master = master_db_map.get(
-            (base.lane_code, base.proforma_name, base.cascading_seq)
-        )
+        real_master = master_db_map.get((base.lane_code, base.proforma_name))
         if not real_master:
             continue  # Master가 없으면 스킵
 

@@ -46,7 +46,6 @@ class TestCascadingView:
                 "scenario_id": cascading_with_details.scenario.id,
                 "lane_code": cascading_with_details.proforma.lane_code,
                 "proforma_name": cascading_with_details.proforma.proforma_name,
-                "cascading_seq": cascading_with_details.cascading_seq,
             },
         )
 
@@ -214,7 +213,6 @@ class TestCascadingView:
             "scenario_id": sample_schedule.scenario.id,
             "lane_code": sample_schedule.lane_code,
             "proforma_name": sample_schedule.proforma_name,
-            "cascading_seq": 1,
             "own_vessel_count": 2,
             "effective_start_date": "2026-02-15",
             "effective_end_date": "2027-02-15",
@@ -287,7 +285,6 @@ class TestCascadingView:
         edit_url = reverse("input_data:cascading_create")
         assert edit_url in content
         assert f"scenario_id={cascading.scenario.id}" in content
-        assert f"cascading_seq={cascading.cascading_seq}" in content
 
     def test_cascading_detail_002_edit_mode_transition(
         self, auth_client, cascading_with_details
@@ -312,7 +309,6 @@ class TestCascadingView:
                 "scenario_id": cascading_with_details.scenario.id,
                 "lane_code": cascading_with_details.proforma.lane_code,
                 "proforma_name": cascading_with_details.proforma.proforma_name,
-                "cascading_seq": cascading_with_details.cascading_seq,
             },
         )
 

@@ -131,8 +131,6 @@ class TestScenarioCreationService:
         BaseCascadingSchedule.objects.create(
             lane_code="FE1",
             proforma_name="3101",
-            cascading_seq=1,
-            own_vessel_count=3,
             effective_start_date="2026-02-01",
             effective_end_date="2027-02-01",
             vessel_code="V001",
@@ -141,8 +139,6 @@ class TestScenarioCreationService:
         BaseCascadingSchedule.objects.create(
             lane_code="FE1",
             proforma_name="3101",
-            cascading_seq=1,
-            own_vessel_count=3,
             effective_start_date="2026-02-01",
             effective_end_date="2027-02-01",
             vessel_code="V002",
@@ -151,8 +147,6 @@ class TestScenarioCreationService:
         BaseCascadingSchedule.objects.create(
             lane_code="FE1",
             proforma_name="3101",
-            cascading_seq=1,
-            own_vessel_count=3,
             effective_start_date="2026-02-01",
             effective_end_date="2027-02-01",
             vessel_code="V003",
@@ -301,8 +295,6 @@ class TestScenarioCreationService:
         assert masters.count() == 1
 
         master = masters.first()
-        assert master.cascading_seq == 1
-        assert master.proforma.own_vessel_count == 3
         assert master.scenario == scenario
         assert master.created_by == user
 

@@ -445,7 +445,6 @@ class BaseCascadingSchedule(models.Model):
 
     lane_code = models.CharField(max_length=10, verbose_name="Lane Code")
     proforma_name = models.CharField(max_length=30, verbose_name="Proforma Name")
-    cascading_seq = models.IntegerField(verbose_name="Cascading Sequence")
     effective_start_date = models.DateField(
         verbose_name="Effective start date of the cascading schedule"
     )
@@ -465,13 +464,12 @@ class BaseCascadingSchedule(models.Model):
             (
                 "lane_code",
                 "proforma_name",
-                "cascading_seq",
                 "vessel_code",
             ),
         )
 
     def __str__(self):
-        return f"{self.lane_code} - {self.proforma_name} - Seq {self.cascading_seq} - {self.vessel_code}"
+        return f"{self.lane_code} - {self.proforma_name} - {self.vessel_code}"
 
 
 class CascadingSchedule(ScenarioBaseModel):
@@ -488,7 +486,6 @@ class CascadingSchedule(ScenarioBaseModel):
         verbose_name="Proforma Master ID",
     )
 
-    cascading_seq = models.IntegerField(verbose_name="Sequence")
     proforma_start_etb_date = models.DateField(
         verbose_name="ETB date of the first vessel at the first port in proforma"
     )
@@ -503,11 +500,10 @@ class CascadingSchedule(ScenarioBaseModel):
 
     class Meta:
         db_table = "sce_schedule_cascading"
-        # Proforma ID + Seq 조합은 유일해야 함
-        unique_together = ("scenario", "proforma", "cascading_seq")
+        unique_together = ("scenario", "proforma")
 
     def __str__(self):
-        return f"[{self.scenario.id}] {self.proforma.proforma_name} - Seq {self.cascading_seq}"
+        return f"[{self.scenario.id}] {self.proforma.proforma_name}"
 
 
 class CascadingScheduleDetail(CommonModel):

@@ -126,6 +126,7 @@ def sample_schedule(db, base_scenario, user):
         duration=14.0,
         declared_capacity="5000",
         declared_count=2,
+        own_vessel_count=2,  # Cascading에서 사용
         created_by=user,
         updated_by=user,
     )
@@ -315,7 +316,6 @@ def cascading_with_details(db, sample_schedule, user):
     cascading = CascadingSchedule.objects.create(
         scenario=sample_schedule.scenario,
         proforma=sample_schedule,
-        cascading_seq=1,
         proforma_start_etb_date=timezone.now().date(),
         effective_start_date=timezone.now().date(),
         effective_end_date=timezone.now().date() + timedelta(days=365),
@@ -347,7 +347,6 @@ def cascading_form_data(sample_schedule):
         "scenario_id": sample_schedule.scenario.id,
         "lane_code": sample_schedule.lane_code,
         "proforma_name": sample_schedule.proforma_name,
-        "cascading_seq": 1,
         "own_vessel_count": 3,
         "effective_start_date": "2026-02-15",
         "effective_end_date": "2027-02-15",
@@ -368,7 +367,6 @@ def cascading_invalid_form_data(sample_schedule):
         "scenario_id": sample_schedule.scenario.id,
         "lane_code": sample_schedule.lane_code,
         "proforma_name": sample_schedule.proforma_name,
-        "cascading_seq": 1,
         "own_vessel_count": 3,  # 3대 요구
         "effective_start_date": "2026-02-15",
         "effective_end_date": "2027-02-15",
@@ -380,39 +378,50 @@ def cascading_invalid_form_data(sample_schedule):
 
 
 @pytest.fixture
-def multiple_cascading_data(db, sample_schedule, user):
+def multiple_cascading_data(db, base_scenario, user):
     """
     여러 Cascading 데이터 (목록 조회 테스트용)
     CASCADING_LIST_001에서 사용
+    - 2개의 Proforma, 각각 1개의 CascadingSchedule 생성
     """
     cascadings = []
 
-    # ProformaSchedule에 own_vessel_count 설정
-    sample_schedule.own_vessel_count = 2
-    sample_schedule.save(update_fields=["own_vessel_count"])
+    for idx in range(2):
+        # Proforma 생성
+        proforma = ProformaSchedule.objects.create(
+            scenario=base_scenario,
+            lane_code="TEST_LANE",
+            proforma_name=f"PF_MULTI_{idx+1}",
+            effective_from_date=timezone.now(),
+            duration=14.0,
+            declared_capacity="5000",
+            declared_count=2,
+            own_vessel_count=2,
+            created_by=user,
+            updated_by=user,
+        )
 
-    # FE1 Lane에 2개의 Cascading
-    for seq in [1, 2]:
+        # Cascading 생성
         cascading = CascadingSchedule.objects.create(
-            scenario=sample_schedule.scenario,
-            proforma=sample_schedule,
-            cascading_seq=seq,
+            scenario=base_scenario,
+            proforma=proforma,
             proforma_start_etb_date=timezone.now().date(),
             effective_start_date=timezone.now().date(),
             effective_end_date=timezone.now().date() + timedelta(days=365),
             created_by=user,
             updated_by=user,
         )
-        cascadings.append(cascading)
 
-        # 각각에 Detail 2건씩
+        # Detail 2건
         for i in range(2):
             CascadingScheduleDetail.objects.create(
                 cascading=cascading,
-                vessel_code=f"V{seq:02d}{i+1}",
+                vessel_code=f"V{idx+1}0{i+1}",
                 initial_start_date=timezone.now().date() + timedelta(days=i * 7),
                 created_by=user,
                 updated_by=user,
             )
+
+        cascadings.append(cascading)
 
     return cascadings

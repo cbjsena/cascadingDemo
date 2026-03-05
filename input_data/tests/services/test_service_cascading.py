@@ -36,15 +36,12 @@ class TestCascadingService:
             scenario_id=cascading_with_details.scenario.id,
             lane_code=cascading_with_details.proforma.lane_code,
             proforma_name=cascading_with_details.proforma.proforma_name,
-            cascading_seq=cascading_with_details.cascading_seq,
         )
 
         # Then: header 딕셔너리에 변경된 필드명 포함
         header = result.get("header", {})
         assert "own_vessel_count" in header
-        assert (
-            "effective_start_date" in header
-        )  # proforma_start_etb_date는 header에 없음
+        assert "effective_start_date" in header
         assert header["own_vessel_count"] == 2
 
         # required_count만큼의 rows 반환 (details로 변경됨)
@@ -72,8 +69,6 @@ class TestCascadingService:
         BaseCascadingSchedule.objects.create(
             lane_code=sample_schedule.lane_code,
             proforma_name=sample_schedule.proforma_name,
-            cascading_seq=1,
-            own_vessel_count=2,
             effective_start_date=date(2026, 2, 15),  # 토요일
             effective_end_date=date(2027, 2, 15),
             vessel_code="V001",
@@ -92,29 +87,6 @@ class TestCascadingService:
         ).first()
         assert cascading is not None
 
-        # 실제 서비스에서는 첫 번째 vessel_start_date로 설정됨
-        # 2026-02-15(토)가 그대로 사용됨 (vessel_start_date[0])
-        expected_date = date(2026, 2, 15)  # 첫 번째 선박 시작일
+        # proforma_start_etb_date 확인
+        expected_date = date(2026, 2, 15)
         assert cascading.proforma_start_etb_date == expected_date
-
-    def test_cascading_service_get_next_seq(self, cascading_with_details):
-        """
-        [CASCADING_VIEW_002_SVC] Auto 채번 서비스 로직
-        get_next_cascading_seq가 기존 데이터 기반으로 다음 시퀀스를 정확히 반환하는지 검증
-        """
-        # Given: 기존 Cascading이 Seq=1로 존재
-        assert cascading_with_details.cascading_seq == 1
-
-        # When: 다음 시퀀스 요청
-        from input_data.services.cascading_service import CascadingService
-
-        cascading_service = CascadingService()
-
-        next_seq = cascading_service.get_next_cascading_seq(
-            scenario_id=cascading_with_details.scenario.id,
-            lane_code=cascading_with_details.proforma.lane_code,
-            proforma_name=cascading_with_details.proforma.proforma_name,
-        )
-
-        # Then: 다음 시퀀스는 2
-        assert next_seq == 2

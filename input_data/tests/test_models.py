@@ -169,7 +169,6 @@ class TestCascadingModels:
         cascading = CascadingSchedule.objects.create(
             scenario=sample_schedule.scenario,
             proforma=sample_schedule,
-            cascading_seq=1,
             proforma_start_etb_date=timezone.now().date(),
             effective_start_date=timezone.now().date(),
             effective_end_date=timezone.now().date() + timedelta(days=365),
@@ -182,14 +181,13 @@ class TestCascadingModels:
         sample_schedule.save(update_fields=["own_vessel_count"])
 
         # Then: 필드 검증
-        assert cascading.cascading_seq == 1
         assert sample_schedule.own_vessel_count == 3
         assert cascading.proforma_start_etb_date is not None
         assert cascading.scenario == sample_schedule.scenario
         assert cascading.proforma == sample_schedule
         assert (
             str(cascading)
-            == f"[{sample_schedule.scenario.id}] {sample_schedule.proforma_name} - Seq 1"
+            == f"[{sample_schedule.scenario.id}] {sample_schedule.proforma_name}"
         )
 
     def test_cascading_detail_creation(self, cascading_with_details):
@@ -213,24 +211,22 @@ class TestCascadingModels:
     def test_cascading_unique_constraint(self, sample_schedule, user):
         """
         [MODEL_CAS_003] Cascading Unique
-        동일 proforma+seq 조합 중복 생성 시 IntegrityError 발생 검증
+        동일 scenario+proforma 조합 중복 생성 시 IntegrityError 발생 검증
         """
         # Given: 첫 번째 Cascading 생성
         CascadingSchedule.objects.create(
             scenario=sample_schedule.scenario,
             proforma=sample_schedule,
-            cascading_seq=1,
             proforma_start_etb_date=timezone.now().date(),
             effective_start_date=timezone.now().date(),
             created_by=user,
         )
 
-        # When & Then: 동일한 proforma + seq 조합으로 중복 생성 시도
+        # When & Then: 동일한 scenario + proforma 조합으로 중복 생성 시도
         with pytest.raises(IntegrityError):
             CascadingSchedule.objects.create(
                 scenario=sample_schedule.scenario,
                 proforma=sample_schedule,
-                cascading_seq=1,  # 동일한 seq
                 proforma_start_etb_date=timezone.now().date(),
                 effective_start_date=timezone.now().date(),
                 created_by=user,

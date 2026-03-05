@@ -42,7 +42,6 @@ class TestCascadingAPI:
         data = response.json()
 
         assert data["status"] == "success"
-        assert data["cascading_next_seq"] == 2  # 다음 시퀀스
         assert "declared_count" in data  # Required Vessels 수
         assert "first_port_day" in data
 

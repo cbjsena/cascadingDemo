@@ -12,7 +12,7 @@
                 <i class="bi bi-list"></i> Back to List
             </a>
             
-            <a href="{% url 'input_data:cascading_create' %}?scenario_id={{ cascading.scenario.id }}&lane_code={{ cascading.proforma.lane_code }}&proforma_name={{ cascading.proforma.proforma_name }}&cascading_seq={{ cascading.cascading_seq }}" class="btn btn-primary">
+            <a href="{% url 'input_data:cascading_create' %}?scenario_id={{ cascading.scenario.id }}&lane_code={{ cascading.proforma.lane_code }}&proforma_name={{ cascading.proforma.proforma_name }}" class="btn btn-primary">
                 <i class="bi bi-pencil-square"></i> Edit
             </a>
         </div>
@@ -33,10 +33,6 @@
                 <div class="col-md-2">
                     <label class="small text-muted d-block">Proforma Name</label>
                     <span class="fw-bold">{{ cascading.proforma.proforma_name }}</span>
-                </div>
-                <div class="col-md-1">
-                    <label class="small text-muted d-block">Seq</label>
-                    <span class="badge bg-info text-dark fs-6">{{ cascading.cascading_seq }}</span>
                 </div>
                 <div class="col-md-2">
                     <label class="small text-muted d-block">Declared Count</label>

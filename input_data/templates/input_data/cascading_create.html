@@ -81,11 +81,6 @@
                         </div>
 
                         <div class="col-md-2">
-                            <label class="form-label small text-muted">Cascading Seq</label>
-                            <input type="number" class="form-control fw-bold text-primary" id="cascadingSeq" name="cascading_seq"
-                                   value="{{ preserved_data.cascading_seq|default_if_none:'' }}" readonly>
-                        </div>
-                        <div class="col-md-2">
                             <label class="form-label fw-bold text-primary">Own Vessels</label>
                             <input type="number" class="form-control" name="own_vessel_count" id="ownVesselCount" min="0"
                                    value="{{ preserved_data.own_vessel_count|default:'0' }}">
@@ -397,8 +392,6 @@
 
                     // Global Settings 적용
                     els.requiredCount.value = data.declared_count;
-                    // [추가] API에서 계산되어 온 next_seq 값을 화면 input에 넣음
-                    document.getElementById('cascadingSeq').value = data.cascading_next_seq || 1;
                     els.slotBadge.textContent = `Total Slots: ${data.declared_count}`;
 
                     els.pfFirstDay.value = data.first_port_day;
