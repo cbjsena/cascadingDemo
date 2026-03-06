@@ -99,7 +99,11 @@ class TestApiViews:
         # 3. Vessel Capacity (Create 화면용)
         VesselCapacity.objects.create(
             scenario=self.scenario,
+            trade_code="ASIA",
+            lane_code="LANE_A",
             vessel_code="V_CAP_1",
+            voyage_number="0001",
+            direction="E",
             vessel_capacity=10000,
             reefer_capacity=1000,
             created_by=user,

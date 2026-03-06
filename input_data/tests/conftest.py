@@ -10,6 +10,9 @@ from input_data.models import (
     CascadingVesselPosition,
     Distance,
     LongRangeSchedule,
+    MasterLane,
+    MasterPort,
+    MasterTrade,
     ProformaSchedule,
     ProformaScheduleDetail,
     ScenarioInfo,
@@ -17,6 +20,64 @@ from input_data.models import (
 from input_data.services.cascading_service import CascadingService
 from input_data.services.long_range_service import LongRangeService
 from input_data.services.proforma_service import ProformaService
+
+
+# =========================================================
+# Master Data Fixtures (FK 참조 대상)
+# =========================================================
+@pytest.fixture(autouse=True)
+def master_data(db):
+    """
+    모든 테스트에서 자동으로 생성되는 Master 데이터.
+    FK 참조 무결성을 위해 테스트에서 사용하는 모든 lane_code, port_code, trade_code 포함.
+    """
+    # Lanes
+    lanes = [
+        "TEST_LANE",
+        "TEST",
+        "FE1",
+        "FP1",
+        "LANE_A",
+        "LANE_B",
+        "OTHER",
+        "LANE_MID",
+        "LANE_DUR0",
+        "TEST_SAVE",
+        "SVC_TEST",
+        "UPLOAD_LANE",
+    ]
+    for code in lanes:
+        MasterLane.objects.get_or_create(lane_code=code, defaults={"lane_name": code})
+
+    # Ports
+    ports = [
+        "KRPUS",
+        "JPTYO",
+        "USLAX",
+        "PUS",
+        "TYO",
+        "LAX",
+        "PORT_A",
+        "PORT_B",
+        "PORT_C",
+        "PORT_1",
+        "PORT_2",
+        "PORT_3",
+        "PORT_X",
+        "A",
+        "B",
+        "C",
+        "UPLOAD_PORT",
+    ]
+    for code in ports:
+        MasterPort.objects.get_or_create(port_code=code, defaults={"port_name": code})
+
+    # Trades
+    trades = ["ASIA", "TPT", "NET"]
+    for code in trades:
+        MasterTrade.objects.get_or_create(
+            trade_code=code, defaults={"trade_name": code}
+        )
 
 
 # =========================================================
@@ -335,7 +396,7 @@ def cascading_form_data(sample_schedule):
     """
     return {
         "scenario_id": sample_schedule.scenario.id,
-        "lane_code": sample_schedule.lane_code,
+        "lane_code": sample_schedule.lane_code_id,
         "proforma_name": sample_schedule.proforma_name,
         "own_vessel_count": 3,
         "vessel_code[]": ["V001", "V002", "V003"],
@@ -353,7 +414,7 @@ def cascading_invalid_form_data(sample_schedule):
     """
     return {
         "scenario_id": sample_schedule.scenario.id,
-        "lane_code": sample_schedule.lane_code,
+        "lane_code": sample_schedule.lane_code_id,
         "proforma_name": sample_schedule.proforma_name,
         "own_vessel_count": 3,  # 3대 요구
         "vessel_code[]": ["V001", "V002"],  # 2대만 선택 (불일치)

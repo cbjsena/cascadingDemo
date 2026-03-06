@@ -577,7 +577,7 @@ class ProformaService:
         header = {
             "scenario_id": master.scenario_id,
             "scenario_code": master.scenario.code,  # 시나리오 코드 추가
-            "lane_code": master.lane_code,
+            "lane_code": master.lane_code_id,
             "proforma_name": master.proforma_name,
             "effective_from_date": (
                 master.effective_from_date.strftime("%Y-%m-%d")
@@ -595,7 +595,7 @@ class ProformaService:
         for obj in details_qs:
             row = {
                 "port_seq": obj.calling_port_seq,
-                "port_code": obj.port_code or "",
+                "port_code": obj.port_code_id or "",
                 "direction": obj.direction or const.DEFAULT_DIRECTION,
                 "turn_port_info_code": obj.turn_port_info_code
                 or const.DEFAULT_TURN_INO,

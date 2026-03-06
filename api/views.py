@@ -202,7 +202,7 @@ def vessel_lane_check(request):
             etb__date__lte=end_date,
         )
         if lrs_qs.exists():
-            data["lane_code"] = lrs_qs.first().lane_code
+            data["lane_code"] = lrs_qs.first().lane_code_id
             return JsonResponse(data)
 
         # 2. [추가됨] LRS가 안 만들어졌다면, CascadingVesselPosition에서 찾아봄
@@ -214,7 +214,7 @@ def vessel_lane_check(request):
         ).select_related("proforma")
 
         if cas_pos_qs.exists():
-            data["lane_code"] = cas_pos_qs.first().proforma.lane_code
+            data["lane_code"] = cas_pos_qs.first().proforma.lane_code_id
 
     return JsonResponse(data)
 

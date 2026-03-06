@@ -156,7 +156,7 @@ def _copy_proforma_to_scenario(scenario, user, now):
     masters_to_create = []
 
     for base in base_qs:
-        master_key = (base.lane_code, base.proforma_name)
+        master_key = (base.lane_code_id, base.proforma_name)
         if master_key not in master_cache:
             master = ProformaSchedule(
                 scenario=scenario,
@@ -182,14 +182,14 @@ def _copy_proforma_to_scenario(scenario, user, now):
     # DB에 생성된 Master 객체들을 다시 조회하여 PK(id)를 확보합니다.
     # (bulk_create는 DB 종류에 따라 PK를 반환하지 않을 수 있으므로 안전한 방식 채택)
     created_masters = ProformaSchedule.objects.filter(scenario=scenario)
-    master_db_map = {(m.lane_code, m.proforma_name): m for m in created_masters}
+    master_db_map = {(m.lane_code_id, m.proforma_name): m for m in created_masters}
 
     # 2. Detail 추출 및 생성
     details_to_create = []
 
     for base in base_qs:
         # DB에서 PK를 발급받은 실제 Master 객체를 매핑
-        real_master = master_db_map.get((base.lane_code, base.proforma_name))
+        real_master = master_db_map.get((base.lane_code_id, base.proforma_name))
 
         detail = ProformaScheduleDetail(
             proforma=real_master,  # 외래키 연결
@@ -246,14 +246,14 @@ def _copy_cascading_to_scenario(scenario, user, now):
 
     # Proforma 매핑 캐시 (lane_code, proforma_name) -> ProformaSchedule
     proforma_map = {
-        (p.lane_code, p.proforma_name): p
+        (p.lane_code_id, p.proforma_name): p
         for p in ProformaSchedule.objects.filter(scenario=scenario)
     }
 
     positions_to_create = []
 
     for base in base_qs:
-        proforma = proforma_map.get((base.lane_code, base.proforma_name))
+        proforma = proforma_map.get((base.lane_code_id, base.proforma_name))
         if not proforma:
             continue
 
@@ -297,14 +297,14 @@ def _copy_cascading_schedule_to_scenario(scenario, user, now):
         return summary
 
     proforma_map = {
-        (p.lane_code, p.proforma_name): p
+        (p.lane_code_id, p.proforma_name): p
         for p in ProformaSchedule.objects.filter(scenario=scenario)
     }
 
     schedules_to_create = []
 
     for base in base_qs:
-        proforma = proforma_map.get((base.lane_code, base.proforma_name))
+        proforma = proforma_map.get((base.lane_code_id, base.proforma_name))
         if not proforma:
             continue
 

@@ -38,6 +38,84 @@ DEPLOYMENT_TYPE_CHOICES = (
 
 
 # ==========================================
+# [Master] Trade / Port / Lane
+# ==========================================
+class MasterTrade(models.Model):
+    """마스터 Trade 정보"""
+
+    trade_code = models.CharField(
+        max_length=10, primary_key=True, verbose_name="Trade Code"
+    )
+    trade_name = models.CharField(max_length=100, verbose_name="Trade Name")
+    from_continent_code = models.CharField(
+        max_length=10, null=True, blank=True, verbose_name="From Continent Code"
+    )
+    to_continent_code = models.CharField(
+        max_length=10, null=True, blank=True, verbose_name="To Continent Code"
+    )
+
+    class Meta:
+        db_table = "master_trade"
+        verbose_name = "Master Trade"
+        verbose_name_plural = "Master Trades"
+
+    def __str__(self):
+        return f"{self.trade_code} - {self.trade_name}"
+
+
+class MasterPort(models.Model):
+    """마스터 Port (Location) 정보"""
+
+    port_code = models.CharField(
+        max_length=10, primary_key=True, verbose_name="Location Code"
+    )
+    port_name = models.CharField(max_length=100, verbose_name="Location Name")
+    continent_code = models.CharField(
+        max_length=10, null=True, blank=True, verbose_name="Continent Code"
+    )
+    country_code = models.CharField(
+        max_length=10, null=True, blank=True, verbose_name="Country Code"
+    )
+
+    class Meta:
+        db_table = "master_port"
+        verbose_name = "Master Port"
+        verbose_name_plural = "Master Ports"
+
+    def __str__(self):
+        return f"{self.port_code} - {self.port_name}"
+
+
+class MasterLane(models.Model):
+    """마스터 Lane (Service) 정보"""
+
+    lane_code = models.CharField(
+        max_length=10, primary_key=True, verbose_name="Lane Code"
+    )
+    lane_name = models.CharField(max_length=100, verbose_name="Lane Name")
+    vessel_service_type_code = models.CharField(
+        max_length=10, null=True, blank=True, verbose_name="Vessel Service Type Code"
+    )
+    start_effective_date = models.DateTimeField(
+        null=True, blank=True, verbose_name="Start Effective Date"
+    )
+    end_effective_date = models.DateTimeField(
+        null=True, blank=True, verbose_name="End Effective Date"
+    )
+    feeder_division_code = models.CharField(
+        max_length=10, null=True, blank=True, verbose_name="Feeder Division Code"
+    )
+
+    class Meta:
+        db_table = "master_lane"
+        verbose_name = "Master Lane"
+        verbose_name_plural = "Master Lanes"
+
+    def __str__(self):
+        return f"{self.lane_code} - {self.lane_name}"
+
+
+# ==========================================
 # [Main] Scenario Info
 # ==========================================
 class ScenarioInfo(CommonModel):
@@ -228,7 +306,12 @@ class ScenarioBaseModel(CommonModel):
 class BaseProformaSchedule(models.Model):
     """[BASE] 기준 Proforma Schedule"""
 
-    lane_code = models.CharField(max_length=10, verbose_name="Lane Code / 3 alphanum")
+    lane_code = models.ForeignKey(
+        MasterLane,
+        on_delete=models.PROTECT,
+        db_column="lane_code",
+        verbose_name="Lane Code / 3 alphanum",
+    )
     proforma_name = models.CharField(
         max_length=30, verbose_name="Proforma Name / 4 numeric digits"
     )
@@ -257,8 +340,10 @@ class BaseProformaSchedule(models.Model):
     direction = models.CharField(
         max_length=2, choices=DIRECTION_CHOICES, verbose_name="Direction {W, E, S, N}"
     )
-    port_code = models.CharField(
-        max_length=10,
+    port_code = models.ForeignKey(
+        MasterPort,
+        on_delete=models.PROTECT,
+        db_column="port_code",
         verbose_name="Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)",
     )
     calling_port_indicator = models.CharField(
@@ -359,7 +444,12 @@ class ProformaSchedule(ScenarioBaseModel):
         "ScenarioInfo", on_delete=models.CASCADE, db_column="scenario_id"
     )
 
-    lane_code = models.CharField(max_length=10, verbose_name="Lane Code / 3 alphanum")
+    lane_code = models.ForeignKey(
+        MasterLane,
+        on_delete=models.PROTECT,
+        db_column="lane_code",
+        verbose_name="Lane Code / 3 alphanum",
+    )
     proforma_name = models.CharField(
         max_length=30, verbose_name="Proforma Name / 4 numeric digits"
     )
@@ -408,8 +498,10 @@ class ProformaScheduleDetail(CommonModel):
     direction = models.CharField(
         max_length=2, choices=DIRECTION_CHOICES, verbose_name="Direction {W, E, S, N}"
     )
-    port_code = models.CharField(
-        max_length=10,
+    port_code = models.ForeignKey(
+        MasterPort,
+        on_delete=models.PROTECT,
+        db_column="port_code",
         verbose_name="Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)",
     )
     calling_port_indicator = models.CharField(
@@ -501,7 +593,12 @@ class ProformaScheduleDetail(CommonModel):
 class BaseCascadingVesselPosition(models.Model):
     """[BASE] 기준 Cascading Vessel Position - Flat Structure for CSV Import"""
 
-    lane_code = models.CharField(max_length=10, verbose_name="Lane Code")
+    lane_code = models.ForeignKey(
+        MasterLane,
+        on_delete=models.PROTECT,
+        db_column="lane_code",
+        verbose_name="Lane Code",
+    )
     proforma_name = models.CharField(max_length=30, verbose_name="Proforma Name")
     vessel_code = models.CharField(max_length=20, verbose_name="Vessel Code")
     vessel_position = models.IntegerField(
@@ -560,7 +657,12 @@ class CascadingVesselPosition(ScenarioBaseModel):
 class BaseCascadingSchedule(models.Model):
     """[BASE] 기준 Cascading Schedule - Flat Structure for CSV Import (vessel_code 없음, 슬롯 선택만)"""
 
-    lane_code = models.CharField(max_length=10, verbose_name="Lane Code")
+    lane_code = models.ForeignKey(
+        MasterLane,
+        on_delete=models.PROTECT,
+        db_column="lane_code",
+        verbose_name="Lane Code",
+    )
     proforma_name = models.CharField(max_length=30, verbose_name="Proforma Name")
     vessel_position = models.IntegerField(
         verbose_name="Vessel Position (slot number, 1-based)"
@@ -618,7 +720,12 @@ class CascadingSchedule(ScenarioBaseModel):
 class AbsLongRangeSchedule(models.Model):
     """Long Range Schedule 데이터 필드 (추상)"""
 
-    lane_code = models.CharField(max_length=10, verbose_name="Lane Code / 3 alphanum")
+    lane_code = models.ForeignKey(
+        MasterLane,
+        on_delete=models.PROTECT,
+        db_column="lane_code",
+        verbose_name="Lane Code / 3 alphanum",
+    )
     vessel_code = models.CharField(
         max_length=10, verbose_name="Vessel Code / 4 alphanum"
     )
@@ -634,8 +741,10 @@ class AbsLongRangeSchedule(models.Model):
     proforma_name = models.CharField(
         max_length=30, verbose_name="Proforma Name / 4 numeric digits"
     )
-    port_code = models.CharField(
-        max_length=10,
+    port_code = models.ForeignKey(
+        MasterPort,
+        on_delete=models.PROTECT,
+        db_column="port_code",
         verbose_name="Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)",
     )
     calling_port_indicator = models.CharField(
@@ -835,8 +944,18 @@ class AbsVesselCapacity(models.Model):
     해당 테이블의 vessel_capacity를 모델에서 사용
     """
 
-    trade_code = models.CharField(max_length=10, verbose_name="Trade Code / 3 alpha")
-    lane_code = models.CharField(max_length=10, verbose_name="Lane Code / 3 alphanum")
+    trade_code = models.ForeignKey(
+        MasterTrade,
+        on_delete=models.PROTECT,
+        db_column="trade_code",
+        verbose_name="Trade Code / 3 alpha",
+    )
+    lane_code = models.ForeignKey(
+        MasterLane,
+        on_delete=models.PROTECT,
+        db_column="lane_code",
+        verbose_name="Lane Code / 3 alphanum",
+    )
     vessel_code = models.CharField(
         max_length=10, verbose_name="Vessel Code / 4 alphanum"
     )
@@ -902,8 +1021,10 @@ class AbsCanalFee(models.Model):
     direction = models.CharField(
         max_length=2, choices=DIRECTION_CHOICES, verbose_name="Direction {W, E}"
     )
-    port_code = models.CharField(
-        max_length=10,
+    port_code = models.ForeignKey(
+        MasterPort,
+        on_delete=models.PROTECT,
+        db_column="port_code",
         verbose_name="Port Code where the canal is located {PAPCA, EGSCA}",
     )
     canal_fee = models.DecimalField(
@@ -939,8 +1060,20 @@ class CanalFee(AbsCanalFee, ScenarioBaseModel):
 class AbsDistance(models.Model):
     """Distance 데이터 필드 (추상)"""
 
-    from_port_code = models.CharField(max_length=10, verbose_name="From Port Code")
-    to_port_code = models.CharField(max_length=10, verbose_name="To Port Code")
+    from_port_code = models.ForeignKey(
+        MasterPort,
+        on_delete=models.PROTECT,
+        db_column="from_port_code",
+        verbose_name="From Port Code",
+        related_name="distance_from_port",
+    )
+    to_port_code = models.ForeignKey(
+        MasterPort,
+        on_delete=models.PROTECT,
+        db_column="to_port_code",
+        verbose_name="To Port Code",
+        related_name="distance_to_port",
+    )
     distance = models.IntegerField(verbose_name="Port-to-Port Distance (NM)")
     eca_distance = models.IntegerField(verbose_name="Port-to-Port ECA Distance (NM)")
 
@@ -976,8 +1109,10 @@ class AbsTSCost(models.Model):
     base_year_month = models.CharField(
         max_length=6, verbose_name="Year and month used as the base period / YYYYMM"
     )
-    port_code = models.CharField(
-        max_length=10,
+    port_code = models.ForeignKey(
+        MasterPort,
+        on_delete=models.PROTECT,
+        db_column="port_code",
         verbose_name="Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)",
     )
     # currency_code = models.CharField(max_length=3, verbose_name="Currency Code")
@@ -1112,8 +1247,18 @@ class AbsBunkerPrice(models.Model):
     base_year_month = models.CharField(
         max_length=6, verbose_name="Year and month used as the base period / YYYYMM"
     )
-    trade_code = models.CharField(max_length=10, verbose_name="Trade Code / 3 alpha")
-    lane_code = models.CharField(max_length=10, verbose_name="Lane Code / 3 alphanum")
+    trade_code = models.ForeignKey(
+        MasterTrade,
+        on_delete=models.PROTECT,
+        db_column="trade_code",
+        verbose_name="Trade Code / 3 alpha",
+    )
+    lane_code = models.ForeignKey(
+        MasterLane,
+        on_delete=models.PROTECT,
+        db_column="lane_code",
+        verbose_name="Lane Code / 3 alphanum",
+    )
     bunker_type = models.CharField(
         max_length=4,
         choices=BUNKER_TYPE_CHOICES,
@@ -1159,7 +1304,12 @@ class AbsFixedVesselDeployment(models.Model):
     특정 Lane에 특정 선박을 '반드시 투입(Include)'하거나 '투입 금지(Exclude)'합니다.
     """
 
-    lane_code = models.CharField(max_length=10, verbose_name="Lane Code / 3 alphanum")
+    lane_code = models.ForeignKey(
+        MasterLane,
+        on_delete=models.PROTECT,
+        db_column="lane_code",
+        verbose_name="Lane Code / 3 alphanum",
+    )
     vessel_code = models.CharField(
         max_length=20, verbose_name="Vessel Code / 4 alphanum"
     )
@@ -1216,8 +1366,10 @@ class AbsFixedScheduleChange(models.Model):
     vessel_code = models.CharField(
         max_length=20, verbose_name="Vessel Code / 4 alphanum"
     )
-    port_code = models.CharField(
-        max_length=10,
+    port_code = models.ForeignKey(
+        MasterPort,
+        on_delete=models.PROTECT,
+        db_column="port_code",
         verbose_name="Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)",
     )
     schedule_change_status_code = models.CharField(
@@ -1277,8 +1429,10 @@ class AbsPortConstraint(models.Model):
     특정 항구(또는 터미널)에 들어갈 수 있는 선박의 크기를 제한합니다.
     """
 
-    port_code = models.CharField(
-        max_length=10,
+    port_code = models.ForeignKey(
+        MasterPort,
+        on_delete=models.PROTECT,
+        db_column="port_code",
         verbose_name="Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)",
     )
     terminal_code = models.CharField(

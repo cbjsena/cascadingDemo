@@ -29,14 +29,27 @@ class Command(BaseCommand):
 
         # 2. input_data 앱의 모든 모델 가져오기
         app_config = apps.get_app_config("input_data")
-        models = app_config.get_models()
+        all_models = app_config.get_models()
 
-        # 3. 모델 순회하며 데이터 로드
-        for model in models:
-            # 테이블명이 'base_'로 시작하는 모델만 대상
-            if not model._meta.db_table.startswith("base_"):
-                continue
+        # 3. 대상 모델 필터링 (master_ 또는 base_ 테이블만)
+        target_models = [
+            m
+            for m in all_models
+            if m._meta.db_table.startswith("base_")
+            or m._meta.db_table.startswith("master_")
+        ]
 
+        # 4. 로드 순서 보장: master_ 테이블 → base_ 테이블
+        #    master_ 테이블이 먼저 로드되어야 FK 참조가 가능
+        def _load_order(m):
+            if m._meta.db_table.startswith("master_"):
+                return 0
+            return 1
+
+        target_models.sort(key=_load_order)
+
+        # 5. 모델 순회하며 데이터 로드
+        for model in target_models:
             table_name = model._meta.db_table
             file_name = f"{table_name}.csv"
             file_path = os.path.join(base_data_dir, file_name)
@@ -106,14 +119,41 @@ class Command(BaseCommand):
         for key, value in row.items():
             try:
                 field = model._meta.get_field(key)
-            except Exception as e:
-                error_message = msg.ROW_ERROR.format(table=model, error=str(e))
-                detailed_message = f"{error_message} | ROW DATA: {row}"
-                self.stdout.write(self.style.ERROR(detailed_message))
-                continue
+            except Exception:
+                # FK 필드인 경우: CSV 컬럼 "lane_code" → Django 필드명 "lane_code"
+                # db_column="lane_code"로 지정된 FK의 경우 attname(=lane_code)으로 접근 가능
+                fk_field = self._find_fk_field_by_column(model, key)
+                if fk_field:
+                    field = fk_field
+                else:
+                    error_message = msg.ROW_ERROR.format(
+                        table=model, error=f"Field '{key}' not found"
+                    )
+                    detailed_message = f"{error_message} | ROW DATA: {row}"
+                    self.stdout.write(self.style.ERROR(detailed_message))
+                    continue
 
             val = value.strip() if isinstance(value, str) else value
             internal_type = field.get_internal_type()
+
+            # 0. FK 필드 처리: 참조 모델에서 PK로 객체 조회
+            if field.is_relation:
+                related_model = field.related_model
+                if val == "":
+                    cleaned[field.name] = None if field.null else None
+                else:
+                    try:
+                        ref_obj = related_model.objects.get(pk=val)
+                        cleaned[field.name] = ref_obj
+                    except related_model.DoesNotExist:
+                        if field.null:
+                            cleaned[field.name] = None
+                        else:
+                            raise ValueError(
+                                f"FK '{key}' references {related_model.__name__} "
+                                f"with pk='{val}', but not found"
+                            )
+                continue
 
             # 1. 빈 값 처리
             if val == "":
@@ -161,6 +201,22 @@ class Command(BaseCommand):
                     )
 
         return cleaned
+
+    def _find_fk_field_by_column(self, model, column_name):
+        """
+        CSV 컬럼명(예: 'lane_code')으로 FK 필드를 찾습니다.
+        Django FK는 db_column을 지정하면 attname이 해당 컬럼명이 됩니다.
+        예: ForeignKey(..., db_column="lane_code") → attname="lane_code"
+        """
+        for field in model._meta.get_fields():
+            if hasattr(field, "attname") and field.attname == column_name:
+                if field.is_relation:
+                    return field
+            # db_column이 명시적으로 지정된 경우
+            if hasattr(field, "column") and field.column == column_name:
+                if field.is_relation:
+                    return field
+        return None
 
 
 def debugInsert(data_list, model):

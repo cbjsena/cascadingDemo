@@ -266,7 +266,7 @@ class TestScenarioCreationService:
         assert masters.count() == 1
 
         master = masters.first()
-        assert master.lane_code == "FE1"
+        assert master.lane_code_id == "FE1"
         assert master.proforma_name == "3101"
         assert master.declared_count == 5
         assert master.scenario == scenario

@@ -29,7 +29,7 @@ class TestLongRangeService:
         qdict.update(
             {
                 "scenario_id": sample_schedule.scenario.id,
-                "lane_code": sample_schedule.lane_code,
+                "lane_code": sample_schedule.lane_code_id,
                 "proforma_name": sample_schedule.proforma_name,
                 "effective_start_date": start_date.strftime("%Y-%m-%d"),
                 "effective_end_date": end_date.strftime("%Y-%m-%d"),
@@ -47,7 +47,7 @@ class TestLongRangeService:
         ).order_by("etb")
 
         assert schedules.count() > 0
-        assert schedules.first().port_code == "KRPUS"
+        assert schedules.first().port_code_id == "KRPUS"
 
     def test_lrs_svc_head_tail_y_logic(self, lrs_service, pf_complex_data):
         """
@@ -68,17 +68,17 @@ class TestLongRangeService:
         head_virtual = expanded[0]
         head_actual = expanded[1]
 
-        assert head_virtual["obj"].port_code == "PORT_A"
+        assert head_virtual["obj"].port_code_id == "PORT_A"
         assert head_virtual["voyage_offset"] == -1
         assert head_virtual["direction"] == "W"  # 원본 'E'의 반대
 
-        assert head_actual["obj"].port_code == "PORT_A"
+        assert head_actual["obj"].port_code_id == "PORT_A"
         assert head_actual["voyage_offset"] == 0
         assert head_actual["direction"] == "E"
 
         # Tail Y 검증 (마지막 포트는 Y여도 Virtual을 만들지 않음)
         tail_actual = expanded[-1]
-        assert tail_actual["obj"].port_code == "PORT_C"
+        assert tail_actual["obj"].port_code_id == "PORT_C"
         assert tail_actual["voyage_offset"] == 0
 
         # 총 확장 길이 검증 (PORT A: Virtual+Actual, PORT B: Actual, PORT C: Actual)
@@ -250,7 +250,7 @@ class TestLongRangeService:
         qdict.update(
             {
                 "scenario_id": sample_schedule.scenario.id,
-                "lane_code": sample_schedule.lane_code,
+                "lane_code": sample_schedule.lane_code_id,
                 "proforma_name": sample_schedule.proforma_name,
                 "effective_start_date": start_date.strftime("%Y-%m-%d"),
                 "effective_end_date": end_date.strftime("%Y-%m-%d"),
@@ -296,7 +296,7 @@ class TestLongRangeService:
         qdict.update(
             {
                 "scenario_id": sample_schedule.scenario.id,
-                "lane_code": sample_schedule.lane_code,
+                "lane_code": sample_schedule.lane_code_id,
                 "proforma_name": sample_schedule.proforma_name,
                 "effective_start_date": start_date.strftime("%Y-%m-%d"),
                 "effective_end_date": end_date.strftime("%Y-%m-%d"),

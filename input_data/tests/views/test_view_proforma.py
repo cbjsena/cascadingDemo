@@ -33,8 +33,8 @@ class TestProformaReadViews:
         # 리스트 데이터 확인
         proforma_list = response.context["proforma_list"]
         assert len(proforma_list) >= 1
-        # [수정됨] 딕셔너리 접근(["lane_code"])에서 객체 속성 접근(.lane_code)으로 변경
-        assert any(item.lane_code == "TEST_LANE" for item in proforma_list)
+        # [수정됨] 딕셔너리 접근(["lane_code"])에서 객체 속성 접근(.lane_code_id)으로 변경
+        assert any(item.lane_code_id == "TEST_LANE" for item in proforma_list)
 
         # [Check] 메뉴 그룹 확인
         assert response.context["current_group"] == MenuGroup.SCHEDULE
@@ -87,12 +87,12 @@ class TestProformaReadViews:
         response = auth_client.get(url, {"lane_code": "OTHER"})
         results = response.context["proforma_list"]
         assert len(results) == 1
-        assert results[0].lane_code == "OTHER"
+        assert results[0].lane_code_id == "OTHER"
 
         # 'TEST' 검색 (OTHER 제외 확인)
         response = auth_client.get(url, {"lane_code": "TEST"})
         results = response.context["proforma_list"]
-        assert not any(item.lane_code == "OTHER" for item in results)
+        assert not any(item.lane_code_id == "OTHER" for item in results)
 
     def test_proforma_detail_view(self, auth_client, sample_schedule):
         """
@@ -102,7 +102,7 @@ class TestProformaReadViews:
         url = reverse("input_data:proforma_detail")
         params = {
             "scenario_id": sample_schedule.scenario.id,
-            "lane_code": sample_schedule.lane_code,
+            "lane_code": sample_schedule.lane_code_id,
             "proforma_name": sample_schedule.proforma_name,
         }
         response = auth_client.get(url, params)
@@ -140,7 +140,7 @@ class TestProformaReadViews:
         url = reverse("input_data:proforma_create")
         params = {
             "scenario_id": sample_schedule.scenario.id,
-            "lane_code": sample_schedule.lane_code,
+            "lane_code": sample_schedule.lane_code_id,
             "proforma_name": sample_schedule.proforma_name,
         }
         response = auth_client.get(url, params)

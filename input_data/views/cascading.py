@@ -276,7 +276,7 @@ def cascading_vessel_info(request):
 
             dashboard_data.append(
                 {
-                    "lane_code": proforma.lane_code,
+                    "lane_code": proforma.lane_code_id,
                     "proforma_name": proforma.proforma_name,
                     "declared_count": declared_count,
                     "own_vessel_count": proforma.own_vessel_count,
@@ -352,7 +352,7 @@ def cascading_schedule_list(request):
                 {
                     "scenario_id": scenario_id,
                     "proforma_id": pf.id,
-                    "lane_code": pf.lane_code,
+                    "lane_code": pf.lane_code_id,
                     "proforma_name": pf.proforma_name,
                     "effective_from_date": pf.effective_from_date,
                     "declared_count": declared,
@@ -463,7 +463,7 @@ def cascading_create(request):
             dashboard_data.append(
                 {
                     "proforma_id": pf.id,
-                    "lane_code": pf.lane_code,
+                    "lane_code": pf.lane_code_id,
                     "proforma_name": pf.proforma_name,
                     "effective_from_date": pf.effective_from_date,
                     "declared_count": declared,
