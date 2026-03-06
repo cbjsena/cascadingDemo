@@ -6,8 +6,7 @@ from django.db.utils import IntegrityError
 from django.utils import timezone
 
 from input_data.models import (
-    CascadingSchedule,
-    CascadingScheduleDetail,
+    CascadingVesselPosition,
     ProformaSchedule,
     ProformaScheduleDetail,
     ScenarioInfo,
@@ -59,10 +58,8 @@ class TestProformaModels:
         [MODEL_PF_001] Proforma Master-Detail FK
         ProformaSchedule(Master)과 ProformaScheduleDetail(Detail) 생성 시 FK 연결 검증
         """
-        # When
         eff_from_date = timezone.make_aware(datetime(2026, 1, 1))
 
-        # 1. Master 생성
         master = ProformaSchedule.objects.create(
             scenario=base_scenario,
             lane_code="TEST",
@@ -74,7 +71,6 @@ class TestProformaModels:
             created_by=user,
         )
 
-        # 2. Detail 생성
         detail = ProformaScheduleDetail.objects.create(
             proforma=master,
             direction="E",
@@ -87,12 +83,8 @@ class TestProformaModels:
             created_by=user,
         )
 
-        # Then
-        # Master -> Scenario 연결 확인
         assert master.scenario == base_scenario
         assert master.scenario.code == "SC_TEST_BASE"
-
-        # Detail -> Master 및 Scenario 연결 확인
         assert detail.proforma == master
         assert detail.proforma.scenario == base_scenario
 
@@ -101,7 +93,6 @@ class TestProformaModels:
         [MODEL_PF_002] Proforma Master Unique
         동일 시나리오 내 동일 Lane/Proforma Name 중복 생성 시 IntegrityError 발생 검증
         """
-        # Given: 첫 번째 Master 데이터 생성
         common_master_data = {
             "scenario": base_scenario,
             "lane_code": "TEST_LANE",
@@ -115,7 +106,6 @@ class TestProformaModels:
 
         ProformaSchedule.objects.create(**common_master_data)
 
-        # When & Then: 동일한 Key (scenario, lane_code, proforma_name) 조건으로 생성 시도
         with pytest.raises(IntegrityError):
             ProformaSchedule.objects.create(**common_master_data)
 
@@ -124,7 +114,6 @@ class TestProformaModels:
         [MODEL_PF_003] Proforma Detail Unique
         동일 Proforma 내 동일 포트/방향/순서 중복 생성 시 IntegrityError 발생 검증
         """
-        # Given: 부모 Master 생성
         master = ProformaSchedule.objects.create(
             scenario=base_scenario,
             lane_code="TEST_LANE",
@@ -146,118 +135,98 @@ class TestProformaModels:
             "created_by": user,
         }
 
-        # 첫 번째 Detail 데이터 생성
         ProformaScheduleDetail.objects.create(**common_detail_data)
 
-        # When & Then: 동일한 Key (scenario, proforma, direction, port_code, calling_port_indicator) 조건으로 생성 시도
         with pytest.raises(IntegrityError):
             ProformaScheduleDetail.objects.create(**common_detail_data)
 
 
 @pytest.mark.django_db
-class TestCascadingModels:
+class TestCascadingVesselPositionModels:
     """
-    CascadingSchedule 및 CascadingScheduleDetail 모델 테스트
+    CascadingVesselPosition 모델 테스트
     """
 
-    def test_cascading_model_creation(self, sample_schedule, user):
+    def test_cascading_position_creation(self, sample_schedule, user):
         """
-        [MODEL_CAS_001] Cascading 모델 생성
-        CascadingSchedule 생성 시 필드 값 및 __str__ 출력 검증
+        [MODEL_CVP_001] CascadingVesselPosition 생성
+        생성 시 필드 값 및 __str__ 출력 검증
         """
-        # Given & When: CascadingSchedule 생성
-        cascading = CascadingSchedule.objects.create(
+        position = CascadingVesselPosition.objects.create(
             scenario=sample_schedule.scenario,
             proforma=sample_schedule,
-            proforma_start_etb_date=timezone.now().date(),
+            vessel_code="V001",
+            vessel_position=1,
+            vessel_position_date=timezone.now().date(),
             created_by=user,
             updated_by=user,
         )
 
-        # ProformaSchedule에 own_vessel_count 설정
-        sample_schedule.own_vessel_count = 3
-        sample_schedule.save(update_fields=["own_vessel_count"])
-
-        # Then: 필드 검증
-        assert sample_schedule.own_vessel_count == 3
-        assert cascading.proforma_start_etb_date is not None
-        assert cascading.scenario == sample_schedule.scenario
-        assert cascading.proforma == sample_schedule
+        assert position.vessel_code == "V001"
+        assert position.vessel_position == 1
+        assert position.vessel_position_date is not None
+        assert position.scenario == sample_schedule.scenario
+        assert position.proforma == sample_schedule
         assert (
-            str(cascading)
-            == f"[{sample_schedule.scenario.id}] {sample_schedule.proforma_name}"
+            str(position)
+            == f"[{sample_schedule.scenario.id}] {sample_schedule.proforma_name} - Pos1: V001"
         )
 
-    def test_cascading_detail_creation(self, cascading_with_details):
+    def test_cascading_position_query(self, cascading_with_details):
         """
-        [MODEL_CAS_002] Cascading Detail 생성 및 FK
-        CascadingScheduleDetail 생성 시 Master와의 FK 관계 검증
+        [MODEL_CVP_002] CascadingVesselPosition 조회
+        fixture에서 생성된 Position 데이터 검증
         """
-        # Given: cascading_with_details fixture에서 생성된 데이터
-        details = CascadingScheduleDetail.objects.filter(
-            cascading=cascading_with_details
+        first_pos = cascading_with_details[0]
+        positions = CascadingVesselPosition.objects.filter(
+            scenario=first_pos.scenario, proforma=first_pos.proforma
         )
 
-        # Then: Detail 데이터 검증
-        assert details.count() == 2
+        assert positions.count() == 2
 
-        for detail in details:
-            assert detail.cascading == cascading_with_details
-            assert detail.vessel_code in ["V001", "V002"]
-            assert detail.initial_start_date is not None
+        for pos in positions:
+            assert pos.vessel_code in ["V001", "V002"]
+            assert pos.vessel_position_date is not None
 
-    def test_cascading_unique_constraint(self, sample_schedule, user):
+    def test_cascading_position_unique_constraint(self, sample_schedule, user):
         """
-        [MODEL_CAS_003] Cascading Unique
-        동일 scenario+proforma 조합 중복 생성 시 IntegrityError 발생 검증
+        [MODEL_CVP_003] CascadingVesselPosition Unique
+        동일 scenario+proforma+vessel_position 중복 생성 시 IntegrityError 발생 검증
         """
-        # Given: 첫 번째 Cascading 생성
-        CascadingSchedule.objects.create(
+        CascadingVesselPosition.objects.create(
             scenario=sample_schedule.scenario,
             proforma=sample_schedule,
-            proforma_start_etb_date=timezone.now().date(),
+            vessel_code="V001",
+            vessel_position=1,
+            vessel_position_date=timezone.now().date(),
             created_by=user,
         )
 
-        # When & Then: 동일한 scenario + proforma 조합으로 중복 생성 시도
         with pytest.raises(IntegrityError):
-            CascadingSchedule.objects.create(
+            CascadingVesselPosition.objects.create(
                 scenario=sample_schedule.scenario,
                 proforma=sample_schedule,
-                proforma_start_etb_date=timezone.now().date(),
+                vessel_code="V002",
+                vessel_position=1,  # 동일 position
+                vessel_position_date=timezone.now().date(),
                 created_by=user,
             )
 
-    def test_cascading_detail_unique_constraint(self, cascading_with_details, user):
+    def test_cascading_position_cascade_delete(self, cascading_with_details):
         """
-        [MODEL_CAS_004] Cascading Detail Unique
-        동일 cascading+vessel_code 중복 생성 시 IntegrityError 발생 검증
+        [MODEL_CVP_004] Scenario Cascade Delete
+        Scenario 삭제 시 CascadingVesselPosition도 함께 삭제되는지 검증
         """
-        # When & Then: 동일한 cascading + vessel_code 조합으로 중복 생성 시도
-        with pytest.raises(IntegrityError):
-            CascadingScheduleDetail.objects.create(
-                cascading=cascading_with_details,
-                vessel_code="V001",  # 이미 존재하는 vessel_code
-                initial_start_date=timezone.now().date(),
-                created_by=user,
-            )
+        first_pos = cascading_with_details[0]
+        scenario = first_pos.scenario
+        scenario_id = scenario.id
 
-    def test_cascading_cascade_delete(self, cascading_with_details):
-        """
-        [MODEL_CAS_005] Cascading Cascade Delete
-        CascadingSchedule 삭제 시 Detail 데이터도 함께 삭제되는지 검증
-        """
-        # Given: Detail 데이터 존재 확인
-        detail_count = CascadingScheduleDetail.objects.filter(
-            cascading=cascading_with_details
-        ).count()
-        assert detail_count == 2
+        assert (
+            CascadingVesselPosition.objects.filter(scenario_id=scenario_id).count() == 2
+        )
 
-        # When: Master 삭제
-        cascading_with_details.delete()
+        scenario.delete()
 
-        # Then: Detail 데이터도 함께 삭제됨
-        remaining_details = CascadingScheduleDetail.objects.filter(
-            cascading_id=cascading_with_details.id
-        ).count()
-        assert remaining_details == 0
+        assert (
+            CascadingVesselPosition.objects.filter(scenario_id=scenario_id).count() == 0
+        )

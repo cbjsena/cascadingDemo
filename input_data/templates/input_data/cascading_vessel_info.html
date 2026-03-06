@@ -125,7 +125,7 @@
                         {% for lane_group in lane_groups %}
                             {% for row in lane_group.list %}
                             <tr class="cascading-row" style="cursor: pointer;"
-                                onclick="window.location.href='{% url 'input_data:cascading_detail' row.pk %}'"
+                                onclick="window.location.href='{% url 'input_data:cascading_vessel_detail' row.scenario_id row.proforma_id %}'"
                                 title="Click to view/edit details">
                                 <td class="small">{{ forloop.parentloop.counter }}</td>
                                 <td>

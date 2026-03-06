@@ -14,7 +14,7 @@ from common.menus import (
 from input_data.models import (
     BaseVesselCapacity,
     BaseVesselInfo,
-    CascadingSchedule,
+    CascadingVesselPosition,
     ProformaSchedule,
     ScenarioInfo,
 )
@@ -177,30 +177,27 @@ def cascading_vessel_create(request):
 
 
 @login_required
-def cascading_vessel_detail(request, pk):
+def cascading_vessel_detail(request, scenario_id, proforma_id):
     """
-    Cascading Schedule 상세 조회 (Read-Only)
+    Cascading Vessel Position 상세 조회 (Read-Only)
     """
-    # 1. Master 객체 가져오기 (없으면 404 에러)
-    cascading = get_object_or_404(
-        CascadingSchedule.objects.select_related("scenario", "proforma"), pk=pk
+    # 1. Proforma 객체 가져오기
+    proforma = get_object_or_404(
+        ProformaSchedule.objects.select_related("scenario"), pk=proforma_id
     )
 
-    # 2. Detail 목록 가져오기 (역방향 참조명 details 활용)
-    details = cascading.details.all().order_by("id")
+    # 2. 해당 Proforma의 모든 Vessel Position 가져오기
+    positions = CascadingVesselPosition.objects.filter(
+        scenario_id=scenario_id, proforma=proforma
+    ).order_by("vessel_position")
 
     # 3. 첫 번째 포트의 ETB 요일 정보 가져오기
     first_port_day = None
     try:
-        # Proforma의 첫 번째 포트 스케줄 가져오기
-        first_schedule = cascading.proforma.details.filter(
-            calling_port_seq=1  # 첫 번째 포트
-        ).first()
-
+        first_schedule = proforma.details.filter(calling_port_seq=1).first()
         if first_schedule and first_schedule.etb_day_code:
             first_port_day = first_schedule.etb_day_code
     except Exception as e:
-        # 에러가 발생해도 페이지는 정상 표시
         print(f"Error getting first port day: {e}")
 
     context = {
@@ -209,9 +206,10 @@ def cascading_vessel_detail(request, pk):
         "current_section": MenuSection.INPUT_MANAGEMENT,
         "current_group": MenuGroup.SCHEDULE,
         "current_model": MenuItem.CASCADING_VESSEL_INFO,
-        "cascading": cascading,
-        "details": details,
-        "first_port_day": first_port_day,  # 첫 번째 포트 요일 코드 (SUN, MON 등)
+        "proforma": proforma,
+        "scenario": proforma.scenario,
+        "positions": positions,
+        "first_port_day": first_port_day,
     }
 
     return render(request, "input_data/cascading_vessel_detail.html", context)
@@ -223,8 +221,6 @@ def cascading_vessel_info(request):
     Cascading Vessel Info: Scenario를 선택하면 Lane 별 Cascading 결과를 한눈에 조회
     선박 배치 슬롯을 가로로 시각화하여 표시
     """
-    from datetime import timedelta
-
     scenario_id = request.GET.get("scenario_id", "")
     scenarios = ScenarioInfo.objects.all().order_by("-created_at")
 
@@ -232,42 +228,47 @@ def cascading_vessel_info(request):
     max_declared = 0  # 테이블 헤더 동적 생성용
 
     if scenario_id:
-        # 해당 시나리오의 모든 Cascading Schedule을 Lane 기준으로 조회
-        qs = (
-            CascadingSchedule.objects.select_related("scenario", "proforma")
-            .prefetch_related("details")
-            .filter(scenario_id=scenario_id)
-            .order_by(
-                "proforma__lane_code",
-                "proforma__proforma_name",
-            )
+        # 해당 시나리오의 모든 Proforma를 조회 (Cascading Position이 있는 것만)
+        proformas_with_positions = (
+            ProformaSchedule.objects.filter(scenario_id=scenario_id)
+            .prefetch_related("cascading_positions")
+            .order_by("lane_code", "proforma_name")
         )
 
-        for cascading in qs:
-            declared_count = cascading.proforma.declared_count
+        for proforma in proformas_with_positions:
+            # 해당 Proforma의 Vessel Position 조회
+            positions = list(
+                CascadingVesselPosition.objects.filter(
+                    scenario_id=scenario_id, proforma=proforma
+                ).order_by("vessel_position")
+            )
+
+            # Position이 없으면 스킵
+            if not positions:
+                continue
+
+            declared_count = proforma.declared_count
             if declared_count > max_declared:
                 max_declared = declared_count
 
-            # 시작 주차 계산 (proforma_start_etb_date 기준 ISO week)
+            # 시작 주차 계산 (첫 번째 position_date 기준)
             start_week = ""
-            if cascading.proforma_start_etb_date:
-                iso = cascading.proforma_start_etb_date.isocalendar()
+            first_position = positions[0] if positions else None
+            if first_position and first_position.vessel_position_date:
+                iso = first_position.vessel_position_date.isocalendar()
                 start_week = f"{iso[0]}-W{iso[1]:02d}"
 
             # 슬롯 배치 계산: 어떤 순번에 vessel이 배정되었는지
-            base_date = cascading.proforma_start_etb_date
-            saved_details = list(cascading.details.all())
-
             slots = []
             for i in range(declared_count):
-                row_date = base_date + timedelta(days=i * 7) if base_date else None
+                position_num = i + 1
                 matched = next(
-                    (d for d in saved_details if d.initial_start_date == row_date),
+                    (p for p in positions if p.vessel_position == position_num),
                     None,
                 )
                 slots.append(
                     {
-                        "index": i + 1,
+                        "index": position_num,
                         "assigned": matched is not None,
                         "vessel_code": matched.vessel_code if matched else "",
                     }
@@ -275,14 +276,17 @@ def cascading_vessel_info(request):
 
             dashboard_data.append(
                 {
-                    "lane_code": cascading.proforma.lane_code,
-                    "proforma_name": cascading.proforma.proforma_name,
+                    "lane_code": proforma.lane_code,
+                    "proforma_name": proforma.proforma_name,
                     "declared_count": declared_count,
-                    "own_vessel_count": cascading.proforma.own_vessel_count,
+                    "own_vessel_count": proforma.own_vessel_count,
                     "start_week": start_week,
-                    "start_date": cascading.proforma_start_etb_date,
+                    "start_date": (
+                        first_position.vessel_position_date if first_position else None
+                    ),
                     "slots": slots,
-                    "pk": cascading.pk,
+                    "scenario_id": scenario_id,
+                    "proforma_id": proforma.id,
                 }
             )
 

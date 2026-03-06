@@ -137,17 +137,18 @@ def proforma_detail(request):
             }
 
             # 기존 Cascading 데이터 존재 여부 확인
-            from input_data.models import CascadingSchedule
+            from input_data.models import CascadingVesselPosition
 
-            existing_cascading = CascadingSchedule.objects.filter(
+            existing_positions = CascadingVesselPosition.objects.filter(
                 scenario=scenario, proforma=master
-            ).first()
+            )
 
-            if existing_cascading:
+            if existing_positions.exists():
                 data["existing_cascading"] = {
-                    "id": existing_cascading.id,
                     "exists": True,
-                    "detail_count": existing_cascading.details.count(),
+                    "detail_count": existing_positions.count(),
+                    "scenario_id": scenario.id,
+                    "proforma_id": master.id,
                 }
             else:
                 data["existing_cascading"] = {"exists": False}
@@ -204,16 +205,16 @@ def vessel_lane_check(request):
             data["lane_code"] = lrs_qs.first().lane_code
             return JsonResponse(data)
 
-        # 2. [추가됨] LRS가 안 만들어졌다면, CascadingScheduleDetail에서 찾아봄
-        from input_data.models import CascadingScheduleDetail
+        # 2. [추가됨] LRS가 안 만들어졌다면, CascadingVesselPosition에서 찾아봄
+        from input_data.models import CascadingVesselPosition
 
-        cas_detail_qs = CascadingScheduleDetail.objects.filter(
+        cas_pos_qs = CascadingVesselPosition.objects.filter(
             vessel_code=vessel_code,
-            initial_start_date__lte=end_date,
-        ).select_related("cascading__proforma")
+            vessel_position_date__lte=end_date,
+        ).select_related("proforma")
 
-        if cas_detail_qs.exists():
-            data["lane_code"] = cas_detail_qs.first().cascading.proforma.lane_code
+        if cas_pos_qs.exists():
+            data["lane_code"] = cas_pos_qs.first().proforma.lane_code
 
     return JsonResponse(data)
 

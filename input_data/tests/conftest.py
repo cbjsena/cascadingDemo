@@ -7,8 +7,7 @@ from django.utils import timezone
 
 from common import constants
 from input_data.models import (
-    CascadingSchedule,
-    CascadingScheduleDetail,
+    CascadingVesselPosition,
     Distance,
     LongRangeSchedule,
     ProformaSchedule,
@@ -306,34 +305,26 @@ def lrs_service():
 @pytest.fixture
 def cascading_with_details(db, sample_schedule, user):
     """
-    Cascading Schedule과 Detail이 포함된 테스트 데이터
+    Cascading Vessel Position 테스트 데이터
     CASCADING_VIEW_003, CASCADING_ACT_002, CASCADING_DETAIL_001/002 등에서 사용
-    ※ Detail 수는 sample_schedule.declared_count(=2)를 초과하지 않도록 한다.
+    ※ Position 수는 sample_schedule.declared_count(=2)를 초과하지 않도록 한다.
     """
-    # ProformaSchedule에 own_vessel_count 설정
-    sample_schedule.own_vessel_count = 2
-    sample_schedule.save(update_fields=["own_vessel_count"])
-
-    cascading = CascadingSchedule.objects.create(
-        scenario=sample_schedule.scenario,
-        proforma=sample_schedule,
-        proforma_start_etb_date=timezone.now().date(),
-        created_by=user,
-        updated_by=user,
-    )
-
-    # Detail 데이터 2건 (= sample_schedule.declared_count)
+    # Position 데이터 2건 (= sample_schedule.declared_count)
     vessels = ["V001", "V002"]
+    positions = []
     for i, vessel_code in enumerate(vessels):
-        CascadingScheduleDetail.objects.create(
-            cascading=cascading,
+        position = CascadingVesselPosition.objects.create(
+            scenario=sample_schedule.scenario,
+            proforma=sample_schedule,
             vessel_code=vessel_code,
-            initial_start_date=timezone.now().date() + timedelta(days=i * 7),
+            vessel_position=i + 1,
+            vessel_position_date=timezone.now().date() + timedelta(days=i * 7),
             created_by=user,
             updated_by=user,
         )
+        positions.append(position)
 
-    return cascading
+    return positions
 
 
 @pytest.fixture
@@ -375,11 +366,11 @@ def cascading_invalid_form_data(sample_schedule):
 @pytest.fixture
 def multiple_cascading_data(db, base_scenario, user):
     """
-    여러 Cascading 데이터 (목록 조회 테스트용)
-    CASCADING_LIST_001에서 사용
-    - 2개의 Proforma, 각각 1개의 CascadingSchedule 생성
+    여러 Cascading 데이터 (Vessel Info 대시보드 조회 테스트용)
+    CASCADING_VESSEL_INFO_001에서 사용
+    - 2개의 Proforma, 각각 CascadingVesselPosition 2건씩 생성
     """
-    cascadings = []
+    all_positions = []
 
     for idx in range(2):
         # Proforma 생성
@@ -396,25 +387,17 @@ def multiple_cascading_data(db, base_scenario, user):
             updated_by=user,
         )
 
-        # Cascading 생성
-        cascading = CascadingSchedule.objects.create(
-            scenario=base_scenario,
-            proforma=proforma,
-            proforma_start_etb_date=timezone.now().date(),
-            created_by=user,
-            updated_by=user,
-        )
-
-        # Detail 2건
+        # Position 2건
         for i in range(2):
-            CascadingScheduleDetail.objects.create(
-                cascading=cascading,
+            position = CascadingVesselPosition.objects.create(
+                scenario=base_scenario,
+                proforma=proforma,
                 vessel_code=f"V{idx+1}0{i+1}",
-                initial_start_date=timezone.now().date() + timedelta(days=i * 7),
+                vessel_position=i + 1,
+                vessel_position_date=timezone.now().date() + timedelta(days=i * 7),
                 created_by=user,
                 updated_by=user,
             )
+            all_positions.append(position)
 
-        cascadings.append(cascading)
-
-    return cascadings
+    return all_positions

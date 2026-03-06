@@ -10,7 +10,7 @@ import pytest
 from django.utils import timezone
 
 from input_data.models import (
-    CascadingSchedule,
+    CascadingVesselPosition,
     ProformaScheduleDetail,
 )
 
@@ -25,65 +25,76 @@ class TestCascadingService:
     def test_cascading_svc_001_service_logic(self, cascading_with_details):
         """
         [CASCADING_SVC_001] Cascading 서비스 로직
-        get_cascading_data가 변경된 필드명으로 정확한 데이터를 반환하는지 검증
+        get_cascading_data가 CascadingVesselPosition 기반으로 정확한 데이터를 반환하는지 검증
         """
-        # When: 서비스 호출 (직접 import하여 사용)
         from input_data.services.cascading_service import CascadingService
 
         cascading_service = CascadingService()
 
+        first_pos = cascading_with_details[0]
+
         result = cascading_service.get_cascading_data(
-            scenario_id=cascading_with_details.scenario.id,
-            lane_code=cascading_with_details.proforma.lane_code,
-            proforma_name=cascading_with_details.proforma.proforma_name,
+            scenario_id=first_pos.scenario.id,
+            lane_code=first_pos.proforma.lane_code,
+            proforma_name=first_pos.proforma.proforma_name,
         )
 
-        # Then: header 딕셔너리에 변경된 필드명 포함
+        # Then: header에 필수 필드 포함
         header = result.get("header", {})
         assert "own_vessel_count" in header
         assert "from_year_week" in header
+        assert "to_year_week" in header
         assert header["own_vessel_count"] == 2
 
-        # required_count만큼의 rows 반환 (details로 변경됨)
+        # details에 declared_count만큼의 rows 반환
         rows = result.get("details", [])
-        assert len(rows) >= cascading_with_details.proforma.declared_count
+        assert len(rows) >= first_pos.proforma.declared_count
 
-    def test_cascading_svc_002_proforma_start_etb_calculation(
+        # 저장된 position은 is_checked=True, 미배정은 False
+        checked_rows = [r for r in rows if r.get("is_checked")]
+        assert len(checked_rows) == 2
+
+    def test_cascading_svc_002_vessel_position_date_calculation(
         self, sample_schedule, user
     ):
         """
-        [CASCADING_SVC_002] proforma_start_etb_date 계산
-        ProformaScheduleDetail의 첫 번째 포트 정보와 initial_start_date로
-        proforma_start_etb_date가 정확히 계산되는지 검증
+        [CASCADING_SVC_002] vessel_position_date 계산 검증
+        BaseCascadingVesselPosition에서 복사 시 ProformaScheduleDetail의
+        첫 번째 포트 ETB 요일 정보와 initial_start_date를 이용하여
+        vessel_position_date가 정확히 계산되는지 검증
         """
-        # Given: ProformaScheduleDetail에 첫 번째 포트 정보 (일요일) 추가
+        # Given: ProformaScheduleDetail에 첫 번째 포트 정보 (일요일) 설정
         ProformaScheduleDetail.objects.filter(proforma=sample_schedule).update(
-            calling_port_seq=1, etb_day_code="SUN"  # 일요일
+            calling_port_seq=1, etb_day_code="SUN"
         )
 
-        # When: scenario service의 _copy_cascading_to_scenario 함수 실행
-        from input_data.models import BaseCascadingSchedule
+        from input_data.models import BaseCascadingVesselPosition
         from input_data.services.scenario_service import _copy_cascading_to_scenario
 
-        # BaseCascadingSchedule 데이터 생성
-        BaseCascadingSchedule.objects.create(
+        # BaseCascadingVesselPosition 데이터 생성
+        BaseCascadingVesselPosition.objects.create(
             lane_code=sample_schedule.lane_code,
             proforma_name=sample_schedule.proforma_name,
             vessel_code="V001",
-            initial_start_date=date(2026, 2, 16),
+            initial_start_date=date(2026, 2, 16),  # 월요일
         )
 
+        # When: _copy_cascading_to_scenario 실행
         result = _copy_cascading_to_scenario(
             sample_schedule.scenario, user, timezone.now()
         )
 
-        # Then: proforma_start_etb_date가 정확히 계산됨
-        assert result["sce_schedule_cascading"] == 1
+        # Then: CascadingVesselPosition 1건 생성
+        assert result["sce_schedule_cascading_vessel_position"] == 1
 
-        cascading = CascadingSchedule.objects.filter(
+        position = CascadingVesselPosition.objects.filter(
             scenario=sample_schedule.scenario
         ).first()
-        assert cascading is not None
+        assert position is not None
+        assert position.vessel_code == "V001"
+        assert position.vessel_position == 1
 
-        # proforma_start_etb_date 확인 (initial_start_date 기준으로 계산)
-        assert cascading.proforma_start_etb_date is not None
+        # vessel_position_date가 initial_start_date(2026-02-16 월) 기준
+        # 다음 SUN 요일(2026-02-22)로 계산됨
+        assert position.vessel_position_date is not None
+        assert position.vessel_position_date.weekday() == 6  # 6 = Sunday

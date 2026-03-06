@@ -45,9 +45,9 @@ urlpatterns = [
         name="cascading_vessel_info",
     ),
     path(
-        "cascading/detail/<int:pk>/",
+        "cascading/detail/<int:scenario_id>/<int:proforma_id>/",
         views.cascading_vessel_detail,
-        name="cascading_detail",
+        name="cascading_vessel_detail",
     ),
     path("long_range/list/", views.long_range_list, name="long_range_list"),
     # AJAX용

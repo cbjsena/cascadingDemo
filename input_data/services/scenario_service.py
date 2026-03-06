@@ -88,8 +88,7 @@ def create_scenario_from_base(
         if sce_model.__name__ in [
             "ProformaSchedule",
             "ProformaScheduleDetail",
-            "CascadingSchedule",
-            "CascadingScheduleDetail",
+            "CascadingVesselPosition",
         ]:
             continue
 
@@ -225,136 +224,100 @@ def _copy_proforma_to_scenario(scenario, user, now):
 def _copy_cascading_to_scenario(scenario, user, now):
     """
     [Cascading 전용 처리 함수]
-    Flat 구조의 BaseCascadingSchedule을 Master(CascadingSchedule)와
-    Detail(CascadingScheduleDetail)로 분리하여 복사합니다.
-    proforma_start_etb_date는 ProformaScheduleDetail의 첫 번째 포트 ETB 정보로 계산합니다.
+    Flat 구조의 BaseCascadingVesselPosition을 CascadingVesselPosition으로 복사합니다.
     """
     from datetime import timedelta
 
     from input_data.models import (
-        BaseCascadingSchedule,
-        CascadingSchedule,
-        CascadingScheduleDetail,
+        BaseCascadingVesselPosition,
+        CascadingVesselPosition,
         ProformaScheduleDetail,
     )
 
-    summary = {"sce_schedule_cascading": 0, "sce_schedule_cascading_detail": 0}
+    summary = {"sce_schedule_cascading_vessel_position": 0}
 
-    base_qs = BaseCascadingSchedule.objects.all()
+    base_qs = BaseCascadingVesselPosition.objects.all()
     if not base_qs.exists():
         return summary
 
     # 요일 매핑 (ProformaScheduleDetail etb_day_code -> Python datetime weekday)
     DAY_MAP = {"SUN": 6, "MON": 0, "TUE": 1, "WED": 2, "THU": 3, "FRI": 4, "SAT": 5}
 
-    def calculate_proforma_start_etb_date(proforma, initial_start_date):
+    def calculate_vessel_position_date(proforma, initial_start_date):
         """
         ProformaScheduleDetail에서 calling_port_seq=1인 포트의 etb_day_code와
-        initial_start_date를 이용하여 proforma_start_etb_date를 계산
+        initial_start_date를 이용하여 vessel_position_date를 계산
         """
         try:
-            # 첫 번째 포트 찾기 (calling_port_seq = 1)
             first_port = ProformaScheduleDetail.objects.filter(
                 proforma=proforma, calling_port_seq=1
             ).first()
 
             if not first_port:
-                return (
-                    initial_start_date  # 첫 번째 포트가 없으면 initial_start_date 사용
-                )
+                return initial_start_date
 
             target_day_code = first_port.etb_day_code
             target_weekday = DAY_MAP.get(target_day_code)
 
             if target_weekday is None:
-                return initial_start_date  # 잘못된 요일 코드면 initial_start_date 사용
+                return initial_start_date
 
-            # initial_start_date부터 target_weekday에 해당하는 날짜 찾기
             current_date = initial_start_date
             current_weekday = current_date.weekday()
 
-            # 같은 요일이면 그대로 사용
             if current_weekday == target_weekday:
                 return current_date
 
-            # 다음 해당 요일 찾기 (최대 7일 이내)
             days_ahead = (target_weekday - current_weekday) % 7
             if days_ahead == 0:
-                days_ahead = 7  # 다음 주 같은 요일
+                days_ahead = 7
 
             return current_date + timedelta(days=days_ahead)
 
         except Exception as e:
-            print(f"Error calculating proforma_start_etb_date: {e}")
+            print(f"Error calculating vessel_position_date: {e}")
             return initial_start_date
 
-    # 1. Master(Header) 추출 및 생성
-    master_cache = {}
-    masters_to_create = []
-
-    # Proforma 매핑을 위한 캐시 (scenario의 proforma들)
+    # Proforma 매핑을 위한 캐시
     proforma_map = {
         (p.lane_code, p.proforma_name): p
         for p in ProformaSchedule.objects.filter(scenario=scenario)
     }
 
-    for base in base_qs:
-        master_key = (base.lane_code, base.proforma_name)
-        if master_key not in master_cache:
-            # 해당하는 Proforma 찾기
-            proforma = proforma_map.get((base.lane_code, base.proforma_name))
-            if not proforma:
-                continue  # Proforma가 없으면 스킵
-
-            # proforma_start_etb_date 계산 (첫 번째 base 레코드의 initial_start_date 사용)
-            calculated_start_etb_date = calculate_proforma_start_etb_date(
-                proforma, base.initial_start_date
-            )
-
-            master = CascadingSchedule(
-                scenario=scenario,
-                proforma=proforma,
-                proforma_start_etb_date=calculated_start_etb_date,  # 계산된 값 사용
-                created_by=user,
-                updated_by=user,
-                created_at=now,
-                updated_at=now,
-            )
-            master_cache[master_key] = master
-            masters_to_create.append(master)
-
-    if masters_to_create:
-        CascadingSchedule.objects.bulk_create(masters_to_create)
-        summary["sce_schedule_cascading"] = len(masters_to_create)
-
-    # DB에 생성된 Master 객체들을 다시 조회하여 PK(id)를 확보합니다.
-    created_masters = CascadingSchedule.objects.filter(scenario=scenario)
-    master_db_map = {
-        (m.proforma.lane_code, m.proforma.proforma_name): m for m in created_masters
-    }
-
-    # 2. Detail 추출 및 생성
-    details_to_create = []
+    # 각 Proforma별 position 카운터
+    position_counter = {}
+    positions_to_create = []
 
     for base in base_qs:
-        # DB에서 PK를 발급받은 실제 Master 객체를 매핑
-        real_master = master_db_map.get((base.lane_code, base.proforma_name))
-        if not real_master:
-            continue  # Master가 없으면 스킵
+        proforma_key = (base.lane_code, base.proforma_name)
+        proforma = proforma_map.get(proforma_key)
 
-        detail = CascadingScheduleDetail(
-            cascading=real_master,  # 외래키 연결
+        if not proforma:
+            continue
+
+        if proforma_key not in position_counter:
+            position_counter[proforma_key] = 0
+        position_counter[proforma_key] += 1
+
+        calculated_date = calculate_vessel_position_date(
+            proforma, base.initial_start_date
+        )
+
+        position = CascadingVesselPosition(
+            scenario=scenario,
+            proforma=proforma,
             vessel_code=base.vessel_code,
-            initial_start_date=base.initial_start_date,
+            vessel_position=position_counter[proforma_key],
+            vessel_position_date=calculated_date,
             created_by=user,
             updated_by=user,
             created_at=now,
             updated_at=now,
         )
-        details_to_create.append(detail)
+        positions_to_create.append(position)
 
-    if details_to_create:
-        CascadingScheduleDetail.objects.bulk_create(details_to_create)
-        summary["sce_schedule_cascading_detail"] = len(details_to_create)
+    if positions_to_create:
+        CascadingVesselPosition.objects.bulk_create(positions_to_create)
+        summary["sce_schedule_cascading_vessel_position"] = len(positions_to_create)
 
     return summary

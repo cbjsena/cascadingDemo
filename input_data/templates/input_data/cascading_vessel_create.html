@@ -445,7 +445,8 @@
                         const existing = data.existing_cascading;
                         els.existingAlert.classList.remove('d-none');
                         els.existingDetailCount.textContent = `${existing.detail_count} vessels assigned`;
-                        els.existingLink.href = "{% url 'input_data:cascading_detail' 0 %}".replace('0', existing.id);
+                        // URL with scenario_id and proforma_id
+                        els.existingLink.href = `/input/cascading/detail/${existing.scenario_id}/${existing.proforma_id}/`;
                         console.log('Existing Cascading found:', existing);
                     } else {
                         els.existingAlert.classList.add('d-none');

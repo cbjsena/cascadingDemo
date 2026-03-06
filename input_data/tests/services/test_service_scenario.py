@@ -4,12 +4,11 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from input_data.models import (
-    BaseCascadingSchedule,
+    BaseCascadingVesselPosition,
     BaseProformaSchedule,
     BaseVesselCapacity,
     BaseVesselInfo,
-    CascadingSchedule,
-    CascadingScheduleDetail,
+    CascadingVesselPosition,
     ProformaSchedule,
     ProformaScheduleDetail,
     VesselCapacity,
@@ -126,20 +125,20 @@ class TestScenarioCreationService:
 
     @pytest.fixture
     def setup_base_cascading_data(self, setup_base_proforma_data):
-        """BaseCascadingSchedule 데이터 셋업 (Master-Detail 분리가 필요한 테이블)"""
-        BaseCascadingSchedule.objects.create(
+        """BaseCascadingVesselPosition 데이터 셋업"""
+        BaseCascadingVesselPosition.objects.create(
             lane_code="FE1",
             proforma_name="3101",
             vessel_code="V001",
             initial_start_date="2026-02-15",
         )
-        BaseCascadingSchedule.objects.create(
+        BaseCascadingVesselPosition.objects.create(
             lane_code="FE1",
             proforma_name="3101",
             vessel_code="V002",
             initial_start_date="2026-02-22",
         )
-        BaseCascadingSchedule.objects.create(
+        BaseCascadingVesselPosition.objects.create(
             lane_code="FE1",
             proforma_name="3101",
             vessel_code="V003",
@@ -286,44 +285,41 @@ class TestScenarioCreationService:
         assert summary["sce_proforma_schedule"] == 1
         assert summary["sce_proforma_schedule_detail"] == 2
 
-    def test_sce_svc_005_cascading_master_detail_separation(
+    def test_sce_svc_005_cascading_vessel_position_creation(
         self, setup_base_cascading_data, user
     ):
         """
-        [SCE_SVC_005] Cascading Master-Detail 분리 검증
-        BaseCascadingSchedule Flat 데이터가 CascadingSchedule(Master)와 CascadingScheduleDetail로 정상 분리되는지 검증
+        [SCE_SVC_005] Cascading Vessel Position 생성 검증
+        BaseCascadingVesselPosition Flat 데이터가 CascadingVesselPosition으로 정상 복사되는지 검증
         """
         # When
         scenario, summary = create_scenario_from_base(
             description="Test Scenario 005", user=user
         )
 
-        # Then: Master 1건 생성 확인
-        masters = CascadingSchedule.objects.filter(scenario=scenario)
-        assert masters.count() == 1
+        # Then: Position 3건 생성 확인
+        positions = CascadingVesselPosition.objects.filter(scenario=scenario)
+        assert positions.count() == 3
 
-        master = masters.first()
-        assert master.scenario == scenario
-        assert master.created_by == user
-
-        # proforma_start_etb_date 자동 계산 확인
-        assert master.proforma_start_etb_date is not None
-
-        # Detail 3건 생성 확인
-        details = CascadingScheduleDetail.objects.filter(cascading=master)
-        assert details.count() == 3
-
-        # Master-Detail FK 관계 확인
-        for detail in details:
-            assert detail.cascading == master
-            assert detail.created_by == user
+        # 각 position 검증
+        for pos in positions:
+            assert pos.scenario == scenario
+            assert pos.created_by == user
+            assert pos.vessel_position_date is not None
 
         # 선박 데이터 확인
-        vessel_codes = list(details.values_list("vessel_code", flat=True))
+        vessel_codes = list(positions.values_list("vessel_code", flat=True))
         assert "V001" in vessel_codes
         assert "V002" in vessel_codes
         assert "V003" in vessel_codes
 
+        # vessel_position 순서 확인
+        position_nums = list(
+            positions.order_by("vessel_position").values_list(
+                "vessel_position", flat=True
+            )
+        )
+        assert position_nums == [1, 2, 3]
+
         # Summary 결과 확인
-        assert summary["sce_schedule_cascading"] == 1
-        assert summary["sce_schedule_cascading_detail"] == 3
+        assert summary["sce_schedule_cascading_vessel_position"] == 3
