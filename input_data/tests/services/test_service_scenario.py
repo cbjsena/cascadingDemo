@@ -4,10 +4,12 @@ from django.contrib.auth import get_user_model
 from django.utils import timezone
 
 from input_data.models import (
+    BaseCascadingSchedule,
     BaseCascadingVesselPosition,
     BaseProformaSchedule,
     BaseVesselCapacity,
     BaseVesselInfo,
+    CascadingSchedule,
     CascadingVesselPosition,
     ProformaSchedule,
     ProformaScheduleDetail,
@@ -130,19 +132,22 @@ class TestScenarioCreationService:
             lane_code="FE1",
             proforma_name="3101",
             vessel_code="V001",
-            initial_start_date="2026-02-15",
+            vessel_position=1,
+            vessel_position_date="2026-02-15",
         )
         BaseCascadingVesselPosition.objects.create(
             lane_code="FE1",
             proforma_name="3101",
             vessel_code="V002",
-            initial_start_date="2026-02-22",
+            vessel_position=2,
+            vessel_position_date="2026-02-22",
         )
         BaseCascadingVesselPosition.objects.create(
             lane_code="FE1",
             proforma_name="3101",
             vessel_code="V003",
-            initial_start_date="2026-03-01",
+            vessel_position=3,
+            vessel_position_date="2026-03-01",
         )
 
     def test_sce_svc_001_general_tables_creation(self, setup_base_general_data, user):
@@ -323,3 +328,51 @@ class TestScenarioCreationService:
 
         # Summary 결과 확인
         assert summary["sce_schedule_cascading_vessel_position"] == 3
+
+    def test_sce_svc_006_cascading_schedule_creation(
+        self, setup_base_cascading_data, user
+    ):
+        """
+        [SCE_SVC_006] Cascading Schedule Base 복사 검증
+        BaseCascadingSchedule Flat 데이터가 CascadingSchedule로 정상 복사되는지 검증
+        """
+
+        # Given: BaseCascadingSchedule 데이터 추가 (BaseCascadingVesselPosition과 같은 proforma)
+        BaseCascadingSchedule.objects.create(
+            lane_code="FE1",
+            proforma_name="3101",
+            vessel_position=1,
+            vessel_position_date="2026-02-15",
+        )
+        BaseCascadingSchedule.objects.create(
+            lane_code="FE1",
+            proforma_name="3101",
+            vessel_position=3,
+            vessel_position_date="2026-03-01",
+        )
+
+        # When
+        scenario, summary = create_scenario_from_base(
+            description="Test Scenario 006", user=user
+        )
+
+        # Then: CascadingSchedule 2건 생성
+        schedules = CascadingSchedule.objects.filter(scenario=scenario)
+        assert schedules.count() == 2
+
+        # vessel_position, vessel_position_date가 Base 값 그대로 복사됨
+        schedule_positions = list(
+            schedules.order_by("vessel_position").values_list(
+                "vessel_position", flat=True
+            )
+        )
+        assert schedule_positions == [1, 3]
+
+        for cs in schedules:
+            assert cs.scenario == scenario
+            assert cs.proforma is not None
+            assert cs.created_by == user
+            assert cs.vessel_position_date is not None
+
+        # Summary 결과 확인
+        assert summary["sce_schedule_cascading"] == 2

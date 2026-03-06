@@ -142,3 +142,50 @@ class CascadingService:
         master_proforma.save(update_fields=["own_vessel_count"])
 
         return positions_to_create
+
+    def calculate_position_date(self, proforma, vessel_position):
+        """
+        슬롯 번호(vessel_position)에 해당하는 vessel_position_date를 계산합니다.
+        Proforma의 duration과 첫 번째 포트의 ETB 정보를 기반으로 계산합니다.
+        """
+        from input_data.models import ProformaScheduleDetail
+
+        # 기준일: Proforma의 effective_from_date
+        base_date = None
+        if proforma.effective_from_date:
+            if hasattr(proforma.effective_from_date, "date"):
+                base_date = proforma.effective_from_date.date()
+            else:
+                base_date = proforma.effective_from_date
+
+        if not base_date:
+            base_date = datetime.now().date()
+
+        # duration (round-trip days)
+        duration = int(proforma.duration or 14)
+
+        # 첫 번째 포트의 ETB 요일 코드
+        DAY_MAP = {"SUN": 6, "MON": 0, "TUE": 1, "WED": 2, "THU": 3, "FRI": 4, "SAT": 5}
+
+        first_port = ProformaScheduleDetail.objects.filter(
+            proforma=proforma, calling_port_seq=1
+        ).first()
+
+        if first_port and first_port.etb_day_code:
+            target_weekday = DAY_MAP.get(first_port.etb_day_code)
+        else:
+            target_weekday = None
+
+        # vessel_position=1 → base_date, 이후 duration 간격으로 증가
+        position_date = base_date + timedelta(days=duration * (vessel_position - 1))
+
+        # ETB 요일에 맞추어 보정
+        if target_weekday is not None:
+            current_weekday = position_date.weekday()
+            if current_weekday != target_weekday:
+                days_ahead = (target_weekday - current_weekday) % 7
+                if days_ahead == 0:
+                    days_ahead = 7
+                position_date = position_date + timedelta(days=days_ahead)
+
+        return position_date

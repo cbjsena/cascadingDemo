@@ -504,7 +504,12 @@ class BaseCascadingVesselPosition(models.Model):
     lane_code = models.CharField(max_length=10, verbose_name="Lane Code")
     proforma_name = models.CharField(max_length=30, verbose_name="Proforma Name")
     vessel_code = models.CharField(max_length=20, verbose_name="Vessel Code")
-    initial_start_date = models.DateField(verbose_name="Initial Start Date")
+    vessel_position = models.IntegerField(
+        verbose_name="Vessel Position (slot number, 1-based)"
+    )
+    vessel_position_date = models.DateField(
+        verbose_name="Vessel Position Date (ETB date for this slot)"
+    )
 
     class Meta:
         db_table = "base_schedule_cascading_vessel_position"
@@ -550,6 +555,63 @@ class CascadingVesselPosition(ScenarioBaseModel):
 
     def __str__(self):
         return f"[{self.scenario.id}] {self.proforma.proforma_name} - Pos{self.vessel_position}: {self.vessel_code}"
+
+
+class BaseCascadingSchedule(models.Model):
+    """[BASE] 기준 Cascading Schedule - Flat Structure for CSV Import (vessel_code 없음, 슬롯 선택만)"""
+
+    lane_code = models.CharField(max_length=10, verbose_name="Lane Code")
+    proforma_name = models.CharField(max_length=30, verbose_name="Proforma Name")
+    vessel_position = models.IntegerField(
+        verbose_name="Vessel Position (slot number, 1-based)"
+    )
+    vessel_position_date = models.DateField(
+        verbose_name="Vessel Position Date (ETB date for this slot)"
+    )
+
+    class Meta:
+        db_table = "base_schedule_cascading"
+        verbose_name = "Base Cascading Schedule"
+        verbose_name_plural = "Base Cascading Schedules"
+        unique_together = (
+            (
+                "lane_code",
+                "proforma_name",
+                "vessel_position",
+            ),
+        )
+
+    def __str__(self):
+        return f"{self.lane_code} - {self.proforma_name} - Pos{self.vessel_position}"
+
+
+class CascadingSchedule(ScenarioBaseModel):
+    """Cascading Schedule - 시나리오별 Proforma의 슬롯 선택 (vessel_code 없음)"""
+
+    scenario = models.ForeignKey(
+        "ScenarioInfo", on_delete=models.CASCADE, db_column="scenario_id"
+    )
+    proforma = models.ForeignKey(
+        ProformaSchedule,
+        on_delete=models.CASCADE,
+        related_name="cascading_schedules",
+        db_column="proforma_id",
+        verbose_name="Proforma Master ID",
+    )
+    vessel_position = models.IntegerField(
+        verbose_name="Vessel Position (slot number, 1-based)"
+    )
+    vessel_position_date = models.DateField(
+        verbose_name="Vessel Position Date (ETB date for this slot)"
+    )
+
+    class Meta:
+        db_table = "sce_schedule_cascading"
+        unique_together = ("scenario", "proforma", "vessel_position")
+        ordering = ["scenario", "proforma", "vessel_position"]
+
+    def __str__(self):
+        return f"[{self.scenario.id}] {self.proforma.proforma_name} - Pos{self.vessel_position}"
 
 
 # 3. Long Range Schedule

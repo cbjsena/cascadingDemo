@@ -21,10 +21,12 @@ class MenuGroup:
 class MenuItem:
     # Creation - Schedule
     PROFORMA_CREATE = "proforma_create"
+    CASCADING_CREATE = "cascading_create"
     CASCADING_VESSEL_CREATE = "cascading_vessel_create"
 
     # Input Management - Schedule
     PROFORMA_SCHEDULE = "proforma_schedule"
+    CASCADING_SCHEDULE = "cascading_schedule"
     CASCADING_VESSEL_INFO = "cascading_vessel_info"
     LONG_RANGE_SCHEDULE = "long_range_schedule"
 
@@ -40,6 +42,11 @@ CREATION_MENU_STRUCTURE = {
             "name": "Proforma Creation",
             "url_name": "input_data:proforma_create",
             "key": MenuItem.PROFORMA_CREATE,
+        },
+        {
+            "name": "Cascading Creation",
+            "url_name": "input_data:cascading_create",
+            "key": MenuItem.CASCADING_CREATE,
         },
         {
             "name": "Cascading Vessel Creation",
@@ -61,6 +68,11 @@ MENU_STRUCTURE = {
             "name": "Proforma Schedule",
             "key": MenuItem.PROFORMA_SCHEDULE,
             "url_name": "input_data:proforma_list",
+        },
+        {
+            "name": "Cascading Schedule",
+            "key": MenuItem.CASCADING_SCHEDULE,
+            "url_name": "input_data:cascading_schedule_list",
         },
         {
             "name": "Cascading Vessel Info",

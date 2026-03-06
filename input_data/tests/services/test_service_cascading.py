@@ -11,7 +11,6 @@ from django.utils import timezone
 
 from input_data.models import (
     CascadingVesselPosition,
-    ProformaScheduleDetail,
 )
 
 
@@ -54,29 +53,29 @@ class TestCascadingService:
         checked_rows = [r for r in rows if r.get("is_checked")]
         assert len(checked_rows) == 2
 
-    def test_cascading_svc_002_vessel_position_date_calculation(
-        self, sample_schedule, user
-    ):
+    def test_cascading_svc_002_vessel_position_copy(self, sample_schedule, user):
         """
-        [CASCADING_SVC_002] vessel_position_date 계산 검증
-        BaseCascadingVesselPosition에서 복사 시 ProformaScheduleDetail의
-        첫 번째 포트 ETB 요일 정보와 initial_start_date를 이용하여
-        vessel_position_date가 정확히 계산되는지 검증
+        [CASCADING_SVC_002] vessel_position / vessel_position_date 복사 검증
+        BaseCascadingVesselPosition에서 CascadingVesselPosition으로 복사 시
+        vessel_position과 vessel_position_date가 그대로 복사되는지 검증
         """
-        # Given: ProformaScheduleDetail에 첫 번째 포트 정보 (일요일) 설정
-        ProformaScheduleDetail.objects.filter(proforma=sample_schedule).update(
-            calling_port_seq=1, etb_day_code="SUN"
-        )
-
         from input_data.models import BaseCascadingVesselPosition
         from input_data.services.scenario_service import _copy_cascading_to_scenario
 
-        # BaseCascadingVesselPosition 데이터 생성
+        # Given: BaseCascadingVesselPosition 데이터 생성
         BaseCascadingVesselPosition.objects.create(
             lane_code=sample_schedule.lane_code,
             proforma_name=sample_schedule.proforma_name,
             vessel_code="V001",
-            initial_start_date=date(2026, 2, 16),  # 월요일
+            vessel_position=1,
+            vessel_position_date=date(2026, 2, 15),
+        )
+        BaseCascadingVesselPosition.objects.create(
+            lane_code=sample_schedule.lane_code,
+            proforma_name=sample_schedule.proforma_name,
+            vessel_code="V002",
+            vessel_position=2,
+            vessel_position_date=date(2026, 2, 22),
         )
 
         # When: _copy_cascading_to_scenario 실행
@@ -84,17 +83,21 @@ class TestCascadingService:
             sample_schedule.scenario, user, timezone.now()
         )
 
-        # Then: CascadingVesselPosition 1건 생성
-        assert result["sce_schedule_cascading_vessel_position"] == 1
+        # Then: CascadingVesselPosition 2건 생성, 필드값 그대로 복사
+        assert result["sce_schedule_cascading_vessel_position"] == 2
 
-        position = CascadingVesselPosition.objects.filter(
+        positions = CascadingVesselPosition.objects.filter(
             scenario=sample_schedule.scenario
-        ).first()
-        assert position is not None
-        assert position.vessel_code == "V001"
-        assert position.vessel_position == 1
+        ).order_by("vessel_position")
 
-        # vessel_position_date가 initial_start_date(2026-02-16 월) 기준
-        # 다음 SUN 요일(2026-02-22)로 계산됨
-        assert position.vessel_position_date is not None
-        assert position.vessel_position_date.weekday() == 6  # 6 = Sunday
+        assert positions.count() == 2
+
+        pos1 = positions[0]
+        assert pos1.vessel_code == "V001"
+        assert pos1.vessel_position == 1
+        assert pos1.vessel_position_date == date(2026, 2, 15)
+
+        pos2 = positions[1]
+        assert pos2.vessel_code == "V002"
+        assert pos2.vessel_position == 2
+        assert pos2.vessel_position_date == date(2026, 2, 22)

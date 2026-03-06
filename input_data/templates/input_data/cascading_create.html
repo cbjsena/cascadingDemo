@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Cascading Creation{% endblock %}
+
+{% block content %}
+<style>
+    .slot-cell {
+        width: 36px; min-width: 36px; max-width: 36px;
+        height: 32px; text-align: center; vertical-align: middle !important;
+        padding: 2px !important; font-size: 0.75rem; cursor: pointer;
+    }
+    .slot-selected { background-color: #0d6efd !important; color: #fff; font-weight: 700; border-radius: 4px; }
+    .slot-empty { background-color: #e9ecef; color: #adb5bd; border-radius: 4px; }
+    .slot-empty:hover { background-color: #ced4da; }
+    .slot-selected:hover { background-color: #0b5ed7; }
+    .slot-header { width: 36px; font-size: 0.7rem; color: #6c757d; padding: 2px !important; }
+    .dashboard-table th, .dashboard-table td { vertical-align: middle; }
+    .lane-group-separator td { height: 2px; background-color: #dee2e6; padding: 0 !important; }
+</style>
+
+<div class="container-fluid py-4">
+    <h4 class="fw-bold mb-4"><i class="bi bi-plus-circle me-2"></i>Create Cascading Schedule</h4>
+
+    {% include "messages_display.html" %}
+
+    <!-- 1. Scenario Selection -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light fw-bold">
+            <i class="bi bi-1-circle me-2"></i>Select Scenario
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold">Scenario</label>
+                    <select name="scenario_id" class="form-select" onchange="this.form.submit()">
+                        <option value="">-- Select Scenario --</option>
+                        {% for s in scenarios %}
+                        <option value="{{ s.id }}" {% if selected_scenario_id == s.id|stringformat:"s" %}selected{% endif %}>
+                            {{ s.code }} - {{ s.description|truncatechars:40 }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-primary w-100">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                </div>
+                <div class="col-md-1">
+                    <a href="{% url 'input_data:cascading_create' %}" class="btn btn-outline-secondary w-100" title="Reset">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if selected_scenario_id and dashboard_data %}
+    <!-- 2. Position Assignment Table -->
+    <form method="post" id="cascadingForm">
+        {% csrf_token %}
+        <input type="hidden" name="scenario_id" value="{{ selected_scenario_id }}">
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light fw-bold d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-2-circle me-2"></i>Vessel Position Assignment</span>
+                <div>
+                    <span class="badge bg-primary me-2"><i class="bi bi-check-circle me-1"></i>Selected</span>
+                    <span class="badge bg-secondary me-2">Empty</span>
+                    <span class="text-muted small ms-2">Click position cells to select/deselect</span>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0 text-center dashboard-table">
+                        <thead class="table-light">
+                            <tr>
+                                <th rowspan="2" style="min-width:40px;">No</th>
+                                <th rowspan="2" style="min-width:90px;">Lane</th>
+                                <th rowspan="2" style="min-width:90px;">Proforma</th>
+                                <th rowspan="2" style="min-width:90px;">Start Date</th>
+                                <th rowspan="2" style="min-width:60px;">Declared</th>
+                                <th rowspan="2" style="min-width:50px;">Selected</th>
+                                <th colspan="{{ max_declared }}" class="text-center bg-light">Vessel Position Assignment</th>
+                            </tr>
+                            <tr>
+                                {% for sn in slot_headers %}
+                                <th class="slot-header">{{ sn }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% regroup dashboard_data by lane_code as lane_groups %}
+                            {% for lane_group in lane_groups %}
+                                {% for row in lane_group.list %}
+                                <tr data-proforma-id="{{ row.proforma_id }}">
+                                    <td class="small">{{ forloop.parentloop.counter }}</td>
+                                    <td>
+                                        {% if forloop.first %}
+                                        <span class="badge bg-dark">{{ row.lane_code }}</span>
+                                        {% else %}
+                                        <span class="text-muted small">{{ row.lane_code }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td class="text-start small">{{ row.proforma_name }}</td>
+                                    <td class="small">
+                                        {% if row.effective_from_date %}
+                                        {{ row.effective_from_date|date:"Y-m-d" }}
+                                        {% else %}-{% endif %}
+                                    </td>
+                                    <td><span class="fw-bold">{{ row.declared_count }}</span></td>
+                                    <td>
+                                        <span class="fw-bold selected-count-{{ row.proforma_id }}
+                                            {% if row.selected_count < row.declared_count %}text-warning{% else %}text-success{% endif %}">
+                                            {{ row.selected_count }}
+                                        </span>
+                                    </td>
+                                    {% for slot in row.slots %}
+                                    <td class="slot-cell"
+                                        data-proforma-id="{{ row.proforma_id }}"
+                                        data-position="{{ slot.position }}"
+                                        onclick="toggleCell(this)">
+                                        {% if slot.selected %}
+                                        <span class="d-inline-block w-100 slot-selected">{{ slot.position }}</span>
+                                        {% else %}
+                                        <span class="d-inline-block w-100 slot-empty">&middot;</span>
+                                        {% endif %}
+                                    </td>
+                                    {% endfor %}
+                                    {# Fill remaining positions when declared_count < max_declared #}
+                                    {% for sn in slot_headers %}
+                                        {% if sn > row.declared_count %}
+                                        <td class="slot-cell" style="cursor:default;">
+                                            <span class="d-inline-block w-100" style="background:#f8f9fa; border-radius:4px;">-</span>
+                                        </td>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                                {% if not forloop.last %}
+                                <tr class="lane-group-separator"><td colspan="{{ max_declared|add:6 }}"></td></tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Hidden inputs container for selected positions -->
+        <div id="hiddenSlotsContainer">
+            {% for row in dashboard_data %}
+                {% for slot in row.slots %}
+                    {% if slot.selected %}
+                    <input type="hidden" name="slots_{{ row.proforma_id }}[]" value="{{ slot.position }}">
+                    {% endif %}
+                {% endfor %}
+            {% endfor %}
+        </div>
+
+        <!-- 3. Actions -->
+        <div class="card shadow-sm">
+            <div class="card-body d-flex justify-content-end gap-2">
+                <a href="{% url 'input_data:cascading_schedule_list' %}{% if selected_scenario_id %}?scenario_id={{ selected_scenario_id }}{% endif %}"
+                   class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle me-1"></i>Cancel
+                </a>
+                <button type="submit" class="btn btn-primary" id="saveBtn">
+                    <i class="bi bi-check-circle me-1"></i>Save All
+                </button>
+            </div>
+        </div>
+    </form>
+
+    {% elif selected_scenario_id %}
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-info-circle display-4 text-muted"></i>
+            <h5 class="mt-3 text-muted">No Proforma data found for this scenario</h5>
+        </div>
+    </div>
+    {% else %}
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-arrow-up-circle display-4 text-muted"></i>
+            <h5 class="mt-3 text-muted">Please select a Scenario to start</h5>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+function toggleCell(td) {
+    const proformaId = td.dataset.proformaId;
+    const position = td.dataset.position;
+    if (!proformaId || !position) return;
+
+    const span = td.querySelector('span');
+    const container = document.getElementById('hiddenSlotsContainer');
+    const inputName = `slots_${proformaId}[]`;
+
+    const isSelected = span.classList.contains('slot-selected');
+
+    if (isSelected) {
+        // Deselect
+        span.className = 'd-inline-block w-100 slot-empty';
+        span.innerHTML = '&middot;';
+        const input = container.querySelector(`input[name="${inputName}"][value="${position}"]`);
+        if (input) input.remove();
+    } else {
+        // Select
+        span.className = 'd-inline-block w-100 slot-selected';
+        span.textContent = position;
+        const input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = inputName;
+        input.value = position;
+        container.appendChild(input);
+    }
+
+    updateRowCount(proformaId);
+}
+
+function updateRowCount(proformaId) {
+    const container = document.getElementById('hiddenSlotsContainer');
+    const inputs = container.querySelectorAll(`input[name="slots_${proformaId}[]"]`);
+    const countEl = document.querySelector(`.selected-count-${proformaId}`);
+    if (countEl) {
+        countEl.textContent = inputs.length;
+    }
+}
+</script>
+{% endblock %}
+

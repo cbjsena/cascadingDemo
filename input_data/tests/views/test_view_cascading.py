@@ -314,3 +314,114 @@ class TestCascadingView:
         restored_rows = edit_response.context["restored_rows"]
         checked_rows = [row for row in restored_rows if row.get("is_checked")]
         assert len(checked_rows) == 2
+
+
+@pytest.mark.django_db
+class TestCascadingScheduleView:
+    """
+    CascadingSchedule (슬롯 선택) 관련 뷰 테스트
+    Scenarios: CS_CREATE_001, CS_CREATE_002, CS_CREATE_003, CS_LIST_001
+    """
+
+    def test_cs_create_001_page_load(self, auth_client):
+        """
+        [CS_CREATE_001] Cascading Creation 초기 진입
+        생성 화면 초기 진입 시 정상 로드 확인
+        """
+        url = reverse("input_data:cascading_create")
+        response = auth_client.get(url)
+
+        assert response.status_code == 200
+        assert "input_data/cascading_create.html" in [
+            t.name for t in response.templates
+        ]
+
+    def test_cs_create_002_save_slots(self, auth_client, sample_schedule):
+        """
+        [CS_CREATE_002] Cascading Creation 슬롯 저장
+        시나리오 선택 후 특정 proforma의 슬롯 1을 선택하여 저장
+        """
+        from input_data.models import CascadingSchedule
+
+        url = reverse("input_data:cascading_create")
+        form_data = {
+            "scenario_id": sample_schedule.scenario.id,
+            f"slots_{sample_schedule.id}[]": ["1"],
+        }
+
+        response = auth_client.post(url, data=form_data)
+
+        assert response.status_code == 302
+
+        schedules = CascadingSchedule.objects.filter(
+            scenario=sample_schedule.scenario, proforma=sample_schedule
+        )
+        assert schedules.count() == 1
+        assert schedules.first().vessel_position == 1
+        assert schedules.first().vessel_position_date is not None
+
+    def test_cs_create_003_overwrite(self, auth_client, sample_schedule, user):
+        """
+        [CS_CREATE_003] Cascading Creation 수정 (덮어쓰기)
+        기존 데이터 삭제 후 재생성 확인
+        """
+        from input_data.models import CascadingSchedule
+
+        # Given: 기존 데이터 1건
+        CascadingSchedule.objects.create(
+            scenario=sample_schedule.scenario,
+            proforma=sample_schedule,
+            vessel_position=1,
+            vessel_position_date="2026-02-15",
+            created_by=user,
+        )
+        assert (
+            CascadingSchedule.objects.filter(
+                scenario=sample_schedule.scenario, proforma=sample_schedule
+            ).count()
+            == 1
+        )
+
+        # When: 슬롯 1,2 선택하여 저장
+        url = reverse("input_data:cascading_create")
+        form_data = {
+            "scenario_id": sample_schedule.scenario.id,
+            f"slots_{sample_schedule.id}[]": ["1", "2"],
+        }
+        response = auth_client.post(url, data=form_data)
+
+        # Then: 기존 1건 삭제 후 2건 재생성
+        assert response.status_code == 302
+        schedules = CascadingSchedule.objects.filter(
+            scenario=sample_schedule.scenario, proforma=sample_schedule
+        ).order_by("vessel_position")
+        assert schedules.count() == 2
+        assert list(schedules.values_list("vessel_position", flat=True)) == [1, 2]
+
+    def test_cs_list_001_schedule_list(self, auth_client, sample_schedule, user):
+        """
+        [CS_LIST_001] Cascading Schedule 목록 조회
+        Scenario 선택 시 대시보드에 슬롯 선택 결과 표시 검증
+        """
+        from input_data.models import CascadingSchedule
+
+        # Given: CascadingSchedule 데이터 생성
+        CascadingSchedule.objects.create(
+            scenario=sample_schedule.scenario,
+            proforma=sample_schedule,
+            vessel_position=1,
+            vessel_position_date="2026-02-15",
+            created_by=user,
+        )
+
+        url = reverse("input_data:cascading_schedule_list")
+        response = auth_client.get(url, {"scenario_id": sample_schedule.scenario.id})
+
+        assert response.status_code == 200
+        dashboard_data = response.context["dashboard_data"]
+        assert len(dashboard_data) >= 1
+
+        # 슬롯 표시 확인
+        first_row = dashboard_data[0]
+        assert first_row["selected_count"] == 1
+        assert first_row["declared_count"] == sample_schedule.declared_count

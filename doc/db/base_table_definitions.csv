@@ -1,5 +1,5 @@
 ﻿[Base Data Table Definition]
-Generated At,2026-03-06 02:29:16
+Generated At,2026-03-06 05:36:52
 
 Table Name,Column Name,Data Type,Nullable,Description (Comment)
 base_bunker_consumption_port,base_year_month,string,NO,Year and month used as the base period / YYYYMM
@@ -40,10 +40,15 @@ base_cost_distance,eca_distance,int,NO,Port-to-Port ECA Distance (NM)
 base_cost_ts_cost,base_year_month,string,NO,Year and month used as the base period / YYYYMM
 base_cost_ts_cost,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
 base_cost_ts_cost,ts_cost,int,NO,Transshipment Cost (USD)
+base_schedule_cascading,lane_code,string,NO,Lane Code
+base_schedule_cascading,proforma_name,string,NO,Proforma Name
+base_schedule_cascading,vessel_position,int,NO,"Vessel Position (slot number, 1-based)"
+base_schedule_cascading,vessel_position_date,date,NO,Vessel Position Date (ETB date for this slot)
 base_schedule_cascading_vessel_position,lane_code,string,NO,Lane Code
 base_schedule_cascading_vessel_position,proforma_name,string,NO,Proforma Name
 base_schedule_cascading_vessel_position,vessel_code,string,NO,Vessel Code
-base_schedule_cascading_vessel_position,initial_start_date,date,NO,Initial Start Date
+base_schedule_cascading_vessel_position,vessel_position,int,NO,"Vessel Position (slot number, 1-based)"
+base_schedule_cascading_vessel_position,vessel_position_date,date,NO,Vessel Position Date (ETB date for this slot)
 base_schedule_long_range,lane_code,string,NO,Lane Code / 3 alphanum
 base_schedule_long_range,vessel_code,string,NO,Vessel Code / 4 alphanum
 base_schedule_long_range,voyage_number,string,NO,Voyage Number / 4 numeric digits

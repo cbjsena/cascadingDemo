@@ -76,19 +76,24 @@ def create_scenario_from_base(
     proforma_summary = _copy_proforma_to_scenario(scenario, user, now)
     result_summary.update(proforma_summary)
 
-    # 4. Cascading 모델 특수 처리 (proforma_start_etb_date 계산 포함)
+    # 4. Cascading 모델 특수 처리 (proforma FK 매핑 필요)
     cascading_summary = _copy_cascading_to_scenario(scenario, user, now)
     result_summary.update(cascading_summary)
+
+    cascading_schedule_summary = _copy_cascading_schedule_to_scenario(
+        scenario, user, now
+    )
+    result_summary.update(cascading_schedule_summary)
 
     # 5. 나머지 일반 데이터 복사 (Base -> Scenario 1:1 복사)
     for base_model, sce_model in MODEL_MAPPING:
         # Proforma 계열은 이미 위(_copy_proforma_to_scenario)에서
-        # Cascading 계열은 이미 위(_copy_cascading_to_scenario)에서
-        # Master-Detail로 분리 처리했으므로 일반 복사 루프에서는 건너뜁니다!
+        # Cascading 계열은 이미 위에서 proforma FK 매핑 처리했으므로 건너뜁니다!
         if sce_model.__name__ in [
             "ProformaSchedule",
             "ProformaScheduleDetail",
             "CascadingVesselPosition",
+            "CascadingSchedule",
         ]:
             continue
 
@@ -224,14 +229,13 @@ def _copy_proforma_to_scenario(scenario, user, now):
 def _copy_cascading_to_scenario(scenario, user, now):
     """
     [Cascading 전용 처리 함수]
-    Flat 구조의 BaseCascadingVesselPosition을 CascadingVesselPosition으로 복사합니다.
+    BaseCascadingVesselPosition을 CascadingVesselPosition으로 복사합니다.
+    Base에는 lane_code/proforma_name(문자열)이, Sce에는 proforma(FK)가 있으므로
+    Proforma 매핑만 수행하고 나머지 필드는 그대로 복사합니다.
     """
-    from datetime import timedelta
-
     from input_data.models import (
         BaseCascadingVesselPosition,
         CascadingVesselPosition,
-        ProformaScheduleDetail,
     )
 
     summary = {"sce_schedule_cascading_vessel_position": 0}
@@ -240,84 +244,85 @@ def _copy_cascading_to_scenario(scenario, user, now):
     if not base_qs.exists():
         return summary
 
-    # 요일 매핑 (ProformaScheduleDetail etb_day_code -> Python datetime weekday)
-    DAY_MAP = {"SUN": 6, "MON": 0, "TUE": 1, "WED": 2, "THU": 3, "FRI": 4, "SAT": 5}
-
-    def calculate_vessel_position_date(proforma, initial_start_date):
-        """
-        ProformaScheduleDetail에서 calling_port_seq=1인 포트의 etb_day_code와
-        initial_start_date를 이용하여 vessel_position_date를 계산
-        """
-        try:
-            first_port = ProformaScheduleDetail.objects.filter(
-                proforma=proforma, calling_port_seq=1
-            ).first()
-
-            if not first_port:
-                return initial_start_date
-
-            target_day_code = first_port.etb_day_code
-            target_weekday = DAY_MAP.get(target_day_code)
-
-            if target_weekday is None:
-                return initial_start_date
-
-            current_date = initial_start_date
-            current_weekday = current_date.weekday()
-
-            if current_weekday == target_weekday:
-                return current_date
-
-            days_ahead = (target_weekday - current_weekday) % 7
-            if days_ahead == 0:
-                days_ahead = 7
-
-            return current_date + timedelta(days=days_ahead)
-
-        except Exception as e:
-            print(f"Error calculating vessel_position_date: {e}")
-            return initial_start_date
-
-    # Proforma 매핑을 위한 캐시
+    # Proforma 매핑 캐시 (lane_code, proforma_name) -> ProformaSchedule
     proforma_map = {
         (p.lane_code, p.proforma_name): p
         for p in ProformaSchedule.objects.filter(scenario=scenario)
     }
 
-    # 각 Proforma별 position 카운터
-    position_counter = {}
     positions_to_create = []
 
     for base in base_qs:
-        proforma_key = (base.lane_code, base.proforma_name)
-        proforma = proforma_map.get(proforma_key)
-
+        proforma = proforma_map.get((base.lane_code, base.proforma_name))
         if not proforma:
             continue
 
-        if proforma_key not in position_counter:
-            position_counter[proforma_key] = 0
-        position_counter[proforma_key] += 1
-
-        calculated_date = calculate_vessel_position_date(
-            proforma, base.initial_start_date
+        positions_to_create.append(
+            CascadingVesselPosition(
+                scenario=scenario,
+                proforma=proforma,
+                vessel_code=base.vessel_code,
+                vessel_position=base.vessel_position,
+                vessel_position_date=base.vessel_position_date,
+                created_by=user,
+                updated_by=user,
+                created_at=now,
+                updated_at=now,
+            )
         )
-
-        position = CascadingVesselPosition(
-            scenario=scenario,
-            proforma=proforma,
-            vessel_code=base.vessel_code,
-            vessel_position=position_counter[proforma_key],
-            vessel_position_date=calculated_date,
-            created_by=user,
-            updated_by=user,
-            created_at=now,
-            updated_at=now,
-        )
-        positions_to_create.append(position)
 
     if positions_to_create:
         CascadingVesselPosition.objects.bulk_create(positions_to_create)
         summary["sce_schedule_cascading_vessel_position"] = len(positions_to_create)
+
+    return summary
+
+
+def _copy_cascading_schedule_to_scenario(scenario, user, now):
+    """
+    [Cascading Schedule 전용 처리 함수]
+    BaseCascadingSchedule을 CascadingSchedule로 복사합니다.
+    Base에는 lane_code/proforma_name(문자열)이, Sce에는 proforma(FK)가 있으므로
+    Proforma 매핑만 수행하고 나머지 필드는 그대로 복사합니다.
+    """
+    from input_data.models import (
+        BaseCascadingSchedule,
+        CascadingSchedule,
+    )
+
+    summary = {"sce_schedule_cascading": 0}
+
+    base_qs = BaseCascadingSchedule.objects.all()
+    if not base_qs.exists():
+        return summary
+
+    proforma_map = {
+        (p.lane_code, p.proforma_name): p
+        for p in ProformaSchedule.objects.filter(scenario=scenario)
+    }
+
+    schedules_to_create = []
+
+    for base in base_qs:
+        proforma = proforma_map.get((base.lane_code, base.proforma_name))
+        if not proforma:
+            continue
+
+        schedules_to_create.append(
+            CascadingSchedule(
+                scenario=scenario,
+                proforma=proforma,
+                vessel_position=base.vessel_position,
+                vessel_position_date=base.vessel_position_date,
+                created_by=user,
+                updated_by=user,
+                created_at=now,
+                updated_at=now,
+            )
+        )
+
+    if schedules_to_create:
+        CascadingSchedule.objects.bulk_create(schedules_to_create)
+        summary["sce_schedule_cascading"] = len(schedules_to_create)
 
     return summary

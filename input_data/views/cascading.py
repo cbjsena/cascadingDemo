@@ -307,3 +307,185 @@ def cascading_vessel_info(request):
     }
 
     return render(request, "input_data/cascading_vessel_info.html", context)
+
+
+@login_required
+def cascading_schedule_list(request):
+    """
+    Cascading Schedule 목록 (Input Management > Schedule > Cascading Schedule)
+    Cascading Vessel Info와 유사한 대시보드 형태이지만 vessel_code가 없음
+    """
+    from input_data.models import CascadingSchedule
+
+    scenarios = ScenarioInfo.objects.all().order_by("-created_at")
+    scenario_id = request.GET.get("scenario_id")
+
+    dashboard_data = []
+    max_declared = 0
+
+    if scenario_id:
+        proformas = ProformaSchedule.objects.filter(scenario_id=scenario_id).order_by(
+            "lane_code", "proforma_name"
+        )
+
+        for pf in proformas:
+            slots = CascadingSchedule.objects.filter(
+                scenario_id=scenario_id, proforma=pf
+            ).order_by("vessel_position")
+
+            declared = pf.declared_count or 0
+            if declared > max_declared:
+                max_declared = declared
+
+            selected_positions = set(slots.values_list("vessel_position", flat=True))
+
+            slot_display = []
+            for pos in range(1, declared + 1):
+                slot_display.append(
+                    {
+                        "position": pos,
+                        "selected": pos in selected_positions,
+                    }
+                )
+
+            dashboard_data.append(
+                {
+                    "scenario_id": scenario_id,
+                    "proforma_id": pf.id,
+                    "lane_code": pf.lane_code,
+                    "proforma_name": pf.proforma_name,
+                    "effective_from_date": pf.effective_from_date,
+                    "declared_count": declared,
+                    "own_vessel_count": pf.own_vessel_count or 0,
+                    "selected_count": len(selected_positions),
+                    "slots": slot_display,
+                }
+            )
+
+    slot_headers = list(range(1, max_declared + 1))
+
+    context = {
+        "menu_structure": MENU_STRUCTURE,
+        "creation_menu_structure": CREATION_MENU_STRUCTURE,
+        "current_section": MenuSection.INPUT_MANAGEMENT,
+        "current_group": MenuGroup.SCHEDULE,
+        "current_model": MenuItem.CASCADING_SCHEDULE,
+        "scenarios": scenarios,
+        "dashboard_data": dashboard_data,
+        "selected_scenario_id": scenario_id,
+        "slot_headers": slot_headers,
+        "max_declared": max_declared,
+    }
+
+    return render(request, "input_data/cascading_schedule_list.html", context)
+
+
+@login_required
+def cascading_create(request):
+    """
+    Cascading Creation 화면 (Creation > Schedule > Cascading Creation)
+    시나리오 선택 시 모든 Proforma를 대시보드로 표시하고, 슬롯을 클릭하여 선택/해제 후 저장
+    """
+    from input_data.models import CascadingSchedule
+
+    scenarios = ScenarioInfo.objects.all().order_by("-created_at")
+
+    if request.method == "POST":
+        scenario_id = request.POST.get("scenario_id")
+
+        try:
+            scenario = get_object_or_404(ScenarioInfo, id=scenario_id)
+
+            with transaction.atomic():
+                # 해당 시나리오의 모든 기존 CascadingSchedule 삭제
+                CascadingSchedule.objects.filter(scenario=scenario).delete()
+
+                from input_data.services.cascading_service import CascadingService
+
+                svc = CascadingService()
+
+                # 각 proforma별로 선택된 슬롯 저장
+                proformas = ProformaSchedule.objects.filter(scenario=scenario).order_by(
+                    "lane_code", "proforma_name"
+                )
+
+                for pf in proformas:
+                    selected_slots = request.POST.getlist(f"slots_{pf.id}[]")
+                    for slot_pos in selected_slots:
+                        pos = int(slot_pos)
+                        position_date = svc.calculate_position_date(pf, pos)
+
+                        CascadingSchedule.objects.create(
+                            scenario=scenario,
+                            proforma=pf,
+                            vessel_position=pos,
+                            vessel_position_date=position_date,
+                            created_by=request.user,
+                            updated_by=request.user,
+                        )
+
+            messages.success(request, msg.CASCADING_SAVE_SUCCESS)
+            return redirect(f"/input/cascading/schedule/?scenario_id={scenario_id}")
+        except Exception as e:
+            messages.error(request, str(e))
+
+    # GET: 화면 표시
+    scenario_id = request.GET.get("scenario_id")
+
+    dashboard_data = []
+    max_declared = 0
+
+    if scenario_id:
+        proformas = ProformaSchedule.objects.filter(scenario_id=scenario_id).order_by(
+            "lane_code", "proforma_name"
+        )
+
+        for pf in proformas:
+            existing = CascadingSchedule.objects.filter(
+                scenario_id=scenario_id, proforma=pf
+            ).order_by("vessel_position")
+
+            declared = pf.declared_count or 0
+            if declared > max_declared:
+                max_declared = declared
+
+            selected_positions = set(existing.values_list("vessel_position", flat=True))
+
+            slot_display = []
+            for pos in range(1, declared + 1):
+                slot_display.append(
+                    {
+                        "position": pos,
+                        "selected": pos in selected_positions,
+                    }
+                )
+
+            dashboard_data.append(
+                {
+                    "proforma_id": pf.id,
+                    "lane_code": pf.lane_code,
+                    "proforma_name": pf.proforma_name,
+                    "effective_from_date": pf.effective_from_date,
+                    "declared_count": declared,
+                    "own_vessel_count": pf.own_vessel_count or 0,
+                    "selected_count": len(selected_positions),
+                    "slots": slot_display,
+                }
+            )
+
+    slot_headers = list(range(1, max_declared + 1))
+
+    context = {
+        "menu_structure": MENU_STRUCTURE,
+        "creation_menu_structure": CREATION_MENU_STRUCTURE,
+        "current_section": MenuSection.CREATION,
+        "current_group": MenuGroup.SCHEDULE,
+        "current_model": MenuItem.CASCADING_CREATE,
+        "scenarios": scenarios,
+        "selected_scenario_id": scenario_id,
+        "dashboard_data": dashboard_data,
+        "slot_headers": slot_headers,
+        "max_declared": max_declared,
+    }
+
+    return render(request, "input_data/cascading_create.html", context)

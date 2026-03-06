@@ -230,3 +230,91 @@ class TestCascadingVesselPositionModels:
         assert (
             CascadingVesselPosition.objects.filter(scenario_id=scenario_id).count() == 0
         )
+
+
+@pytest.mark.django_db
+class TestCascadingScheduleModels:
+    """
+    CascadingSchedule 모델 테스트 (vessel_code 없음, 슬롯 선택만)
+    """
+
+    def test_cascading_schedule_creation(self, sample_schedule, user):
+        """
+        [MODEL_CS_001] CascadingSchedule 생성
+        생성 시 필드 값 및 __str__ 출력 검증 (vessel_code 없음)
+        """
+        from input_data.models import CascadingSchedule
+
+        schedule = CascadingSchedule.objects.create(
+            scenario=sample_schedule.scenario,
+            proforma=sample_schedule,
+            vessel_position=1,
+            vessel_position_date=timezone.now().date(),
+            created_by=user,
+            updated_by=user,
+        )
+
+        assert schedule.vessel_position == 1
+        assert schedule.vessel_position_date is not None
+        assert schedule.scenario == sample_schedule.scenario
+        assert schedule.proforma == sample_schedule
+        assert not hasattr(schedule, "vessel_code") or "vessel_code" not in [
+            f.name for f in schedule._meta.fields
+        ]
+        assert (
+            str(schedule)
+            == f"[{sample_schedule.scenario.id}] {sample_schedule.proforma_name} - Pos{schedule.vessel_position}"
+        )
+
+    def test_cascading_schedule_unique_constraint(self, sample_schedule, user):
+        """
+        [MODEL_CS_002] CascadingSchedule Unique
+        동일 scenario+proforma+vessel_position 중복 생성 시 IntegrityError 발생 검증
+        """
+        from input_data.models import CascadingSchedule
+
+        CascadingSchedule.objects.create(
+            scenario=sample_schedule.scenario,
+            proforma=sample_schedule,
+            vessel_position=1,
+            vessel_position_date=timezone.now().date(),
+            created_by=user,
+        )
+
+        with pytest.raises(IntegrityError):
+            CascadingSchedule.objects.create(
+                scenario=sample_schedule.scenario,
+                proforma=sample_schedule,
+                vessel_position=1,
+                vessel_position_date=timezone.now().date(),
+                created_by=user,
+            )
+
+    def test_cascading_schedule_cascade_delete(self, sample_schedule, user):
+        """
+        [MODEL_CS_003] CascadingSchedule Cascade Delete
+        Scenario 삭제 시 CascadingSchedule도 함께 삭제되는지 검증
+        """
+        from input_data.models import CascadingSchedule
+
+        CascadingSchedule.objects.create(
+            scenario=sample_schedule.scenario,
+            proforma=sample_schedule,
+            vessel_position=1,
+            vessel_position_date=timezone.now().date(),
+            created_by=user,
+        )
+        CascadingSchedule.objects.create(
+            scenario=sample_schedule.scenario,
+            proforma=sample_schedule,
+            vessel_position=2,
+            vessel_position_date=timezone.now().date(),
+            created_by=user,
+        )
+
+        scenario_id = sample_schedule.scenario.id
+        assert CascadingSchedule.objects.filter(scenario_id=scenario_id).count() == 2
+
+        sample_schedule.scenario.delete()
+
+        assert CascadingSchedule.objects.filter(scenario_id=scenario_id).count() == 0

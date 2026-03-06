@@ -246,7 +246,11 @@ def _clone_scenario_data(source_id, target_scenario):
     교차 FK(예: CascadingVesselPosition → ProformaSchedule)가 있는 경우,
     먼저 복제된 모델의 old→new ID 매핑을 누적하여 후속 모델에서 재매핑합니다.
     """
-    from input_data.models import CascadingVesselPosition, ProformaSchedule
+    from input_data.models import (
+        CascadingSchedule,
+        CascadingVesselPosition,
+        ProformaSchedule,
+    )
 
     app_config = apps.get_app_config("input_data")
 
@@ -257,11 +261,11 @@ def _clone_scenario_data(source_id, target_scenario):
         if m.__name__ != "ScenarioInfo" and hasattr(m, "scenario")
     ]
 
-    # 2. 복제 순서 보장: ProformaSchedule → CascadingVesselPosition (교차 FK 의존성)
-    #    ProformaSchedule이 먼저 복제되어야 CascadingVesselPosition의 proforma FK를 재매핑 가능
+    # 2. 복제 순서 보장: ProformaSchedule → CascadingSchedule/CascadingVesselPosition (교차 FK 의존성)
     def _model_sort_key(m):
         priority = {
             "ProformaSchedule": 0,
+            "CascadingSchedule": 1,
             "CascadingVesselPosition": 1,
         }
         return priority.get(m.__name__, 0)
@@ -274,6 +278,7 @@ def _clone_scenario_data(source_id, target_scenario):
     # 4. 교차 FK 매핑 규칙 정의: (대상 모델, FK 필드명, 참조 모델)
     CROSS_FK_RULES = [
         (CascadingVesselPosition, "proforma", ProformaSchedule),
+        (CascadingSchedule, "proforma", ProformaSchedule),
     ]
 
     for model_class in master_models:

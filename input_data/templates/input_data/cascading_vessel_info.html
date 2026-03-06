@@ -112,7 +112,7 @@
                             <th rowspan="2" style="min-width:90px;">Start Week</th>
                             <th rowspan="2" style="min-width:60px;">Declared</th>
                             <th rowspan="2" style="min-width:50px;">Own</th>
-                            <th colspan="{{ max_declared }}" class="text-center bg-light">Vessel Slot Assignment</th>
+                            <th colspan="{{ max_declared }}" class="text-center bg-light">Vessel Position Assignment</th>
                         </tr>
                         <tr>
                             {% for sn in slot_headers %}
@@ -164,7 +164,7 @@
                                     {% endif %}
                                 </td>
                                 {% endfor %}
-                                {# Fill remaining slots when declared_count < max_declared #}
+                                {# Fill remaining positions when declared_count < max_declared #}
                                 {% with remaining=max_declared|add:0 %}
                                 {% for sn in slot_headers %}
                                     {% if sn > row.declared_count %}

@@ -124,7 +124,7 @@
                 <div class="card-header bg-light fw-bold d-flex justify-content-between align-items-center">
                     <span>3. Vessel Assignment</span>
                     <span class="badge bg-secondary" id="slotInfoBadge">
-                        {% if is_error_state %}Total Slots: {{ restored_rows|length }}{% else %}Slots: 0{% endif %}
+                        {% if is_error_state %}Total Positions: {{ restored_rows|length }}{% else %}Positions: 0{% endif %}
                     </span>
                 </div>
                 <div class="card-body p-0">
@@ -418,7 +418,7 @@
 
                     // Global Settings 적용
                     els.requiredCount.value = data.declared_count;
-                    els.slotBadge.textContent = `Total Slots: ${data.declared_count}`;
+                    els.slotBadge.textContent = `Total Positions: ${data.declared_count}`;
 
                     els.pfFirstDay.value = data.first_port_day;
                     els.startDayHint.textContent = `Proforma starts on: ${data.first_port_day}`;
@@ -492,7 +492,7 @@
         function calculateRowDate(baseDate, rowIndex) {
             if (!baseDate) return '';
             const date = new Date(baseDate + 'T00:00:00');
-            date.setDate(date.getDate() + (rowIndex * 7));  // 7 days per slot
+            date.setDate(date.getDate() + (rowIndex * 7));  // 7 days per position
             return getLocalDateString(date);
         }
 
