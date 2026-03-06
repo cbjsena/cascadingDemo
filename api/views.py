@@ -10,7 +10,6 @@ from common import messages as msg
 # ProformaScheduleDetail은 ORM의 related_name('details')으로 접근 가능하지만,
 # 명시적으로 필요한 경우 import 할 수 있습니다.
 from input_data.models import (
-    CascadingSchedule,
     LongRangeSchedule,
     ProformaSchedule,
     VesselCapacity,
@@ -88,6 +87,43 @@ def proforma_detail(request):
             first_detail = master.details.order_by("calling_port_seq").first()
             first_port_day = first_detail.etb_day_code if first_detail else ""
 
+            # Scenario의 from/to week 정보
+            scenario = master.scenario
+
+            # base_year_week (YYYYWK) 기반 시작 날짜 계산
+            initial_start_date = ""
+            if scenario and scenario.base_year_week:
+                try:
+                    from datetime import datetime, timedelta
+
+                    year = int(scenario.base_year_week[:4])
+                    week = int(scenario.base_year_week[4:])
+                    # ISO week to date: 해당 주의 월요일
+                    first_day = datetime.strptime(
+                        f"{year}-W{week:02d}-1", "%Y-W%W-%w"
+                    ).date()
+
+                    # first_port_day에 맞춰 날짜 조정
+                    if first_port_day:
+                        day_map = {
+                            "SUN": 6,
+                            "MON": 0,
+                            "TUE": 1,
+                            "WED": 2,
+                            "THU": 3,
+                            "FRI": 4,
+                            "SAT": 5,
+                        }
+                        target_weekday = day_map.get(first_port_day)
+                        if target_weekday is not None:
+                            current_weekday = first_day.weekday()
+                            days_ahead = (target_weekday - current_weekday) % 7
+                            first_day = first_day + timedelta(days=days_ahead)
+
+                    initial_start_date = first_day.strftime("%Y-%m-%d")
+                except (ValueError, TypeError):
+                    pass
+
             data = {
                 "status": "success",
                 "declared_count": master.declared_count,
@@ -95,7 +131,26 @@ def proforma_detail(request):
                 "duration": master.duration,
                 "first_port_day": first_port_day,
                 "own_vessel_count": master.own_vessel_count,
+                "from_year_week": scenario.base_year_week if scenario else "",
+                "to_year_week": scenario.to_year_week if scenario else "",
+                "initial_start_date": initial_start_date,
             }
+
+            # 기존 Cascading 데이터 존재 여부 확인
+            from input_data.models import CascadingSchedule
+
+            existing_cascading = CascadingSchedule.objects.filter(
+                scenario=scenario, proforma=master
+            ).first()
+
+            if existing_cascading:
+                data["existing_cascading"] = {
+                    "id": existing_cascading.id,
+                    "exists": True,
+                    "detail_count": existing_cascading.details.count(),
+                }
+            else:
+                data["existing_cascading"] = {"exists": False}
         else:
             data = {"status": "error", "message": msg.PROFORMA_NOT_FOUND}
     except Exception as e:
@@ -149,14 +204,16 @@ def vessel_lane_check(request):
             data["lane_code"] = lrs_qs.first().lane_code
             return JsonResponse(data)
 
-        # 2. [추가됨] LRS가 안 만들어졌다면, Cascading 저장 데이터에서 찾아봄
-        cas_qs = CascadingSchedule.objects.filter(
-            effective_start_date__lte=end_date,
-            effective_end_date__gte=start_date,
-        ).select_related("proforma")
+        # 2. [추가됨] LRS가 안 만들어졌다면, CascadingScheduleDetail에서 찾아봄
+        from input_data.models import CascadingScheduleDetail
 
-        if cas_qs.exists():
-            data["lane_code"] = cas_qs.first().proforma.lane_code
+        cas_detail_qs = CascadingScheduleDetail.objects.filter(
+            vessel_code=vessel_code,
+            initial_start_date__lte=end_date,
+        ).select_related("cascading__proforma")
+
+        if cas_detail_qs.exists():
+            data["lane_code"] = cas_detail_qs.first().cascading.proforma.lane_code
 
     return JsonResponse(data)
 

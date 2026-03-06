@@ -1,8 +1,7 @@
 from .cascading import (  # noqa: F401
     cascading_create,
-    cascading_dashboard,
     cascading_detail,
-    cascading_list,
+    cascading_vessel_info,
 )
 from .common import input_list  # noqa: F401
 from .dashboard import input_home  # noqa: F401

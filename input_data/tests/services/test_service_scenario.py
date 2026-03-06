@@ -130,24 +130,18 @@ class TestScenarioCreationService:
         BaseCascadingSchedule.objects.create(
             lane_code="FE1",
             proforma_name="3101",
-            effective_start_date="2026-02-01",
-            effective_end_date="2027-02-01",
             vessel_code="V001",
             initial_start_date="2026-02-15",
         )
         BaseCascadingSchedule.objects.create(
             lane_code="FE1",
             proforma_name="3101",
-            effective_start_date="2026-02-01",
-            effective_end_date="2027-02-01",
             vessel_code="V002",
             initial_start_date="2026-02-22",
         )
         BaseCascadingSchedule.objects.create(
             lane_code="FE1",
             proforma_name="3101",
-            effective_start_date="2026-02-01",
-            effective_end_date="2027-02-01",
             vessel_code="V003",
             initial_start_date="2026-03-01",
         )

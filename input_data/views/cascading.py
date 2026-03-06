@@ -60,7 +60,7 @@ def cascading_create(request):
         "creation_menu_structure": CREATION_MENU_STRUCTURE,
         "current_section": MenuSection.CREATION,
         "current_group": MenuGroup.SCHEDULE,
-        "current_model": MenuItem.CASCADING_CREATE,
+        "current_model": MenuItem.CASCADING_VESSEL_CREATE,
         "scenarios": scenarios,
         "vessel_list": vessel_data,  # 선박 목록 추가
         "preserved_data": {},
@@ -149,8 +149,6 @@ def cascading_create(request):
                 "proforma_name": data.get("proforma_name", ""),
                 "own_vessel_count": data.get("own_vessel_count", ""),
                 "required_count": data.get("required_count", ""),
-                "effective_start_date": data.get("effective_start_date", ""),
-                "effective_end_date": data.get("effective_end_date", ""),
             }
             error_restored = []
             vessel_codes = data.getlist("vessel_code[]")
@@ -176,53 +174,6 @@ def cascading_create(request):
 
     # 템플릿 이름은 요청하신 대로 변경된 파일을 바라봄
     return render(request, "input_data/cascading_create.html", context)
-
-
-@login_required
-def cascading_list(request):
-    """
-    Cascading Schedule 목록 조회 및 검색 (Vessel 제거, Select 박스 방식)
-    """
-    scenario_id = request.GET.get("scenario_id", "")
-    lane_code = request.GET.get("lane_code", "")
-    proforma_name = request.GET.get("proforma_name", "")
-
-    # 1. 기본 QuerySet
-    qs = (
-        CascadingSchedule.objects.select_related("scenario", "proforma")
-        .all()
-        .order_by(
-            "-scenario__id",
-            "-proforma__lane_code",
-            "-proforma__proforma_name",
-        )
-    )
-
-    # 2. 필터 적용 (Select Box이므로 정확한 일치로 변경)
-    if scenario_id:
-        qs = qs.filter(scenario_id=scenario_id)
-    if lane_code:
-        qs = qs.filter(proforma__lane_code=lane_code)
-    if proforma_name:
-        qs = qs.filter(proforma__proforma_name=proforma_name)
-
-    scenarios = ScenarioInfo.objects.all().order_by("-created_at")
-    context = {
-        "menu_structure": MENU_STRUCTURE,
-        "creation_menu_structure": CREATION_MENU_STRUCTURE,
-        "current_section": MenuSection.INPUT_MANAGEMENT,
-        "current_group": MenuGroup.SCHEDULE,
-        "current_model": MenuItem.CASCADING_SCHEDULE,
-        "scenarios": scenarios,
-        "cascading_list": qs,
-        "search_params": {
-            "scenario_id": scenario_id,
-            "lane_code": lane_code,
-            "proforma_name": proforma_name,
-        },
-    }
-
-    return render(request, "input_data/cascading_list.html", context)
 
 
 @login_required
@@ -257,19 +208,19 @@ def cascading_detail(request, pk):
         "creation_menu_structure": CREATION_MENU_STRUCTURE,
         "current_section": MenuSection.INPUT_MANAGEMENT,
         "current_group": MenuGroup.SCHEDULE,
-        "current_model": MenuItem.CASCADING_SCHEDULE,
+        "current_model": MenuItem.CASCADING_VESSEL_INFO,
         "cascading": cascading,
         "details": details,
         "first_port_day": first_port_day,  # 첫 번째 포트 요일 코드 (SUN, MON 등)
     }
 
-    return render(request, "input_data/cascading_detail.html", context)
+    return render(request, "input_data/cascading_vessel_detail.html", context)
 
 
 @login_required
-def cascading_dashboard(request):
+def cascading_vessel_info(request):
     """
-    Cascading Dashboard: Scenario를 선택하면 Lane 별 Cascading 결과를 한눈에 조회
+    Cascading Vessel Info: Scenario를 선택하면 Lane 별 Cascading 결과를 한눈에 조회
     선박 배치 슬롯을 가로로 시각화하여 표시
     """
     from datetime import timedelta
@@ -343,7 +294,7 @@ def cascading_dashboard(request):
         "creation_menu_structure": CREATION_MENU_STRUCTURE,
         "current_section": MenuSection.INPUT_MANAGEMENT,
         "current_group": MenuGroup.SCHEDULE,
-        "current_model": MenuItem.CASCADING_DASHBOARD,
+        "current_model": MenuItem.CASCADING_VESSEL_INFO,
         "scenarios": scenarios,
         "dashboard_data": dashboard_data,
         "selected_scenario_id": scenario_id,
@@ -351,4 +302,4 @@ def cascading_dashboard(request):
         "max_declared": max_declared,
     }
 
-    return render(request, "input_data/cascading_dashboard.html", context)
+    return render(request, "input_data/cascading_vessel_info.html", context)

@@ -1,5 +1,5 @@
 ﻿[Base Data Table Definition]
-Generated At,2026-03-05 05:45:26
+Generated At,2026-03-05 23:44:35
 
 Table Name,Column Name,Data Type,Nullable,Description (Comment)
 base_bunker_consumption_port,base_year_month,string,NO,Year and month used as the base period / YYYYMM
@@ -42,8 +42,6 @@ base_cost_ts_cost,port_code,string,NO,"Port Code / 2-alpha country code + 3-alph
 base_cost_ts_cost,ts_cost,int,NO,Transshipment Cost (USD)
 base_schedule_cascading,lane_code,string,NO,Lane Code
 base_schedule_cascading,proforma_name,string,NO,Proforma Name
-base_schedule_cascading,effective_start_date,date,NO,Effective start date of the cascading schedule
-base_schedule_cascading,effective_end_date,date,YES,Effective end date of the cascading schedule
 base_schedule_cascading,vessel_code,string,NO,Vessel Code
 base_schedule_cascading,initial_start_date,date,NO,Initial Start Date
 base_schedule_long_range,lane_code,string,NO,Lane Code / 3 alphanum
@@ -62,7 +60,8 @@ base_schedule_long_range,etd,datetime,YES,Estimated Time of Departure
 base_schedule_long_range,terminal_code,string,YES,"Terminal Code (Port Code + 2-digit number, e.g., KRPUS01)"
 base_schedule_proforma,lane_code,string,NO,Lane Code / 3 alphanum
 base_schedule_proforma,proforma_name,string,NO,Proforma Name / 4 numeric digits
-base_schedule_proforma,effective_from_date,datetime,NO,Effective date from which the proforma is applied. The proforma currently in use is set with a date six months prior.
+base_schedule_proforma,effective_from_date,datetime,NO,Effective start date of the proforma.
+base_schedule_proforma,effective_to_date,datetime,YES,Effective end date of the proforma.
 base_schedule_proforma,duration,numeric,NO,Total number of days from the ETB of the first port to the ETB of the last port
 base_schedule_proforma,declared_capacity,string,NO,"Declared vessel capacity (TEU) for the lane, Currently equal to vessel_capacity"
 base_schedule_proforma,declared_count,int,NO,Declared number of vessels for the lane

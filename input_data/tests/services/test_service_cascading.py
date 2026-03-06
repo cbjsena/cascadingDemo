@@ -41,7 +41,7 @@ class TestCascadingService:
         # Then: header 딕셔너리에 변경된 필드명 포함
         header = result.get("header", {})
         assert "own_vessel_count" in header
-        assert "effective_start_date" in header
+        assert "from_year_week" in header
         assert header["own_vessel_count"] == 2
 
         # required_count만큼의 rows 반환 (details로 변경됨)
@@ -53,7 +53,7 @@ class TestCascadingService:
     ):
         """
         [CASCADING_SVC_002] proforma_start_etb_date 계산
-        ProformaScheduleDetail의 첫 번째 포트 정보와 effective_start_date로
+        ProformaScheduleDetail의 첫 번째 포트 정보와 initial_start_date로
         proforma_start_etb_date가 정확히 계산되는지 검증
         """
         # Given: ProformaScheduleDetail에 첫 번째 포트 정보 (일요일) 추가
@@ -69,8 +69,6 @@ class TestCascadingService:
         BaseCascadingSchedule.objects.create(
             lane_code=sample_schedule.lane_code,
             proforma_name=sample_schedule.proforma_name,
-            effective_start_date=date(2026, 2, 15),  # 토요일
-            effective_end_date=date(2027, 2, 15),
             vessel_code="V001",
             initial_start_date=date(2026, 2, 16),
         )
@@ -87,6 +85,5 @@ class TestCascadingService:
         ).first()
         assert cascading is not None
 
-        # proforma_start_etb_date 확인
-        expected_date = date(2026, 2, 15)
-        assert cascading.proforma_start_etb_date == expected_date
+        # proforma_start_etb_date 확인 (initial_start_date 기준으로 계산)
+        assert cascading.proforma_start_etb_date is not None

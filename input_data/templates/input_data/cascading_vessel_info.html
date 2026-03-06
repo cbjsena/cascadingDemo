@@ -1,7 +1,7 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Cascading Dashboard{% endblock %}
+{% block title %}Cascading Vessel Info{% endblock %}
 
 {% block content %}
 <style>
@@ -45,18 +45,25 @@
     .vessel-tooltip {
         cursor: default;
     }
+    .cascading-row:hover {
+        background-color: #e3f2fd !important;
+        transition: background-color 0.15s ease;
+    }
+    .cascading-row:hover td {
+        background-color: inherit !important;
+    }
 </style>
 
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="h4"><i class="bi bi-grid-3x3-gap me-2"></i>Cascading Dashboard</h2>
+        <h2 class="h4"><i class="bi bi-grid-3x3-gap me-2"></i>Cascading Vessel Info</h2>
     </div>
 
     <!-- Scenario Selection -->
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-light fw-bold">Scenario Selection</div>
         <div class="card-body">
-            <form method="get" action="{% url 'input_data:cascading_dashboard' %}" class="row g-3 align-items-end">
+            <form method="get" action="{% url 'input_data:cascading_vessel_info' %}" class="row g-3 align-items-end">
                 <div class="col-md-4">
                     <label class="form-label small text-muted">Scenario Code</label>
                     <select class="form-select" id="scenarioSelect" name="scenario_id" onchange="this.form.submit()">
@@ -75,7 +82,7 @@
                     </button>
                 </div>
                 <div class="col-md-1">
-                    <a href="{% url 'input_data:cascading_dashboard' %}" class="btn btn-outline-secondary w-100" title="Reset">
+                    <a href="{% url 'input_data:cascading_vessel_info' %}" class="btn btn-outline-secondary w-100" title="Reset">
                         <i class="bi bi-arrow-clockwise"></i>
                     </a>
                 </div>
@@ -117,7 +124,9 @@
                         {% regroup dashboard_data by lane_code as lane_groups %}
                         {% for lane_group in lane_groups %}
                             {% for row in lane_group.list %}
-                            <tr>
+                            <tr class="cascading-row" style="cursor: pointer;"
+                                onclick="window.location.href='{% url 'input_data:cascading_detail' row.pk %}'"
+                                title="Click to view/edit details">
                                 <td class="small">{{ forloop.parentloop.counter }}</td>
                                 <td>
                                     {% if forloop.first %}
@@ -224,7 +233,7 @@
     <div class="card shadow-sm">
         <div class="card-body text-center py-5">
             <i class="bi bi-arrow-up-circle display-4 text-muted"></i>
-            <h5 class="mt-3 text-muted">Please select a scenario to view the Cascading Dashboard</h5>
+            <h5 class="mt-3 text-muted">Please select a scenario to view the Cascading Vessel Info</h5>
             <p class="text-muted">Select a Scenario to view the Cascading results by Lane at a glance.</p>
         </div>
     </div>

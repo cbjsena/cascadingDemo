@@ -2,6 +2,7 @@ from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
 
+from common import constants
 from input_data.configs import MODEL_MAPPING, SCENARIO_CREATION_FILTERS
 from input_data.models import (
     BaseProformaSchedule,
@@ -51,8 +52,9 @@ def create_scenario_from_base(
 
     # base_year_week 기본값 설정 (현재 주차, YYYYWK 형식)
     if not base_year_week:
-        iso = now.date().isocalendar()
-        base_year_week = f"{iso[0]}{iso[1]:02d}"
+        base_year_week = constants.DEFAULT_BASE_YEAR_WEEK
+        # iso = now.date().isocalendar()
+        # base_year_week = f"{iso[0]}{iso[1]:02d}"
 
     # 시나리오 마스터(ScenarioInfo) 생성 (code는 save()에서 자동 생성)
     scenario = ScenarioInfo(
@@ -245,10 +247,10 @@ def _copy_cascading_to_scenario(scenario, user, now):
     # 요일 매핑 (ProformaScheduleDetail etb_day_code -> Python datetime weekday)
     DAY_MAP = {"SUN": 6, "MON": 0, "TUE": 1, "WED": 2, "THU": 3, "FRI": 4, "SAT": 5}
 
-    def calculate_proforma_start_etb_date(proforma, effective_start_date):
+    def calculate_proforma_start_etb_date(proforma, initial_start_date):
         """
         ProformaScheduleDetail에서 calling_port_seq=1인 포트의 etb_day_code와
-        effective_start_date를 이용하여 proforma_start_etb_date를 계산
+        initial_start_date를 이용하여 proforma_start_etb_date를 계산
         """
         try:
             # 첫 번째 포트 찾기 (calling_port_seq = 1)
@@ -257,18 +259,18 @@ def _copy_cascading_to_scenario(scenario, user, now):
             ).first()
 
             if not first_port:
-                return effective_start_date  # 첫 번째 포트가 없으면 effective_start_date 사용
+                return (
+                    initial_start_date  # 첫 번째 포트가 없으면 initial_start_date 사용
+                )
 
             target_day_code = first_port.etb_day_code
             target_weekday = DAY_MAP.get(target_day_code)
 
             if target_weekday is None:
-                return (
-                    effective_start_date  # 잘못된 요일 코드면 effective_start_date 사용
-                )
+                return initial_start_date  # 잘못된 요일 코드면 initial_start_date 사용
 
-            # effective_start_date부터 target_weekday에 해당하는 날짜 찾기
-            current_date = effective_start_date
+            # initial_start_date부터 target_weekday에 해당하는 날짜 찾기
+            current_date = initial_start_date
             current_weekday = current_date.weekday()
 
             # 같은 요일이면 그대로 사용
@@ -284,7 +286,7 @@ def _copy_cascading_to_scenario(scenario, user, now):
 
         except Exception as e:
             print(f"Error calculating proforma_start_etb_date: {e}")
-            return effective_start_date
+            return initial_start_date
 
     # 1. Master(Header) 추출 및 생성
     master_cache = {}
@@ -304,17 +306,15 @@ def _copy_cascading_to_scenario(scenario, user, now):
             if not proforma:
                 continue  # Proforma가 없으면 스킵
 
-            # proforma_start_etb_date 계산
+            # proforma_start_etb_date 계산 (첫 번째 base 레코드의 initial_start_date 사용)
             calculated_start_etb_date = calculate_proforma_start_etb_date(
-                proforma, base.effective_start_date
+                proforma, base.initial_start_date
             )
 
             master = CascadingSchedule(
                 scenario=scenario,
                 proforma=proforma,
                 proforma_start_etb_date=calculated_start_etb_date,  # 계산된 값 사용
-                effective_start_date=base.effective_start_date,
-                effective_end_date=base.effective_end_date,
                 created_by=user,
                 updated_by=user,
                 created_at=now,

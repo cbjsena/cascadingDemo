@@ -1,4 +1,4 @@
-from datetime import datetime, timedelta
+from datetime import datetime
 
 import pytest
 
@@ -170,8 +170,6 @@ class TestCascadingModels:
             scenario=sample_schedule.scenario,
             proforma=sample_schedule,
             proforma_start_etb_date=timezone.now().date(),
-            effective_start_date=timezone.now().date(),
-            effective_end_date=timezone.now().date() + timedelta(days=365),
             created_by=user,
             updated_by=user,
         )
@@ -218,7 +216,6 @@ class TestCascadingModels:
             scenario=sample_schedule.scenario,
             proforma=sample_schedule,
             proforma_start_etb_date=timezone.now().date(),
-            effective_start_date=timezone.now().date(),
             created_by=user,
         )
 
@@ -228,7 +225,6 @@ class TestCascadingModels:
                 scenario=sample_schedule.scenario,
                 proforma=sample_schedule,
                 proforma_start_etb_date=timezone.now().date(),
-                effective_start_date=timezone.now().date(),
                 created_by=user,
             )
 

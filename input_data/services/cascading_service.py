@@ -67,22 +67,17 @@ class CascadingService:
                     }
                 )
 
+        # Scenario의 from/to week 정보 가져오기
+        scenario = ScenarioInfo.objects.filter(id=scenario_id).first()
+
         return {
             "header": {
                 "scenario_id": scenario_id,
                 "lane_code": lane_code,
                 "proforma_name": proforma_name,
                 "own_vessel_count": master_proforma.own_vessel_count,
-                "effective_start_date": (
-                    master.effective_start_date.strftime("%Y-%m-%d")
-                    if master and master.effective_start_date
-                    else ""
-                ),
-                "effective_end_date": (
-                    master.effective_end_date.strftime("%Y-%m-%d")
-                    if master and master.effective_end_date
-                    else ""
-                ),
+                "from_year_week": scenario.base_year_week if scenario else "",
+                "to_year_week": scenario.to_year_week if scenario else "",
                 "required_count": total_slots,
             },
             "details": rows,
@@ -93,18 +88,10 @@ class CascadingService:
         scenario_id = post_data.get("scenario_id")
         lane_code = post_data.get("lane_code")
         proforma_name = post_data.get("proforma_name")
-        start_date_str = post_data.get("effective_start_date")
-        end_date_str = post_data.get("effective_end_date")
         vessel_codes = post_data.getlist("vessel_code[]")
         vessel_start_dates = post_data.getlist("vessel_start_date[]")
 
-        if not (
-            scenario_id
-            and lane_code
-            and proforma_name
-            and start_date_str
-            and end_date_str
-        ):
+        if not (scenario_id and lane_code and proforma_name):
             raise ValueError(msg.MISSING_REQUIRED_FIELDS_FOR.format(target="Cascading"))
 
         scenario = ScenarioInfo.objects.get(id=scenario_id)
@@ -120,22 +107,26 @@ class CascadingService:
             scenario=scenario, proforma=master_proforma
         ).delete()
 
+        # 첫 번째 vessel_start_date를 proforma_start_etb_date로 사용
         first_row_date_str = (
             vessel_start_dates[0]
             if vessel_start_dates and vessel_start_dates[0]
-            else start_date_str
+            else None
         )
-        proforma_start_etb_date = datetime.strptime(
-            first_row_date_str, "%Y-%m-%d"
-        ).date()
+
+        if first_row_date_str:
+            proforma_start_etb_date = datetime.strptime(
+                first_row_date_str, "%Y-%m-%d"
+            ).date()
+        else:
+            # 기본값: 오늘 날짜
+            proforma_start_etb_date = datetime.now().date()
 
         own_count = len([v for v in vessel_codes if v.strip()])
 
         cascading = CascadingSchedule.objects.create(
             scenario=scenario,
             proforma=master_proforma,
-            effective_start_date=datetime.strptime(start_date_str, "%Y-%m-%d").date(),
-            effective_end_date=datetime.strptime(end_date_str, "%Y-%m-%d").date(),
             proforma_start_etb_date=proforma_start_etb_date,
             created_by=user,
             updated_by=user,

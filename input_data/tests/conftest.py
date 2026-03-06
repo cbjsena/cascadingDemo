@@ -318,8 +318,6 @@ def cascading_with_details(db, sample_schedule, user):
         scenario=sample_schedule.scenario,
         proforma=sample_schedule,
         proforma_start_etb_date=timezone.now().date(),
-        effective_start_date=timezone.now().date(),
-        effective_end_date=timezone.now().date() + timedelta(days=365),
         created_by=user,
         updated_by=user,
     )
@@ -349,8 +347,6 @@ def cascading_form_data(sample_schedule):
         "lane_code": sample_schedule.lane_code,
         "proforma_name": sample_schedule.proforma_name,
         "own_vessel_count": 3,
-        "effective_start_date": "2026-02-15",
-        "effective_end_date": "2027-02-15",
         "vessel_code[]": ["V001", "V002", "V003"],
         "vessel_capacity[]": ["5000", "5000", "5000"],
         "vessel_start_date[]": ["2026-02-15", "2026-02-22", "2026-03-01"],
@@ -369,8 +365,6 @@ def cascading_invalid_form_data(sample_schedule):
         "lane_code": sample_schedule.lane_code,
         "proforma_name": sample_schedule.proforma_name,
         "own_vessel_count": 3,  # 3대 요구
-        "effective_start_date": "2026-02-15",
-        "effective_end_date": "2027-02-15",
         "vessel_code[]": ["V001", "V002"],  # 2대만 선택 (불일치)
         "vessel_capacity[]": ["5000", "5000"],
         "vessel_start_date[]": ["2026-02-15", "2026-02-22"],
@@ -407,8 +401,6 @@ def multiple_cascading_data(db, base_scenario, user):
             scenario=base_scenario,
             proforma=proforma,
             proforma_start_etb_date=timezone.now().date(),
-            effective_start_date=timezone.now().date(),
-            effective_end_date=timezone.now().date() + timedelta(days=365),
             created_by=user,
             updated_by=user,
         )

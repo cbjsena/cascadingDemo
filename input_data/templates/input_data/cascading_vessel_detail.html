@@ -1,15 +1,15 @@
 {% extends "base.html" %}
 
-{% block title %}Cascading Schedule Detail{% endblock %}
+{% block title %}Cascading Vessel Detail{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="h4">Cascading Schedule Detail</h2>
-        
+        <h2 class="h4">Cascading Vessel Detail</h2>
+
         <div class="btn-group">
-            <a href="{% url 'input_data:cascading_list' %}" class="btn btn-secondary">
-                <i class="bi bi-list"></i> Back to List
+            <a href="{% url 'input_data:cascading_vessel_info' %}?scenario_id={{ cascading.scenario.id }}" class="btn btn-secondary">
+                <i class="bi bi-arrow-left"></i> Back to Vessel Info
             </a>
             
             <a href="{% url 'input_data:cascading_create' %}?scenario_id={{ cascading.scenario.id }}&lane_code={{ cascading.proforma.lane_code }}&proforma_name={{ cascading.proforma.proforma_name }}" class="btn btn-primary">
@@ -59,11 +59,11 @@
                     <span class="fw-bold text-success">{{ cascading.proforma_start_etb_date|date:"Y-m-d" }}</span>
                 </div>
                 <div class="col-md-3">
-                    <label class="small text-muted d-block">Effective Period (Start ~ End)</label>
+                    <label class="small text-muted d-block">Planning Period (From ~ To Week)</label>
                     <div class="d-flex align-items-center">
-                        <span class="fw-bold me-2">{{ cascading.effective_start_date|date:"Y-m-d" }}</span>
+                        <span class="badge bg-secondary me-2">{{ cascading.scenario.base_year_week|default:"-" }}</span>
                         <i class="bi bi-arrow-right text-muted"></i>
-                        <span class="fw-bold ms-2">{{ cascading.effective_end_date|date:"Y-m-d" }}</span>
+                        <span class="badge bg-secondary ms-2">{{ cascading.scenario.to_year_week|default:"-" }}</span>
                     </div>
                 </div>
             </div>

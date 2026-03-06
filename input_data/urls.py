@@ -35,8 +35,11 @@ urlpatterns = [
         "proforma/template/", views.proforma_template_download, name="proforma_template"
     ),
     path("cascading/create/", views.cascading_create, name="cascading_create"),
-    path("cascading/list/", views.cascading_list, name="cascading_list"),
-    path("cascading/dashboard/", views.cascading_dashboard, name="cascading_dashboard"),
+    path(
+        "cascading/vessel-info/",
+        views.cascading_vessel_info,
+        name="cascading_vessel_info",
+    ),
     path("cascading/detail/<int:pk>/", views.cascading_detail, name="cascading_detail"),
     path("long_range/list/", views.long_range_list, name="long_range_list"),
     # AJAX용

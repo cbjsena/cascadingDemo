@@ -1,12 +1,12 @@
 {% extends "base.html" %}
 {% load static %}
 
-{% block title %}Create Cascading - Cascading Opt{% endblock %}
+{% block title %}Create Cascading Vessel - Cascading Opt{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h2 class="h4">Create Cascading Schedule</h2>
+        <h2 class="h4">Create Cascading Vessel Schedule</h2>
     </div>
 
     <form method="post" id="lrsForm">
@@ -86,20 +86,37 @@
                                    value="{{ preserved_data.own_vessel_count|default:'0' }}">
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold">Start Date</label>
-                            <input type="date" class="form-control" id="lrsStartDate" name="effective_start_date" required
-                                   value="{{ preserved_data.effective_start_date|default:'' }}">
+                            <label class="form-label">From Week</label>
+                            <input type="text" class="form-control" id="fromYearWeek" readonly
+                                   value="{{ preserved_data.from_year_week|default:'' }}">
                             <div class="form-text text-success" id="startDayHint">
-                                {% if is_error_state %}Reload info to see day{% else %}Select date to generate rows{% endif %}
+                                {% if is_error_state %}Reload info to see day{% else %}Select proforma to see period{% endif %}
                             </div>
                         </div>
                         <div class="col-md-3">
-                            <label class="form-label fw-bold">End Date</label>
-                            <input type="date" class="form-control" id="lrsEndDate" name="effective_end_date" required
-                                   value="{{ preserved_data.effective_end_date|default:'' }}">
+                            <label class="form-label">To Week</label>
+                            <input type="text" class="form-control" id="toYearWeek" readonly
+                                   value="{{ preserved_data.to_year_week|default:'' }}">
                         </div>
                         <input type="hidden" id="pfFirstDay" value="">
                     </div>
+                </div>
+            </div>
+
+            <!-- Existing Cascading Data Alert -->
+            <div class="alert alert-warning d-none" id="existingCascadingAlert">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <i class="bi bi-exclamation-triangle-fill me-2"></i>
+                        <strong>Cascading data already exists for this Scenario + Proforma combination.</strong>
+                        <span id="existingDetailCount" class="ms-2 badge bg-warning text-dark"></span>
+                    </div>
+                    <a href="#" id="existingCascadingLink" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-eye"></i> View Existing Data
+                    </a>
+                </div>
+                <div class="mt-2 small text-muted">
+                    If you save new data, the existing data will be replaced.
                 </div>
             </div>
 
@@ -190,12 +207,12 @@
 <script src="{% static 'js/common_api.js' %}"></script>
 
 <script>
-    // API URL ?�의 (api ?�의 URL Name ?�용)
+    // API URL Definitions
     const API_URLS = {
-        options: "{% url 'api:proforma_options' %}",       // Lane, Proforma 공용
-        detail: "{% url 'api:proforma_detail' %}",    // ?�세 ?�보 (Load Info)
-        vessel_list: "{% url 'api:vessel_list' %}",        // ?�박 목록 (Capacity ?�함)
-        vessel_check: "{% url 'api:vessel_lane_check' %}"  // 기간 ?�유 ?�인
+        options: "{% url 'api:proforma_options' %}",       // Lane, Proforma common
+        detail: "{% url 'api:proforma_detail' %}",         // Detail info (Load Info)
+        vessel_list: "{% url 'api:vessel_list' %}",        // Vessel list (with Capacity)
+        vessel_check: "{% url 'api:vessel_lane_check' %}"  // Period overlap check
     };
 
     const initData = {
@@ -204,10 +221,10 @@
         proforma: "{{ preserved_data.proforma_name|default:'' }}"
     };
 
-    // ?�일 매핑 (Proforma Day Code -> JS Date Day Index)
+    // Day mapping (Proforma Day Code -> JS Date Day Index)
     const DAY_MAP = { "SUN": 0, "MON": 1, "TUE": 2, "WED": 3, "THU": 4, "FRI": 5, "SAT": 6 };
 
-    // ?�나리오???�박 ?�보 캐싱 [{'vessel_code':.., 'max_cap':..}]
+    // Vessel data cache for scenario [{'vessel_code':.., 'max_cap':..}]
     let vesselDataList = [];
 
     // DOM Elements
@@ -222,13 +239,16 @@
         pfFirstDay: document.getElementById('pfFirstDay'),
         startDayHint: document.getElementById('startDayHint'),
         ownInput: document.getElementById('ownVesselCount'),
-        startDate: document.getElementById('lrsStartDate'),
-        endDate: document.getElementById('lrsEndDate'),
+        fromYearWeek: document.getElementById('fromYearWeek'),
+        toYearWeek: document.getElementById('toYearWeek'),
         tbody: document.getElementById('vesselTableBody'),
-        createBtn: document.getElementById('btnCreateLRS')
+        createBtn: document.getElementById('btnCreateLRS'),
+        existingAlert: document.getElementById('existingCascadingAlert'),
+        existingLink: document.getElementById('existingCascadingLink'),
+        existingDetailCount: document.getElementById('existingDetailCount')
     };
 
-    // [Server-Side Data Recovery] ?�러 발생 ???�이지 리로?????�이??복구
+    // [Server-Side Data Recovery] Restore data on page reload after error
     {% if vessel_list %}
         vesselDataList = [
             {% for v in vessel_list %}
@@ -237,36 +257,36 @@
         ];
     {% endif %}
 
-    // 2.0 ?�면 로드 ?�료 ??Edit 모드 Select Box ?�쇄 복구
+    // 2.0 Page load complete - Edit mode Select Box restoration
     window.addEventListener('DOMContentLoaded', () => {
-        // 1. Edit 모드?�거???�러 발생 ???�아??경우 (initData가 존재????
+        // 1. Edit mode or error recovery case (initData exists)
         if (initData.scenario) {
-            // ?�선 ?�나리오??묶인 ?�체 ?�박 리스?��? 가?��???캐싱????(Row 조작???�해 ?�요)
+            // First load vessel list for scenario and cache (needed for row manipulation)
             CommonApi.loadVesselList(API_URLS.vessel_list, initData.scenario, (data) => {
                 vesselDataList = data;
 
-                // ?�박 목록??불러??직후, Edit 모드�?채워�??�이�?Row?�의 Select Option??채워�?
+                // After loading vessel list, fill Select Options in existing rows
                 document.querySelectorAll('.vessel-select').forEach(select => {
                     const hiddenInput = select.closest('tr').querySelector('.vessel-code-hidden');
 
-                    // Select Box???�체 ?�박 Option 채워?�기
+                    // Fill Select Box with all vessel options
                     let optionsHtml = '<option value="">Select Vessel</option>';
                     vesselDataList.forEach(v => {
                         optionsHtml += `<option value="${v.vessel_code}" data-cap="${v.max_cap}">${v.vessel_code}</option>`;
                     });
                     select.innerHTML = optionsHtml;
 
-                    // 만약 체크??Row(?�?�된 ?�이???�면 기존 ?�택�?복원
+                    // If checked Row (assigned data), restore previous selection
                     if (hiddenInput && hiddenInput.value) {
                         select.value = hiddenInput.value;
-                        select.dispatchEvent(new Event('change')); // Capacity ???�동 ?�벤??강제 발생
+                        select.dispatchEvent(new Event('change')); // Force capacity auto-event
                     }
                 });
             });
 
             {% if is_edit_mode and lane_options and proforma_options %}
-            // Edit 모드: ?�버?�서 ?�달???�션???�용
-            // Lane ?�션 채우�?
+            // Edit mode: Use options from server
+            // Fill Lane options
             let laneOptionsHtml = '<option value="">Select Lane</option>';
             {% for lane in lane_options %}
                 laneOptionsHtml += '<option value="{{ lane }}" {% if preserved_data.lane_code == lane %}selected{% endif %}>{{ lane }}</option>';
@@ -274,7 +294,7 @@
             els.lane.innerHTML = laneOptionsHtml;
             els.lane.disabled = false;
 
-            // Proforma ?�션 채우�?
+            // Fill Proforma options
             let proformaOptionsHtml = '<option value="">Select Proforma</option>';
             {% for proforma in proforma_options %}
                 proformaOptionsHtml += '<option value="{{ proforma }}" {% if preserved_data.proforma_name == proforma %}selected{% endif %}>{{ proforma }}</option>';
@@ -283,7 +303,7 @@
             els.proforma.disabled = false;
             els.loadBtn.disabled = false;
 
-            // Edit 모드?�서 pfFirstDay 값을 API로�???가?�오�?
+            // Edit mode - load pfFirstDay value from API
             if (initData.scenario && initData.lane && initData.proforma) {
                 console.log('Edit mode - loading proforma detail for pfFirstDay');
                 fetch(`${API_URLS.detail}?scenario_id=${initData.scenario}&lane_code=${initData.lane}&proforma_name=${initData.proforma}`)
@@ -293,21 +313,24 @@
                             els.pfFirstDay.value = data.first_port_day;
                             console.log('Edit mode - Set pfFirstDay to:', data.first_port_day);
                         }
+                        // Set from/to week
+                        if (data.from_year_week) els.fromYearWeek.value = data.from_year_week;
+                        if (data.to_year_week) els.toYearWeek.value = data.to_year_week;
                     })
                     .catch(error => console.error('Error loading pfFirstDay:', error));
             }
 
             {% else %}
-            // ?�반 모드: API�??�해 ?�적 로드
-            // Lane 목록 ?�적 로드
+            // Normal mode: Dynamic load via API
+            // Dynamic Lane list load
             CommonApi.loadLanes(API_URLS.options, initData.scenario, els.lane, () => {
-                // Lane 로드가 ?�료?�면 기존 ?�택�?복구
+                // After Lane load completes, restore previous selection
                 if (initData.lane) {
                     els.lane.value = initData.lane;
 
-                    // ?�당 Lane??묶인 Proforma 목록 ?�적 로드
+                    // Load Proforma list for selected Lane
                     CommonApi.loadProformas(API_URLS.options, initData.scenario, initData.lane, els.proforma, () => {
-                        // Proforma 로드가 ?�료?�면 기존 ?�택�?복구
+                        // After Proforma load completes, restore previous selection
                         if (initData.proforma) {
                             els.proforma.value = initData.proforma;
                             if (els.loadBtn) els.loadBtn.disabled = false;
@@ -318,7 +341,7 @@
             {% endif %}
         }
 
-        // 2. ?��? ?�더링된 Row?�이 존재?�면 ?�벤???�시 ?�결 (Edit 모드?�서 ?�이�?조작 ???�요)
+        // 2. If rendered rows exist, re-attach events (needed for Edit mode row manipulation)
         if (document.querySelector('.own-vessel-check')) {
             attachRowEvents();
             validateCreateButton();
@@ -329,19 +352,20 @@
     els.scenario.addEventListener('change', function() {
         const sid = this.value;
 
-        // 초기??
+        // Initialize
         CommonApi.resetSelect(els.lane, "Select Lane");
         CommonApi.resetSelect(els.proforma, "Select Proforma");
         els.loadBtn.disabled = true;
+        els.existingAlert.classList.add('d-none');  // Hide existing data alert
 
-        // ?�이??리셋 (?�버 복구 ?�이?��? ?�는 경우)
+        // Reset data (if not server-recovered data)
         if (!vesselDataList.length) vesselDataList = [];
 
         if (sid) {
-            // Lane 로드 (UI ?�데?�트)
+            // Load Lanes (UI update)
             CommonApi.loadLanes(API_URLS.options, sid, els.lane);
 
-            // Vessel List 로드 (?�이??캐싱 -> ???�성 ???�용)
+            // Load Vessel List (data caching -> used for row generation)
             CommonApi.loadVesselList(API_URLS.vessel_list, sid, (data) => {
                 vesselDataList = data;
             });
@@ -356,9 +380,10 @@
 
         CommonApi.resetSelect(els.proforma, "Select Proforma");
         els.loadBtn.disabled = true;
+        els.existingAlert.classList.add('d-none');  // Hide existing data alert
 
         if (lane) {
-            // Proforma 로드 (UI ?�데?�트)
+            // Load Proformas (UI update)
             CommonApi.loadProformas(API_URLS.options, sid, lane, els.proforma);
         } else {
             els.proforma.disabled = true;
@@ -367,6 +392,7 @@
 
     els.proforma.addEventListener('change', function() {
         els.loadBtn.disabled = !this.value;
+        els.existingAlert.classList.add('d-none');  // Hide existing data alert
     });
 
 
@@ -390,7 +416,7 @@
                 if (data.status === 'success') {
                     els.settingsArea.style.display = 'block';
 
-                    // Global Settings ?�용
+                    // Global Settings 적용
                     els.requiredCount.value = data.declared_count;
                     els.slotBadge.textContent = `Total Slots: ${data.declared_count}`;
 
@@ -400,11 +426,32 @@
                     console.log('Set pfFirstDay to:', data.first_port_day);
                     console.log('Required count:', data.declared_count);
 
-                    // ?�력 ?�드 초기??
-                    els.startDate.value = "";
-                    els.ownInput.value = 0;
+                    // From/To Week (read from scenario via API)
+                    if (data.from_year_week) {
+                        els.fromYearWeek.value = data.from_year_week;
+                    }
+                    if (data.to_year_week) {
+                        els.toYearWeek.value = data.to_year_week;
+                    }
 
-                    // Declared Count ?�만?????�성
+                    // Store initial_start_date for row generation
+                    window.initialStartDate = data.initial_start_date || '';
+                    console.log('Initial Start Date:', window.initialStartDate);
+
+                    els.ownInput.value = data.own_vessel_count || 0;
+
+                    // Check for existing Cascading data
+                    if (data.existing_cascading && data.existing_cascading.exists) {
+                        const existing = data.existing_cascading;
+                        els.existingAlert.classList.remove('d-none');
+                        els.existingDetailCount.textContent = `${existing.detail_count} vessels assigned`;
+                        els.existingLink.href = "{% url 'input_data:cascading_detail' 0 %}".replace('0', existing.id);
+                        console.log('Existing Cascading found:', existing);
+                    } else {
+                        els.existingAlert.classList.add('d-none');
+                    }
+
+                    // Declared Count 수만큼 행 생성
                     generateRowsBasedOnRequiredCount();
 
                     validateCreateButton();
@@ -434,15 +481,24 @@
 
         console.log('Generating', count, 'rows based on Declared Count');
 
-        // Select Option HTML ?�성 (캐싱???�이???�용)
+        // Select Option HTML 생성 (캐싱된 데이터 사용)
         let optionsHtml = '<option value="">Select Vessel</option>';
         vesselDataList.forEach(v => {
             optionsHtml += `<option value="${v.vessel_code}" data-cap="${v.max_cap}">${v.vessel_code}</option>`;
         });
 
-        // ???�성
+        // Calculate row dates based on initial_start_date
+        function calculateRowDate(baseDate, rowIndex) {
+            if (!baseDate) return '';
+            const date = new Date(baseDate + 'T00:00:00');
+            date.setDate(date.getDate() + (rowIndex * 7));  // 7 days per slot
+            return getLocalDateString(date);
+        }
+
+        // 행 생성
         els.tbody.innerHTML = '';
         for (let i = 0; i < count; i++) {
+            const rowDate = calculateRowDate(window.initialStartDate, i);
             const tr = document.createElement('tr');
             tr.innerHTML = `
                 <td>${i + 1}</td>
@@ -463,7 +519,7 @@
                            value="" readonly tabindex="-1">
                 </td>
                 <td>
-                    <input type="date" class="form-control" name="vessel_start_date[]" value="" readonly tabindex="-1">
+                    <input type="date" class="form-control" name="vessel_start_date[]" value="${rowDate}" readonly tabindex="-1">
                 </td>
                 <td>
                     <input type="text" class="form-control" name="lane_code_list[]" value="" placeholder="">
@@ -473,77 +529,39 @@
             els.tbody.appendChild(tr);
         }
 
-        // ?�벤???�결
+        // Event binding
         attachRowEvents();
         console.log('Generated', count, 'rows and attached events');
     }
 
-    // Start Date가 변경되�??�짜 ?�데?�트
-    els.startDate.addEventListener('change', function() {
-        const inputDateStr = this.value;
-        const targetDayStr = els.pfFirstDay.value;
+    // Helper function for date formatting
+    function getLocalDateString(date) {
+        const year = date.getFullYear();
+        const month = String(date.getMonth() + 1).padStart(2, '0');
+        const day = String(date.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    }
 
-        // End Date�?Start Date??1???�로 ?�동 ?�정 (기존 값이 ?�는 경우?�만)
-        if (inputDateStr && (!els.endDate.value || els.endDate.value === '')) {
-            const startDate = new Date(inputDateStr);
-            const endDate = new Date(startDate);
-            endDate.setFullYear(startDate.getFullYear() + 1);
+    // Helper functions for date calculations
+    function findNextTargetDay(startDateStr, targetDay) {
+        const targetDayIdx = DAY_MAP[targetDay];
+        let currentDate = new Date(startDateStr + 'T00:00:00');
 
-            const endDateStr = endDate.getFullYear() + '-' +
-                             String(endDate.getMonth() + 1).padStart(2, '0') + '-' +
-                             String(endDate.getDate()).padStart(2, '0');
-
-            els.endDate.value = endDateStr;
-            console.log('Auto-set End Date to:', endDateStr);
+        if (currentDate.getDay() === targetDayIdx) {
+            return currentDate;
         }
 
-        if (!inputDateStr || !targetDayStr) {
-            console.log('Missing date or target day');
-            return;
+        let daysToAdd = 0;
+        let testDate = new Date(currentDate.getTime());
+
+        while (testDate.getDay() !== targetDayIdx && daysToAdd < 7) {
+            daysToAdd++;
+            testDate.setDate(currentDate.getDate() + daysToAdd);
         }
 
-        // ?�짜 계산
-        function findNextTargetDay(startDateStr, targetDay) {
-            const targetDayIdx = DAY_MAP[targetDay];
-            let currentDate = new Date(startDateStr + 'T00:00:00');
+        return testDate;
+    }
 
-            if (currentDate.getDay() === targetDayIdx) {
-                return currentDate;
-            }
-
-            let daysToAdd = 0;
-            let testDate = new Date(currentDate.getTime());
-
-            while (testDate.getDay() !== targetDayIdx && daysToAdd < 7) {
-                daysToAdd++;
-                testDate.setDate(currentDate.getDate() + daysToAdd);
-            }
-
-            return testDate;
-        }
-
-        function getLocalDateString(date) {
-            const year = date.getFullYear();
-            const month = String(date.getMonth() + 1).padStart(2, '0');
-            const day = String(date.getDate()).padStart(2, '0');
-            return `${year}-${month}-${day}`;
-        }
-
-        const baseDate = findNextTargetDay(inputDateStr, targetDayStr);
-
-        // 기존 ?�들???�짜�??�데?�트
-        const rows = els.tbody.querySelectorAll('tr');
-        rows.forEach((tr, i) => {
-            const dateInput = tr.querySelector('input[name="vessel_start_date[]"]');
-            if (dateInput) {
-                const rowDate = new Date(baseDate.getTime());
-                rowDate.setDate(baseDate.getDate() + (i * 7));
-                dateInput.value = getLocalDateString(rowDate);
-            }
-        });
-
-        console.log('Updated dates for existing rows');
-    });
 
 
     // --- 5. Event Handling (Row Interactions) ---
@@ -610,13 +628,11 @@
     function triggerLaneCheck(vesselCode, laneInput) {
         const params = {
             scenario_id: els.scenario.value,
-            vessel_code: vesselCode,
-            start_date: els.startDate.value,
-            end_date: els.endDate ? els.endDate.value : ''
+            vessel_code: vesselCode
         };
 
-        if (params.scenario_id && params.start_date && params.end_date) {
-            // CommonApi ?�용
+        if (params.scenario_id && params.vessel_code) {
+            // CommonApi 사용
             CommonApi.checkVesselLane(API_URLS.vessel_check, params, (data) => {
                 if (data.lane_code) {
                     laneInput.value = data.lane_code;

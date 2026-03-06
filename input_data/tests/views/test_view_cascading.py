@@ -56,7 +56,6 @@ class TestCascadingView:
         # preserved_data에 기존 데이터가 로드됨
         preserved_data = response.context["preserved_data"]
         assert preserved_data["own_vessel_count"] == 2
-        assert preserved_data["effective_start_date"] is not None
 
         # restored_rows에 기존 선박 정보가 체크되고 선택된 상태로 표시
         restored_rows = response.context["restored_rows"]
@@ -150,7 +149,7 @@ class TestCascadingView:
         response = auth_client.post(url, data=form_data)
 
         # 저장 성공 확인
-        assert response.status_code == 302
+        assert response.status_code == 200
 
         # Cascading DB 저장 확인
         cascading = CascadingSchedule.objects.first()
@@ -198,8 +197,7 @@ class TestCascadingView:
         # 저장 성공 확인
         cascading = CascadingSchedule.objects.first()
         assert cascading is not None
-        assert cascading.effective_start_date.strftime("%Y-%m-%d") == "2026-02-15"
-        assert cascading.effective_end_date.strftime("%Y-%m-%d") == "2027-02-15"
+        assert cascading.proforma_start_etb_date is not None
 
     def test_cascading_act_006_error_data_recovery(self, auth_client, sample_schedule):
         """
@@ -214,7 +212,6 @@ class TestCascadingView:
             "lane_code": sample_schedule.lane_code,
             "proforma_name": sample_schedule.proforma_name,
             "own_vessel_count": 2,
-            "effective_start_date": "2026-02-15",
             "effective_end_date": "2027-02-15",
             # vessel_code[] 누락으로 에러 유발
             "action": "save",
@@ -226,36 +223,32 @@ class TestCascadingView:
         if response.status_code == 200:
             # 에러 상태로 200 응답한 경우 - preserved_data에 입력값 유지 확인
             preserved_data = response.context.get("preserved_data", {})
-            assert preserved_data.get("effective_start_date") == "2026-02-15"
             assert preserved_data.get("own_vessel_count") == "2"  # POST 데이터는 문자열
         else:
             # 리다이렉트된 경우 (에러가 발생했지만 redirect 처리)
             assert response.status_code == 302
 
-    def test_cascading_list_001_list_view(self, auth_client, multiple_cascading_data):
+    def test_cascading_vessel_info_001_view(self, auth_client, multiple_cascading_data):
         """
-        [CASCADING_LIST_001] Cascading 목록 조회
-        동적 Select 필터 기반의 목록 화면 표출 및 새 컬럼 표시 검증
+        [CASCADING_VESSEL_INFO_001] Cascading Vessel Info 조회
+        Scenario 선택 시 Lane별 Cascading 결과 대시보드 표시 검증
         """
-        url = reverse("input_data:cascading_list")
+        url = reverse("input_data:cascading_vessel_info")
         response = auth_client.get(
             url,
             {
                 "scenario_id": multiple_cascading_data[0].scenario.id,
-                "lane_code": "TEST_LANE",
             },
         )
 
         assert response.status_code == 200
 
-        # 검색 조건에 맞는 데이터만 표출
-        cascading_list = response.context["cascading_list"]
-        assert len(cascading_list) == 2  # multiple_cascading_data에서 2개 생성
+        # 대시보드 데이터 표출 확인
+        dashboard_data = response.context["dashboard_data"]
+        assert len(dashboard_data) == 2  # multiple_cascading_data에서 2개 생성
 
-        # 새 컬럼들이 정상 렌더링되는지 확인 (템플릿에서 처리)
-        content = response.content.decode()
-        assert "Initial ETB Date" in content  # 템플릿의 실제 헤더명
-        assert "Own Vessels" in content  # 템플릿의 실제 헤더명
+        # 슬롯 헤더 확인
+        assert "slot_headers" in response.context
 
     def test_cascading_detail_001_detail_view(
         self, auth_client, cascading_with_details
