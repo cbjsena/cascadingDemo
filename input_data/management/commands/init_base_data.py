@@ -46,8 +46,13 @@ class Command(BaseCommand):
                 return 0
             return 1
 
-        target_models.sort(key=_load_order)
+        target_models.sort(key=_load_order, reverse=True)
 
+        # fk 때문에 기존 데이터 모두 삭제
+        for model in target_models:
+            model.objects.all().delete()
+
+        target_models.sort(key=_load_order)
         # 5. 모델 순회하며 데이터 로드
         for model in target_models:
             table_name = model._meta.db_table
@@ -71,9 +76,6 @@ class Command(BaseCommand):
         self.stdout.write(
             self.style.MIGRATE_HEADING(msg.START_LOADING.format(table=table_name))
         )
-
-        # 기존 데이터 삭제 (중복 방지)
-        model.objects.all().delete()
 
         data_list = []
 

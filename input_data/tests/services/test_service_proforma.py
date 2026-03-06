@@ -5,7 +5,7 @@ import pytest
 
 from django.conf import settings
 
-from input_data.models import Distance, ProformaScheduleDetail
+from input_data.models import Distance, MasterPort, ProformaScheduleDetail
 from input_data.services.proforma_service import ProformaService
 
 
@@ -163,7 +163,7 @@ class TestProformaServiceLogic:
         proforma_service.save_schedule(header, rows, user)
 
         qs = ProformaScheduleDetail.objects.filter(
-            proforma__scenario=base_scenario, proforma__lane_code="SVC_TEST"
+            proforma__scenario=base_scenario, proforma__lane_id="SVC_TEST"
         ).order_by("calling_port_seq")
 
         assert qs.count() == 3
@@ -226,10 +226,19 @@ class TestProformaFileCalculation:
 
             dist_val = float(curr.get("link_distance") or 0)
             if dist_val > 0:
+                # Distance FK 참조 무결성 보장
+                MasterPort.objects.get_or_create(
+                    port_code=curr["port_code"],
+                    defaults={"port_name": curr["port_code"]},
+                )
+                MasterPort.objects.get_or_create(
+                    port_code=next_row["port_code"],
+                    defaults={"port_name": next_row["port_code"]},
+                )
                 Distance.objects.get_or_create(
                     scenario=base_scenario,
-                    from_port_code=curr["port_code"],
-                    to_port_code=next_row["port_code"],
+                    from_port_id=curr["port_code"],
+                    to_port_id=next_row["port_code"],
                     defaults={
                         "distance": dist_val,
                         "eca_distance": float(curr.get("link_eca_distance") or 0),

@@ -1,5 +1,5 @@
 ﻿[Base Data Table Definition]
-Generated At,2026-03-06 05:36:52
+Generated At,2026-03-06 12:55:10
 
 Table Name,Column Name,Data Type,Nullable,Description (Comment)
 base_bunker_consumption_port,base_year_month,string,NO,Year and month used as the base period / YYYYMM
@@ -12,50 +12,48 @@ base_bunker_consumption_sea,vessel_capacity,int,NO,"Vessel Capacity (TEU), 1851 
 base_bunker_consumption_sea,sea_speed,numeric,NO,"Speed (Knot), 13 types consisting of 0.5 difference from 14 to 20"
 base_bunker_consumption_sea,bunker_consumption,numeric,NO,Daily bunker consumption at sea (Ton)
 base_bunker_price,base_year_month,string,NO,Year and month used as the base period / YYYYMM
-base_bunker_price,trade_code,string,NO,Trade Code / 3 alpha
-base_bunker_price,lane_code,string,NO,Lane Code / 3 alphanum
 base_bunker_price,bunker_type,string,NO,"Bunker type {LSFO: Low Sulphur Fuel Oil, MGO: Marine Gas Oil}"
 base_bunker_price,bunker_price,numeric,NO,Bunker Price (USD per Ton)
-base_constraint_fixed_deployment,lane_code,string,NO,Lane Code / 3 alphanum
+base_bunker_price,lane_code,string,NO,Lane Code / 3 alphanum
+base_bunker_price,trade_code,string,NO,Trade Code / 3 alpha
 base_constraint_fixed_deployment,vessel_code,string,NO,Vessel Code / 4 alphanum
 base_constraint_fixed_deployment,effective_from_date,datetime,NO,Effective date from which the deployment is applied.
 base_constraint_fixed_deployment,deployment_type,string,NO,"Indicates whether the vessel must be included in or excluded from the lane {I: Include, E: Exclude}"
 base_constraint_fixed_deployment,remark,string,YES,Remark
+base_constraint_fixed_deployment,lane_code,string,NO,Lane Code / 3 alphanum
 base_constraint_fixed_schedule_change,vessel_code,string,NO,Vessel Code / 4 alphanum
-base_constraint_fixed_schedule_change,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
 base_constraint_fixed_schedule_change,schedule_change_status_code,string,YES,"Schedule Change Status {A: Ad hoc Call, I: Phase In, L: Vessel Slide, O: Phase Out, S: Port Omission, R: Port Call Swap}"
 base_constraint_fixed_schedule_change,eta,datetime,NO,Estimated Time of Arrival
 base_constraint_fixed_schedule_change,remark,string,YES,Remark
-base_constraint_port,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
+base_constraint_fixed_schedule_change,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
 base_constraint_port,terminal_code,string,NO,"Terminal Code (Port Code +2-digit number, e.g., KRPUS01)"
 base_constraint_port,exclude_vessel_class,string,YES,Maximum allowable vessel class size (TEU)
+base_constraint_port,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
 base_cost_canal_fee,vessel_code,string,NO,Vessel Code / 4 alphanum
 base_cost_canal_fee,direction,string,NO,"Direction {W, E}"
-base_cost_canal_fee,port_code,string,NO,"Port Code where the canal is located {PAPCA, EGSCA}"
 base_cost_canal_fee,canal_fee,numeric,NO,Canal Transit Fee (USD)
-base_cost_distance,from_port_code,string,NO,From Port Code
-base_cost_distance,to_port_code,string,NO,To Port Code
+base_cost_canal_fee,port_code,string,NO,"Port Code where the canal is located {PAPCA, EGSCA}"
 base_cost_distance,distance,int,NO,Port-to-Port Distance (NM)
 base_cost_distance,eca_distance,int,NO,Port-to-Port ECA Distance (NM)
+base_cost_distance,from_port_code,string,NO,From Port Code
+base_cost_distance,to_port_code,string,NO,To Port Code
 base_cost_ts_cost,base_year_month,string,NO,Year and month used as the base period / YYYYMM
-base_cost_ts_cost,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
 base_cost_ts_cost,ts_cost,int,NO,Transshipment Cost (USD)
-base_schedule_cascading,lane_code,string,NO,Lane Code
+base_cost_ts_cost,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
 base_schedule_cascading,proforma_name,string,NO,Proforma Name
 base_schedule_cascading,vessel_position,int,NO,"Vessel Position (slot number, 1-based)"
 base_schedule_cascading,vessel_position_date,date,NO,Vessel Position Date (ETB date for this slot)
-base_schedule_cascading_vessel_position,lane_code,string,NO,Lane Code
+base_schedule_cascading,lane_code,string,NO,Lane Code
 base_schedule_cascading_vessel_position,proforma_name,string,NO,Proforma Name
 base_schedule_cascading_vessel_position,vessel_code,string,NO,Vessel Code
 base_schedule_cascading_vessel_position,vessel_position,int,NO,"Vessel Position (slot number, 1-based)"
 base_schedule_cascading_vessel_position,vessel_position_date,date,NO,Vessel Position Date (ETB date for this slot)
-base_schedule_long_range,lane_code,string,NO,Lane Code / 3 alphanum
+base_schedule_cascading_vessel_position,lane_code,string,NO,Lane Code
 base_schedule_long_range,vessel_code,string,NO,Vessel Code / 4 alphanum
 base_schedule_long_range,voyage_number,string,NO,Voyage Number / 4 numeric digits
 base_schedule_long_range,direction,string,NO,"Direction {W, E, S, N}"
 base_schedule_long_range,start_port_berthing_year_week,string,NO,Start Port Berthing Year Week
 base_schedule_long_range,proforma_name,string,NO,Proforma Name / 4 numeric digits
-base_schedule_long_range,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
 base_schedule_long_range,calling_port_indicator,string,NO,Port call order per port within a VVD
 base_schedule_long_range,calling_port_seq,int,NO,Port call sequence within the VVD
 base_schedule_long_range,schedule_change_status_code,string,YES,"Schedule Change Status {A: Ad hoc Call, I: Phase In, L: Vessel Slide, O: Phase Out, S: Port Omission, R: Port Call Swap}"
@@ -63,7 +61,8 @@ base_schedule_long_range,eta,datetime,YES,Estimated Time of Arrival
 base_schedule_long_range,etb,datetime,YES,Estimated Time of Berthing
 base_schedule_long_range,etd,datetime,YES,Estimated Time of Departure
 base_schedule_long_range,terminal_code,string,YES,"Terminal Code (Port Code + 2-digit number, e.g., KRPUS01)"
-base_schedule_proforma,lane_code,string,NO,Lane Code / 3 alphanum
+base_schedule_long_range,lane_code,string,NO,Lane Code / 3 alphanum
+base_schedule_long_range,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
 base_schedule_proforma,proforma_name,string,NO,Proforma Name / 4 numeric digits
 base_schedule_proforma,effective_from_date,datetime,NO,Effective start date of the proforma.
 base_schedule_proforma,effective_to_date,datetime,YES,Effective end date of the proforma.
@@ -72,7 +71,6 @@ base_schedule_proforma,declared_capacity,string,NO,"Declared vessel capacity (TE
 base_schedule_proforma,declared_count,int,NO,Declared number of vessels for the lane
 base_schedule_proforma,own_vessel_count,int,NO,Number of own vessels assigned via cascading
 base_schedule_proforma,direction,string,NO,"Direction {W, E, S, N}"
-base_schedule_proforma,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
 base_schedule_proforma,calling_port_indicator,string,NO,Port call order for each direction and port within the lane
 base_schedule_proforma,calling_port_seq,int,NO,Port call sequence within the lane
 base_schedule_proforma,turn_port_info_code,string,NO,Turning Port Indicator (Y/N) / Y: Create Virtual Port 
@@ -90,13 +88,15 @@ base_schedule_proforma,link_eca_distance,int,YES,ECA Distance to Next Port (NM)
 base_schedule_proforma,link_speed,numeric,YES,Average Speed to Next Port (knots)
 base_schedule_proforma,sea_time_hours,numeric,YES,"Sea Time (hours), Next port ETB − Current port ETD − Current port Pilot Out + Next port Pilot In"
 base_schedule_proforma,terminal_code,string,NO,"Terminal Code (Port Code + 2-digit number, e.g., KRPUS01)"
-base_vessel_capacity,trade_code,string,NO,Trade Code / 3 alpha
-base_vessel_capacity,lane_code,string,NO,Lane Code / 3 alphanum
+base_schedule_proforma,lane_code,string,NO,Lane Code / 3 alphanum
+base_schedule_proforma,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
 base_vessel_capacity,vessel_code,string,NO,Vessel Code / 4 alphanum
 base_vessel_capacity,voyage_number,string,NO,Voyage Number / 4 numeric digits
 base_vessel_capacity,direction,string,NO,"Direction {W, E, S, N}"
 base_vessel_capacity,vessel_capacity,int,NO,Vessel Capacity (TEU)
 base_vessel_capacity,reefer_capacity,int,NO,Max Reefer Containers (Plug Capacity)
+base_vessel_capacity,lane_code,string,NO,Lane Code / 3 alphanum
+base_vessel_capacity,trade_code,string,NO,Trade Code / 3 alpha
 base_vessel_charter_cost,vessel_code,string,NO,Vessel Code / 4 alphanum
 base_vessel_charter_cost,hire_from_date,datetime,NO,From date for applying the hire cost
 base_vessel_charter_cost,hire_to_date,datetime,NO,To date for applying the hire cost

@@ -33,7 +33,7 @@ def long_range_list(request):
         lrs_qs = LongRangeSchedule.objects.filter(scenario_id=scenario_id)
 
         if lane_code:
-            lrs_qs = lrs_qs.filter(lane_code=lane_code)
+            lrs_qs = lrs_qs.filter(lane_id=lane_code)
 
         if proforma_name:
             lrs_qs = lrs_qs.filter(proforma_name=proforma_name)

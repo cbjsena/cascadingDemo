@@ -49,7 +49,7 @@ class TestCascadingView:
             url,
             {
                 "scenario_id": first_pos.scenario.id,
-                "lane_code": first_pos.proforma.lane_code,
+                "lane_code": first_pos.proforma.lane_id,
                 "proforma_name": first_pos.proforma.proforma_name,
             },
         )
@@ -211,7 +211,7 @@ class TestCascadingView:
 
         incomplete_data = {
             "scenario_id": sample_schedule.scenario.id,
-            "lane_code": sample_schedule.lane_code_id,
+            "lane_code": sample_schedule.lane_id,
             "proforma_name": sample_schedule.proforma_name,
             "own_vessel_count": 2,
             "action": "save",
@@ -303,7 +303,7 @@ class TestCascadingView:
             edit_url,
             {
                 "scenario_id": first_pos.scenario.id,
-                "lane_code": first_pos.proforma.lane_code_id,
+                "lane_code": first_pos.proforma.lane_id,
                 "proforma_name": first_pos.proforma.proforma_name,
             },
         )

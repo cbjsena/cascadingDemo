@@ -34,7 +34,7 @@ class TestCascadingService:
 
         result = cascading_service.get_cascading_data(
             scenario_id=first_pos.scenario.id,
-            lane_code=first_pos.proforma.lane_code_id,
+            lane_code=first_pos.proforma.lane_id,
             proforma_name=first_pos.proforma.proforma_name,
         )
 
@@ -64,14 +64,14 @@ class TestCascadingService:
 
         # Given: BaseCascadingVesselPosition 데이터 생성
         BaseCascadingVesselPosition.objects.create(
-            lane_code=sample_schedule.lane_code_id,
+            lane_id=sample_schedule.lane_id,
             proforma_name=sample_schedule.proforma_name,
             vessel_code="V001",
             vessel_position=1,
             vessel_position_date=date(2026, 2, 15),
         )
         BaseCascadingVesselPosition.objects.create(
-            lane_code=sample_schedule.lane_code_id,
+            lane_id=sample_schedule.lane_id,
             proforma_name=sample_schedule.proforma_name,
             vessel_code="V002",
             vessel_position=2,

@@ -238,14 +238,14 @@ def proforma_list(request):
     queryset = (
         ProformaSchedule.objects.select_related("scenario")
         .annotate(port_count=Count("details"))
-        .order_by("-scenario__created_at", "lane_code", "effective_from_date")
+        .order_by("-scenario__created_at", "lane_id", "effective_from_date")
     )
 
     # 2. 검색 필터 적용
     if scenario_id:
         queryset = queryset.filter(scenario_id=scenario_id)
     if lane_code:
-        queryset = queryset.filter(lane_code__icontains=lane_code)
+        queryset = queryset.filter(lane__lane_code__icontains=lane_code)
 
     # 3. 셀렉트 박스용 시나리오 전체 목록 가져오기
     scenarios = ScenarioInfo.objects.all().order_by("-created_at")

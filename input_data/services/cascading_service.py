@@ -17,7 +17,7 @@ class CascadingService:
         """[Edit 모드용] Cascading 데이터를 불러옵니다."""
         # 1. Master Proforma 가져오기
         master_proforma = ProformaSchedule.objects.filter(
-            scenario_id=scenario_id, lane_code=lane_code, proforma_name=proforma_name
+            scenario_id=scenario_id, lane_id=lane_code, proforma_name=proforma_name
         ).first()
 
         if not master_proforma:
@@ -102,7 +102,7 @@ class CascadingService:
 
         scenario = ScenarioInfo.objects.get(id=scenario_id)
         master_proforma = ProformaSchedule.objects.filter(
-            scenario=scenario, lane_code=lane_code, proforma_name=proforma_name
+            scenario=scenario, lane_id=lane_code, proforma_name=proforma_name
         ).first()
 
         if not master_proforma:

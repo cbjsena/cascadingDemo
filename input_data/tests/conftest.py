@@ -44,7 +44,7 @@ def master_data(db):
         "LANE_DUR0",
         "TEST_SAVE",
         "SVC_TEST",
-        "UPLOAD_LANE",
+        "UP_LANE",
     ]
     for code in lanes:
         MasterLane.objects.get_or_create(lane_code=code, defaults={"lane_name": code})
@@ -67,7 +67,7 @@ def master_data(db):
         "A",
         "B",
         "C",
-        "UPLOAD_PORT",
+        "UP_PORT",
     ]
     for code in ports:
         MasterPort.objects.get_or_create(port_code=code, defaults={"port_name": code})
@@ -142,7 +142,7 @@ def scenario_with_data(db, user):
     # 2. 자식 생성 (Proforma Master)
     master = ProformaSchedule.objects.create(
         scenario=scenario,
-        lane_code="TEST_LANE",
+        lane_id="TEST_LANE",
         proforma_name="PF_DATA",
         effective_from_date=timezone.now(),
         duration=40.0,
@@ -156,7 +156,7 @@ def scenario_with_data(db, user):
     ProformaScheduleDetail.objects.create(
         proforma=master,
         direction="E",
-        port_code="KRPUS",
+        port_id="KRPUS",
         calling_port_indicator="1",
         calling_port_seq=1,
         turn_port_info_code="N",
@@ -181,7 +181,7 @@ def sample_schedule(db, base_scenario, user):
     # 1. Master 생성
     master = ProformaSchedule.objects.create(
         scenario=base_scenario,
-        lane_code="TEST_LANE",
+        lane_id="TEST_LANE",
         proforma_name="PF_001",
         effective_from_date=timezone.now(),
         duration=14.0,
@@ -196,7 +196,7 @@ def sample_schedule(db, base_scenario, user):
     ProformaScheduleDetail.objects.create(
         proforma=master,
         direction="E",
-        port_code="KRPUS",
+        port_id="KRPUS",
         calling_port_indicator="1",
         calling_port_seq=1,
         turn_port_info_code="N",
@@ -233,7 +233,7 @@ def pf_complex_data(db, base_scenario, user):
     # 1. Master 생성
     master = ProformaSchedule.objects.create(
         scenario=base_scenario,
-        lane_code="TEST_LANE",
+        lane_id="TEST_LANE",
         proforma_name="PF_COMPLEX",
         effective_from_date=timezone.now(),
         duration=14.0,  # Round Trip 14일
@@ -256,7 +256,7 @@ def pf_complex_data(db, base_scenario, user):
     # 1. Start Port (Head Y)
     ProformaScheduleDetail.objects.create(
         **common_detail_data,
-        port_code="PORT_A",
+        port_id="PORT_A",
         calling_port_indicator="1",
         calling_port_seq=1,
         turn_port_info_code="Y",  # Head Virtual O
@@ -267,7 +267,7 @@ def pf_complex_data(db, base_scenario, user):
     # 2. Middle Port (N)
     ProformaScheduleDetail.objects.create(
         **common_detail_data,
-        port_code="PORT_B",
+        port_id="PORT_B",
         calling_port_indicator="2",
         calling_port_seq=2,
         turn_port_info_code="N",
@@ -278,7 +278,7 @@ def pf_complex_data(db, base_scenario, user):
     # 3. End Port (Tail Y) -> 마지막 포트이므로 Y여도 Virtual X
     ProformaScheduleDetail.objects.create(
         **common_detail_data,
-        port_code="PORT_C",
+        port_id="PORT_C",
         calling_port_indicator="3",
         calling_port_seq=3,
         turn_port_info_code="Y",
@@ -305,11 +305,11 @@ def lrs_integration_data(db, user):
     # - Lane A에는 'VESSEL_A' 배정
     LongRangeSchedule.objects.create(
         scenario=scenario,
-        lane_code="LANE_A",
+        lane_id="LANE_A",
         vessel_code="VESSEL_A",
         voyage_number="0001",
         direction="E",
-        port_code="PUS",
+        port_id="PUS",
         calling_port_seq=1,
         etb=timezone.now(),
         created_by=user,
@@ -318,11 +318,11 @@ def lrs_integration_data(db, user):
     # - Lane B에는 'VESSEL_B' 배정
     LongRangeSchedule.objects.create(
         scenario=scenario,
-        lane_code="LANE_B",
+        lane_id="LANE_B",
         vessel_code="VESSEL_B",
         voyage_number="0001",
         direction="E",
-        port_code="TYO",
+        port_id="TYO",
         calling_port_seq=1,
         etb=timezone.now(),
         created_by=user,
@@ -337,8 +337,8 @@ def distance_data(db, base_scenario):
     """거리 테이블 기초 데이터"""
     return Distance.objects.create(
         scenario=base_scenario,
-        from_port_code="KRPUS",
-        to_port_code="JPTYO",
+        from_port_id="KRPUS",
+        to_port_id="JPTYO",
         distance=500,
         eca_distance=100,
     )
@@ -396,7 +396,7 @@ def cascading_form_data(sample_schedule):
     """
     return {
         "scenario_id": sample_schedule.scenario.id,
-        "lane_code": sample_schedule.lane_code_id,
+        "lane_code": sample_schedule.lane_id,
         "proforma_name": sample_schedule.proforma_name,
         "own_vessel_count": 3,
         "vessel_code[]": ["V001", "V002", "V003"],
@@ -414,7 +414,7 @@ def cascading_invalid_form_data(sample_schedule):
     """
     return {
         "scenario_id": sample_schedule.scenario.id,
-        "lane_code": sample_schedule.lane_code_id,
+        "lane_code": sample_schedule.lane_id,
         "proforma_name": sample_schedule.proforma_name,
         "own_vessel_count": 3,  # 3대 요구
         "vessel_code[]": ["V001", "V002"],  # 2대만 선택 (불일치)
@@ -437,7 +437,7 @@ def multiple_cascading_data(db, base_scenario, user):
         # Proforma 생성
         proforma = ProformaSchedule.objects.create(
             scenario=base_scenario,
-            lane_code="TEST_LANE",
+            lane_id="TEST_LANE",
             proforma_name=f"PF_MULTI_{idx+1}",
             effective_from_date=timezone.now(),
             duration=14.0,

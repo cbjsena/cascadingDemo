@@ -151,6 +151,7 @@ OK2,Normal Vessel 2,2026/01/01 00:00:00"""
     #     """
     #     디버그를 위한 실제 데이터 로드 및 날짜/숫자 파싱 확인
     #     """
+    #     from pathlib import Path
     #     base_dir = Path(r"D:\dev\django\cascadingDemo")
     #     data_dir = base_dir / "data" / "base"
     #     data_dir.mkdir(parents=True, exist_ok=True)

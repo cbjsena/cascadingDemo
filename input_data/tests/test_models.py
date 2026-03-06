@@ -62,7 +62,7 @@ class TestProformaModels:
 
         master = ProformaSchedule.objects.create(
             scenario=base_scenario,
-            lane_code="TEST",
+            lane_id="TEST",
             proforma_name="PF_01",
             effective_from_date=eff_from_date,
             duration=10,
@@ -74,7 +74,7 @@ class TestProformaModels:
         detail = ProformaScheduleDetail.objects.create(
             proforma=master,
             direction="E",
-            port_code="KRPUS",
+            port_id="KRPUS",
             calling_port_indicator="1",
             calling_port_seq=1,
             turn_port_info_code="N",
@@ -95,7 +95,7 @@ class TestProformaModels:
         """
         common_master_data = {
             "scenario": base_scenario,
-            "lane_code": "TEST_LANE",
+            "lane_id": "TEST_LANE",
             "proforma_name": "PF_DUP_TEST",
             "effective_from_date": timezone.now(),
             "duration": 10,
@@ -116,7 +116,7 @@ class TestProformaModels:
         """
         master = ProformaSchedule.objects.create(
             scenario=base_scenario,
-            lane_code="TEST_LANE",
+            lane_id="TEST_LANE",
             proforma_name="PF_DETAIL_TEST",
             effective_from_date=timezone.now(),
             duration=14.0,
@@ -128,7 +128,7 @@ class TestProformaModels:
         common_detail_data = {
             "proforma": master,
             "direction": "E",
-            "port_code": "KRPUS",
+            "port_id": "KRPUS",
             "calling_port_indicator": "1",
             "calling_port_seq": 1,
             "etb_day_number": 0,

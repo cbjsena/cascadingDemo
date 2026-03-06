@@ -1,4 +1,7 @@
-from django.db import models
+from datetime import date
+
+from django.db import IntegrityError, models, transaction
+from django.db.models import Max
 
 from common.models import CommonModel
 
@@ -96,10 +99,10 @@ class MasterLane(models.Model):
     vessel_service_type_code = models.CharField(
         max_length=10, null=True, blank=True, verbose_name="Vessel Service Type Code"
     )
-    start_effective_date = models.DateTimeField(
+    start_effective_date = models.DateField(
         null=True, blank=True, verbose_name="Start Effective Date"
     )
-    end_effective_date = models.DateTimeField(
+    end_effective_date = models.DateField(
         null=True, blank=True, verbose_name="End Effective Date"
     )
     feeder_division_code = models.CharField(
@@ -211,30 +214,42 @@ class ScenarioInfo(CommonModel):
         return f"{self.code} (ID: {self.id})"
 
     def save(self, *args, **kwargs):
-        """Auto-generate code if not provided (format: SCYYYYMMDD_NNN)"""
+        """Auto-generate code with concurrent safe retry (format: SCYYYYMMDD_NNN)"""
         if not self.code:
-            from datetime import date
-
-            from django.db.models import Max
 
             today_str = date.today().strftime("%Y%m%d")
             prefix = f"SC{today_str}_"
 
-            # 오늘 날짜로 생성된 시나리오 중 가장 큰 번호 찾기
-            last_code = ScenarioInfo.objects.filter(code__startswith=prefix).aggregate(
-                max_code=Max("code")
-            )["max_code"]
+            max_retries = 10  # 동시성 충돌 시 최대 재시도 횟수
 
-            if last_code:
-                # 기존 번호에서 숫자 추출 후 +1
-                last_num = int(last_code.split("_")[-1])
-                new_num = last_num + 1
-            else:
-                new_num = 1
+            for attempt in range(max_retries):
+                # 오늘 날짜로 생성된 시나리오 중 가장 큰 번호 찾기
+                last_code = ScenarioInfo.objects.filter(
+                    code__startswith=prefix
+                ).aggregate(max_code=Max("code"))["max_code"]
 
-            self.code = f"{prefix}{new_num:03d}"
+                if last_code:
+                    last_num = int(last_code.split("_")[-1])
+                    new_num = last_num + 1
+                else:
+                    new_num = 1
 
-        super().save(*args, **kwargs)
+                self.code = f"{prefix}{new_num:03d}"
+
+                try:
+                    # 트랜잭션으로 묶어 고유키 충돌 발생 시 롤백 후 재시도
+                    with transaction.atomic():
+                        super().save(*args, **kwargs)
+                    break  # 성공적으로 저장되면 루프 탈출
+
+                except IntegrityError:
+                    if attempt == max_retries - 1:
+                        raise Exception(
+                            "동시 접속이 너무 많아 시나리오 코드를 생성할 수 없습니다. 다시 시도해주세요."
+                        )
+                    continue  # 충돌 시 다음 번호로 다시 시도
+        else:
+            super().save(*args, **kwargs)
 
     @property
     def is_baseline(self):
@@ -306,7 +321,7 @@ class ScenarioBaseModel(CommonModel):
 class BaseProformaSchedule(models.Model):
     """[BASE] 기준 Proforma Schedule"""
 
-    lane_code = models.ForeignKey(
+    lane = models.ForeignKey(
         MasterLane,
         on_delete=models.PROTECT,
         db_column="lane_code",
@@ -340,7 +355,7 @@ class BaseProformaSchedule(models.Model):
     direction = models.CharField(
         max_length=2, choices=DIRECTION_CHOICES, verbose_name="Direction {W, E, S, N}"
     )
-    port_code = models.ForeignKey(
+    port = models.ForeignKey(
         MasterPort,
         on_delete=models.PROTECT,
         db_column="port_code",
@@ -423,18 +438,21 @@ class BaseProformaSchedule(models.Model):
     class Meta:
         verbose_name = "Base Proforma Schedule"
         db_table = "base_schedule_proforma"
-        unique_together = (
-            (
-                "lane_code",
-                "proforma_name",
-                "direction",
-                "port_code",
-                "calling_port_indicator",
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "lane",
+                    "proforma_name",
+                    "direction",
+                    "port",
+                    "calling_port_indicator",
+                ],
+                name="uq_baseproformaschedule",
             ),
-        )
+        ]
 
     def __str__(self):
-        return f"[BASE] {self.lane_code} - {self.proforma_name}"
+        return f"[BASE] {self.lane} - {self.proforma_name}"
 
 
 class ProformaSchedule(ScenarioBaseModel):
@@ -444,7 +462,7 @@ class ProformaSchedule(ScenarioBaseModel):
         "ScenarioInfo", on_delete=models.CASCADE, db_column="scenario_id"
     )
 
-    lane_code = models.ForeignKey(
+    lane = models.ForeignKey(
         MasterLane,
         on_delete=models.PROTECT,
         db_column="lane_code",
@@ -478,10 +496,14 @@ class ProformaSchedule(ScenarioBaseModel):
 
     class Meta:
         db_table = "sce_schedule_proforma"
-        unique_together = ("scenario", "lane_code", "proforma_name")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["scenario", "lane", "proforma_name"], name="uq_proformaschedule"
+            ),
+        ]
 
     def __str__(self):
-        return f"[{self.scenario.id}] {self.lane_code} - {self.proforma_name}"
+        return f"[{self.scenario.id}] {self.lane} - {self.proforma_name}"
 
 
 class ProformaScheduleDetail(CommonModel):
@@ -498,7 +520,7 @@ class ProformaScheduleDetail(CommonModel):
     direction = models.CharField(
         max_length=2, choices=DIRECTION_CHOICES, verbose_name="Direction {W, E, S, N}"
     )
-    port_code = models.ForeignKey(
+    port = models.ForeignKey(
         MasterPort,
         on_delete=models.PROTECT,
         db_column="port_code",
@@ -579,12 +601,12 @@ class ProformaScheduleDetail(CommonModel):
 
     class Meta:
         db_table = "sce_schedule_proforma_detail"
-        unique_together = (
-            "proforma",
-            "direction",
-            "port_code",
-            "calling_port_indicator",
-        )
+        constraints = [
+            models.UniqueConstraint(
+                fields=["proforma", "direction", "port", "calling_port_indicator"],
+                name="uq_proformascheduledetail",
+            ),
+        ]
 
 
 # 2. Cascading
@@ -593,7 +615,7 @@ class ProformaScheduleDetail(CommonModel):
 class BaseCascadingVesselPosition(models.Model):
     """[BASE] 기준 Cascading Vessel Position - Flat Structure for CSV Import"""
 
-    lane_code = models.ForeignKey(
+    lane = models.ForeignKey(
         MasterLane,
         on_delete=models.PROTECT,
         db_column="lane_code",
@@ -612,16 +634,15 @@ class BaseCascadingVesselPosition(models.Model):
         db_table = "base_schedule_cascading_vessel_position"
         verbose_name = "Base Cascading Vessel Position"
         verbose_name_plural = "Base Cascading Vessel Positions"
-        unique_together = (
-            (
-                "lane_code",
-                "proforma_name",
-                "vessel_code",
+        constraints = [
+            models.UniqueConstraint(
+                fields=["lane", "proforma_name", "vessel_code"],
+                name="uq_basecascadingvesselposition",
             ),
-        )
+        ]
 
     def __str__(self):
-        return f"{self.lane_code} - {self.proforma_name} - {self.vessel_code}"
+        return f"{self.lane} - {self.proforma_name} - {self.vessel_code}"
 
 
 class CascadingVesselPosition(ScenarioBaseModel):
@@ -647,7 +668,13 @@ class CascadingVesselPosition(ScenarioBaseModel):
 
     class Meta:
         db_table = "sce_schedule_cascading_vessel_position"
-        unique_together = ("scenario", "proforma", "vessel_position")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["scenario", "proforma", "vessel_position"],
+                name="uq_cascadingvesselposition",
+            ),
+        ]
+
         ordering = ["scenario", "proforma", "vessel_position"]
 
     def __str__(self):
@@ -657,7 +684,7 @@ class CascadingVesselPosition(ScenarioBaseModel):
 class BaseCascadingSchedule(models.Model):
     """[BASE] 기준 Cascading Schedule - Flat Structure for CSV Import (vessel_code 없음, 슬롯 선택만)"""
 
-    lane_code = models.ForeignKey(
+    lane = models.ForeignKey(
         MasterLane,
         on_delete=models.PROTECT,
         db_column="lane_code",
@@ -675,16 +702,15 @@ class BaseCascadingSchedule(models.Model):
         db_table = "base_schedule_cascading"
         verbose_name = "Base Cascading Schedule"
         verbose_name_plural = "Base Cascading Schedules"
-        unique_together = (
-            (
-                "lane_code",
-                "proforma_name",
-                "vessel_position",
+        constraints = [
+            models.UniqueConstraint(
+                fields=["lane", "proforma_name", "vessel_position"],
+                name="uq_basecascadingschedule",
             ),
-        )
+        ]
 
     def __str__(self):
-        return f"{self.lane_code} - {self.proforma_name} - Pos{self.vessel_position}"
+        return f"{self.lane} - {self.proforma_name} - Pos{self.vessel_position}"
 
 
 class CascadingSchedule(ScenarioBaseModel):
@@ -709,7 +735,13 @@ class CascadingSchedule(ScenarioBaseModel):
 
     class Meta:
         db_table = "sce_schedule_cascading"
-        unique_together = ("scenario", "proforma", "vessel_position")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["scenario", "proforma", "vessel_position"],
+                name="uq_cascadingschedule",
+            ),
+        ]
+
         ordering = ["scenario", "proforma", "vessel_position"]
 
     def __str__(self):
@@ -720,7 +752,7 @@ class CascadingSchedule(ScenarioBaseModel):
 class AbsLongRangeSchedule(models.Model):
     """Long Range Schedule 데이터 필드 (추상)"""
 
-    lane_code = models.ForeignKey(
+    lane = models.ForeignKey(
         MasterLane,
         on_delete=models.PROTECT,
         db_column="lane_code",
@@ -741,7 +773,7 @@ class AbsLongRangeSchedule(models.Model):
     proforma_name = models.CharField(
         max_length=30, verbose_name="Proforma Name / 4 numeric digits"
     )
-    port_code = models.ForeignKey(
+    port = models.ForeignKey(
         MasterPort,
         on_delete=models.PROTECT,
         db_column="port_code",
@@ -786,16 +818,19 @@ class BaseLongRangeSchedule(AbsLongRangeSchedule):
     class Meta:
         verbose_name = "Base Long Range Schedule"
         db_table = "base_schedule_long_range"
-        unique_together = (
-            (
-                "lane_code",
-                "vessel_code",
-                "voyage_number",
-                "direction",
-                "port_code",
-                "calling_port_indicator",
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "lane",
+                    "vessel_code",
+                    "voyage_number",
+                    "direction",
+                    "port",
+                    "calling_port_indicator",
+                ],
+                name="uq_baselongrangeschedule",
             ),
-        )
+        ]
 
 
 class LongRangeSchedule(AbsLongRangeSchedule, ScenarioBaseModel):
@@ -804,17 +839,20 @@ class LongRangeSchedule(AbsLongRangeSchedule, ScenarioBaseModel):
     class Meta:
         verbose_name = "Long Range Schedule"
         db_table = "sce_schedule_long_range"
-        unique_together = (
-            (
-                "scenario",
-                "lane_code",
-                "vessel_code",
-                "voyage_number",
-                "direction",
-                "port_code",
-                "calling_port_indicator",
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "scenario",
+                    "lane",
+                    "vessel_code",
+                    "voyage_number",
+                    "direction",
+                    "port",
+                    "calling_port_indicator",
+                ],
+                name="uq_longrangeschedule",
             ),
-        )
+        ]
 
     def __str__(self):
         return f"{self.lane_code} - {self.vessel_code}{self.voyage_number}{self.direction} - {self.port_code} ({self.calling_port_indicator})"
@@ -875,7 +913,9 @@ class BaseVesselInfo(AbsVesselInfo):
     class Meta:
         verbose_name = "Base Vessel Info and Charter, Dock, Built of vessel "
         db_table = "base_vessel_info"
-        unique_together = ("vessel_code",)
+        constraints = [
+            models.UniqueConstraint(fields=["vessel_code"], name="uq_basevesselinfo"),
+        ]
 
     def __str__(self):
         return f"[BASE] {self.vessel_code}"
@@ -887,10 +927,11 @@ class VesselInfo(AbsVesselInfo, ScenarioBaseModel):
     class Meta:
         verbose_name = "Vessel Info and Charter, Dock, Built of vessel "
         db_table = "sce_vessel_info"
-        unique_together = (
-            "scenario",
-            "vessel_code",
-        )
+        constraints = [
+            models.UniqueConstraint(
+                fields=["scenario", "vessel_code"], name="uq_vesselinfo"
+            ),
+        ]
 
     def __str__(self):
         return f"[{self.scenario.id}] {self.vessel_code}"
@@ -924,7 +965,11 @@ class BaseCharterCost(AbsCharterCost):
     class Meta:
         verbose_name = "Base Vessel charter hire rate information"
         db_table = "base_vessel_charter_cost"
-        unique_together = (("vessel_code", "hire_from_date"),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["vessel_code", "hire_from_date"], name="uq_basechartercost"
+            ),
+        ]
 
 
 class CharterCost(AbsCharterCost, ScenarioBaseModel):
@@ -933,7 +978,12 @@ class CharterCost(AbsCharterCost, ScenarioBaseModel):
     class Meta:
         verbose_name = "Vessel charter hire rate information"
         db_table = "sce_vessel_charter_cost"
-        unique_together = (("scenario", "vessel_code", "hire_from_date"),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["scenario", "vessel_code", "hire_from_date"],
+                name="uq_chartercost",
+            ),
+        ]
 
 
 # 5. Vessel Capacity
@@ -944,13 +994,13 @@ class AbsVesselCapacity(models.Model):
     해당 테이블의 vessel_capacity를 모델에서 사용
     """
 
-    trade_code = models.ForeignKey(
+    trade = models.ForeignKey(
         MasterTrade,
         on_delete=models.PROTECT,
         db_column="trade_code",
         verbose_name="Trade Code / 3 alpha",
     )
-    lane_code = models.ForeignKey(
+    lane = models.ForeignKey(
         MasterLane,
         on_delete=models.PROTECT,
         db_column="lane_code",
@@ -980,9 +1030,12 @@ class BaseVesselCapacity(AbsVesselCapacity):
     class Meta:
         verbose_name = "Base Vessel capacity information"
         db_table = "base_vessel_capacity"
-        unique_together = (
-            ("trade_code", "lane_code", "vessel_code", "voyage_number", "direction"),
-        )
+        constraints = [
+            models.UniqueConstraint(
+                fields=["trade", "lane", "vessel_code", "voyage_number", "direction"],
+                name="uq_basevesselcapacity",
+            ),
+        ]
 
 
 class VesselCapacity(AbsVesselCapacity, ScenarioBaseModel):
@@ -991,16 +1044,19 @@ class VesselCapacity(AbsVesselCapacity, ScenarioBaseModel):
     class Meta:
         verbose_name = "Vessel capacity information"
         db_table = "sce_vessel_capacity"
-        unique_together = (
-            (
-                "scenario",
-                "trade_code",
-                "lane_code",
-                "vessel_code",
-                "voyage_number",
-                "direction",
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "scenario",
+                    "trade",
+                    "lane",
+                    "vessel_code",
+                    "voyage_number",
+                    "direction",
+                ],
+                name="uq_vesselcapacity",
             ),
-        )
+        ]
 
     def __str__(self):
         return f"{self.trade_code} - {self.lane_code} - {self.vessel_code} - {self.voyage_number} - {self.direction}"
@@ -1021,7 +1077,7 @@ class AbsCanalFee(models.Model):
     direction = models.CharField(
         max_length=2, choices=DIRECTION_CHOICES, verbose_name="Direction {W, E}"
     )
-    port_code = models.ForeignKey(
+    port = models.ForeignKey(
         MasterPort,
         on_delete=models.PROTECT,
         db_column="port_code",
@@ -1041,7 +1097,11 @@ class BaseCanalFee(AbsCanalFee):
     class Meta:
         verbose_name = "Base Canal transit fee information"
         db_table = "base_cost_canal_fee"
-        unique_together = (("vessel_code", "direction", "port_code"),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["vessel_code", "direction", "port"], name="uq_basecanalfee"
+            ),
+        ]
 
 
 class CanalFee(AbsCanalFee, ScenarioBaseModel):
@@ -1050,7 +1110,12 @@ class CanalFee(AbsCanalFee, ScenarioBaseModel):
     class Meta:
         verbose_name = "Canal transit fee information"
         db_table = "sce_cost_canal_fee"
-        unique_together = (("scenario", "vessel_code", "direction", "port_code"),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["scenario", "vessel_code", "direction", "port"],
+                name="uq_canalfee",
+            ),
+        ]
 
     def __str__(self):
         return f"[{self.scenario.id}] {self.vessel_code} @ {self.port_code}"
@@ -1060,19 +1125,19 @@ class CanalFee(AbsCanalFee, ScenarioBaseModel):
 class AbsDistance(models.Model):
     """Distance 데이터 필드 (추상)"""
 
-    from_port_code = models.ForeignKey(
+    from_port = models.ForeignKey(
         MasterPort,
         on_delete=models.PROTECT,
         db_column="from_port_code",
         verbose_name="From Port Code",
-        related_name="distance_from_port",
+        related_name="%(class)s_from_port",
     )
-    to_port_code = models.ForeignKey(
+    to_port = models.ForeignKey(
         MasterPort,
         on_delete=models.PROTECT,
         db_column="to_port_code",
         verbose_name="To Port Code",
-        related_name="distance_to_port",
+        related_name="%(class)s_to_port",
     )
     distance = models.IntegerField(verbose_name="Port-to-Port Distance (NM)")
     eca_distance = models.IntegerField(verbose_name="Port-to-Port ECA Distance (NM)")
@@ -1087,7 +1152,11 @@ class BaseDistance(AbsDistance):
     class Meta:
         verbose_name = "Base Distance and ECA distance between ports"
         db_table = "base_cost_distance"
-        unique_together = (("from_port_code", "to_port_code"),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["from_port", "to_port"], name="uq_basedistance"
+            ),
+        ]
 
 
 class Distance(AbsDistance, ScenarioBaseModel):
@@ -1096,10 +1165,14 @@ class Distance(AbsDistance, ScenarioBaseModel):
     class Meta:
         verbose_name = "Distance and ECA distance between ports"
         db_table = "sce_cost_distance"
-        unique_together = (("scenario", "from_port_code", "to_port_code"),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["scenario", "from_port", "to_port"], name="uq_distance"
+            ),
+        ]
 
     def __str__(self):
-        return f"[{self.scenario.id}] {self.from_port_code} -> {self.to_port_code}"
+        return f"[{self.scenario.id}] {self.from_port_id} -> {self.to_port_id}"
 
 
 # 4. TS Cost
@@ -1109,7 +1182,7 @@ class AbsTSCost(models.Model):
     base_year_month = models.CharField(
         max_length=6, verbose_name="Year and month used as the base period / YYYYMM"
     )
-    port_code = models.ForeignKey(
+    port = models.ForeignKey(
         MasterPort,
         on_delete=models.PROTECT,
         db_column="port_code",
@@ -1128,7 +1201,11 @@ class BaseTSCost(AbsTSCost):
     class Meta:
         verbose_name = "Base Transshipment cost per port"
         db_table = "base_cost_ts_cost"
-        unique_together = (("base_year_month", "port_code"),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["base_year_month", "port"], name="uq_basetscost"
+            ),
+        ]
 
 
 class TSCost(AbsTSCost, ScenarioBaseModel):
@@ -1137,7 +1214,11 @@ class TSCost(AbsTSCost, ScenarioBaseModel):
     class Meta:
         verbose_name = "Transshipment cost per port"
         db_table = "sce_cost_ts_cost"
-        unique_together = (("scenario", "base_year_month", "port_code"),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["scenario", "base_year_month", "port"], name="uq_tscost"
+            ),
+        ]
 
 
 # ==========================================
@@ -1176,7 +1257,12 @@ class BaseBunkerConsumptionSea(AbsBunkerConsumptionSea):
     class Meta:
         verbose_name = "Base Daily bunker consumption by vessel size and speed at sea"
         db_table = "base_bunker_consumption_sea"
-        unique_together = (("base_year_month", "vessel_capacity", "sea_speed"),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["base_year_month", "vessel_capacity", "sea_speed"],
+                name="uq_basebunkerconsumptionsea",
+            ),
+        ]
 
 
 class BunkerConsumptionSea(AbsBunkerConsumptionSea, ScenarioBaseModel):
@@ -1185,9 +1271,12 @@ class BunkerConsumptionSea(AbsBunkerConsumptionSea, ScenarioBaseModel):
     class Meta:
         verbose_name = "Daily bunker consumption by vessel size and speed at sea"
         db_table = "sce_bunker_consumption_sea"
-        unique_together = (
-            ("scenario", "base_year_month", "vessel_capacity", "sea_speed"),
-        )
+        constraints = [
+            models.UniqueConstraint(
+                fields=["scenario", "base_year_month", "vessel_capacity", "sea_speed"],
+                name="uq_bunkerconsumptionsea",
+            ),
+        ]
 
 
 # 2. Bunker Consumption Port
@@ -1226,7 +1315,12 @@ class BaseBunkerConsumptionPort(AbsBunkerConsumptionPort):
     class Meta:
         verbose_name = "Base bunker consumption per hour by vessel size during port stay and idling"
         db_table = "base_bunker_consumption_port"
-        unique_together = (("base_year_month", "vessel_capacity"),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["base_year_month", "vessel_capacity"],
+                name="uq_basebunkerconsumptionport",
+            ),
+        ]
 
 
 class BunkerConsumptionPort(AbsBunkerConsumptionPort, ScenarioBaseModel):
@@ -1237,7 +1331,12 @@ class BunkerConsumptionPort(AbsBunkerConsumptionPort, ScenarioBaseModel):
             "bunker consumption per hour by vessel size during port stay and idling"
         )
         db_table = "sce_bunker_consumption_port"
-        unique_together = (("scenario", "base_year_month", "vessel_capacity"),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["scenario", "base_year_month", "vessel_capacity"],
+                name="uq_bunkerconsumptionport",
+            ),
+        ]
 
 
 # 3. Bunker Price
@@ -1247,13 +1346,13 @@ class AbsBunkerPrice(models.Model):
     base_year_month = models.CharField(
         max_length=6, verbose_name="Year and month used as the base period / YYYYMM"
     )
-    trade_code = models.ForeignKey(
+    trade = models.ForeignKey(
         MasterTrade,
         on_delete=models.PROTECT,
         db_column="trade_code",
         verbose_name="Trade Code / 3 alpha",
     )
-    lane_code = models.ForeignKey(
+    lane = models.ForeignKey(
         MasterLane,
         on_delete=models.PROTECT,
         db_column="lane_code",
@@ -1278,9 +1377,12 @@ class BaseBunkerPrice(AbsBunkerPrice):
     class Meta:
         verbose_name = "Base Bunker price per ton by Lane and Trade and Bunker type"
         db_table = "base_bunker_price"
-        unique_together = (
-            ("base_year_month", "trade_code", "lane_code", "bunker_type"),
-        )
+        constraints = [
+            models.UniqueConstraint(
+                fields=["base_year_month", "trade", "lane", "bunker_type"],
+                name="uq_basebunkerprice",
+            ),
+        ]
 
 
 class BunkerPrice(AbsBunkerPrice, ScenarioBaseModel):
@@ -1289,9 +1391,12 @@ class BunkerPrice(AbsBunkerPrice, ScenarioBaseModel):
     class Meta:
         verbose_name = "Bunker price per ton by Lane and Trade and Bunker type"
         db_table = "sce_bunker_price"
-        unique_together = (
-            ("scenario", "base_year_month", "trade_code", "lane_code", "bunker_type"),
-        )
+        constraints = [
+            models.UniqueConstraint(
+                fields=["scenario", "base_year_month", "trade", "lane", "bunker_type"],
+                name="uq_bunkerprice",
+            ),
+        ]
 
 
 # ==========================================
@@ -1304,7 +1409,7 @@ class AbsFixedVesselDeployment(models.Model):
     특정 Lane에 특정 선박을 '반드시 투입(Include)'하거나 '투입 금지(Exclude)'합니다.
     """
 
-    lane_code = models.ForeignKey(
+    lane = models.ForeignKey(
         MasterLane,
         on_delete=models.PROTECT,
         db_column="lane_code",
@@ -1336,7 +1441,12 @@ class BaseFixedVesselDeployment(AbsFixedVesselDeployment):
     class Meta:
         verbose_name = "Base Constraints for fixed vessel deployment on specific lanes"
         db_table = "base_constraint_fixed_deployment"
-        unique_together = (("lane_code", "vessel_code", "effective_from_date"),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["lane", "vessel_code", "effective_from_date"],
+                name="uq_basefixedvesseldeployment",
+            ),
+        ]
 
 
 class FixedVesselDeployment(AbsFixedVesselDeployment, ScenarioBaseModel):
@@ -1345,9 +1455,12 @@ class FixedVesselDeployment(AbsFixedVesselDeployment, ScenarioBaseModel):
     class Meta:
         verbose_name = "Constraints for fixed vessel deployment on specific lanes"
         db_table = "sce_constraint_fixed_deployment"
-        unique_together = (
-            ("scenario", "lane_code", "vessel_code", "effective_from_date"),
-        )
+        constraints = [
+            models.UniqueConstraint(
+                fields=["scenario", "lane", "vessel_code", "effective_from_date"],
+                name="uq_fixedvesseldeployment",
+            ),
+        ]
 
     def __str__(self):
         type_str = self.get_deployment_type_display()
@@ -1366,7 +1479,7 @@ class AbsFixedScheduleChange(models.Model):
     vessel_code = models.CharField(
         max_length=20, verbose_name="Vessel Code / 4 alphanum"
     )
-    port_code = models.ForeignKey(
+    port = models.ForeignKey(
         MasterPort,
         on_delete=models.PROTECT,
         db_column="port_code",
@@ -1394,9 +1507,12 @@ class BaseFixedScheduleChange(AbsFixedScheduleChange):
     class Meta:
         verbose_name = "Base Constraints for fixed schedule change on specific vessels"
         db_table = "base_constraint_fixed_schedule_change"
-        unique_together = (
-            ("vessel_code", "port_code", "schedule_change_status_code", "eta"),
-        )
+        constraints = [
+            models.UniqueConstraint(
+                fields=["vessel_code", "port", "schedule_change_status_code", "eta"],
+                name="uq_basefixedschedulechange",
+            ),
+        ]
 
 
 class FixedScheduleChange(AbsFixedScheduleChange, ScenarioBaseModel):
@@ -1405,15 +1521,18 @@ class FixedScheduleChange(AbsFixedScheduleChange, ScenarioBaseModel):
     class Meta:
         verbose_name = "Fixed Constraints for fixed schedule change on specific vessels"
         db_table = "sce_constraint_fixed_schedule_change"
-        unique_together = (
-            (
-                "scenario",
-                "vessel_code",
-                "port_code",
-                "schedule_change_status_code",
-                "eta",
+        constraints = [
+            models.UniqueConstraint(
+                fields=[
+                    "scenario",
+                    "vessel_code",
+                    "port",
+                    "schedule_change_status_code",
+                    "eta",
+                ],
+                name="uq_fixedschedulechange",
             ),
-        )
+        ]
 
     def __str__(self):
         return (
@@ -1429,7 +1548,7 @@ class AbsPortConstraint(models.Model):
     특정 항구(또는 터미널)에 들어갈 수 있는 선박의 크기를 제한합니다.
     """
 
-    port_code = models.ForeignKey(
+    port = models.ForeignKey(
         MasterPort,
         on_delete=models.PROTECT,
         db_column="port_code",
@@ -1457,7 +1576,11 @@ class BasePortConstraint(AbsPortConstraint):
     class Meta:
         verbose_name = "Base Constraints on vessel classes prohibited at specific ports"
         db_table = "base_constraint_port"
-        unique_together = (("port_code", "terminal_code"),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["port", "terminal_code"], name="uq_baseportconstraint"
+            ),
+        ]
 
 
 class PortConstraint(AbsPortConstraint, ScenarioBaseModel):
@@ -1466,7 +1589,11 @@ class PortConstraint(AbsPortConstraint, ScenarioBaseModel):
     class Meta:
         verbose_name = "Constraints on vessel classes prohibited at specific ports"
         db_table = "sce_constraint_port"
-        unique_together = (("scenario", "port_code", "terminal_code"),)
+        constraints = [
+            models.UniqueConstraint(
+                fields=["scenario", "port", "terminal_code"], name="uq_portconstraint"
+            ),
+        ]
 
     def __str__(self):
         return f"[{self.scenario.id}] {self.port_code} - {self.terminal_code} Limit"
@@ -1482,10 +1609,11 @@ class BaseWeekPeriod(models.Model):
     class Meta:
         verbose_name = "Week Period"
         db_table = "base_week_period"
-        unique_together = (
-            "base_year",
-            "base_week",
-        )
+        constraints = [
+            models.UniqueConstraint(
+                fields=["base_year", "base_week"], name="uq_baseweekperiod"
+            ),
+        ]
 
     def __str__(self):
         return f"{self.base_year}{self.base_week} - {self.week_start_date} - {self.week_end_date}"
@@ -1805,7 +1933,11 @@ class KPISnapshot(CommonModel):
     class Meta:
         db_table = "sce_kpi_snapshot"
         ordering = ["-snapshot_date"]
-        unique_together = ("scenario", "snapshot_date")
+        constraints = [
+            models.UniqueConstraint(
+                fields=["scenario", "snapshot_date"], name="uq_kpisnapshot"
+            ),
+        ]
 
     def __str__(self):
         return f"KPI - {self.scenario.id} ({self.snapshot_date.date()})"

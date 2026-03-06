@@ -12,7 +12,7 @@ def get_distance_between_ports(scenario_id, origin, destination):
         return 0, 0
 
     dist_obj = Distance.objects.filter(
-        scenario_id=scenario_id, from_port_code=origin, to_port_code=destination
+        scenario_id=scenario_id, from_port_id=origin, to_port_id=destination
     ).first()
 
     if dist_obj:

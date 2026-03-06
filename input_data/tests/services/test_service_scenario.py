@@ -32,10 +32,10 @@ class TestScenarioCreationService:
         """테스트용 Base 데이터 셋업 (하나의 헤더에 2개의 기항지)"""
         now = timezone.now()
         BaseProformaSchedule.objects.create(
-            lane_code="LANE_A",
+            lane_id="LANE_A",
             proforma_name="PF_01",
             direction="E",
-            port_code="PORT_1",
+            port_id="PORT_1",
             calling_port_indicator="1",
             calling_port_seq=1,
             effective_from_date=now,
@@ -49,10 +49,10 @@ class TestScenarioCreationService:
             terminal_code="PORT_101",
         )
         BaseProformaSchedule.objects.create(
-            lane_code="LANE_A",
+            lane_id="LANE_A",
             proforma_name="PF_01",
             direction="W",
-            port_code="PORT_2",
+            port_id="PORT_2",
             calling_port_indicator="2",
             calling_port_seq=2,
             effective_from_date=now,
@@ -77,8 +77,8 @@ class TestScenarioCreationService:
         )
 
         BaseVesselCapacity.objects.create(
-            trade_code="ASIA",
-            lane_code="FE1",
+            trade_id="ASIA",
+            lane_id="FE1",
             vessel_code="V001",
             voyage_number="0001",
             direction="E",
@@ -91,10 +91,10 @@ class TestScenarioCreationService:
         """BaseProformaSchedule 데이터 셋업 (Master-Detail 분리가 필요한 테이블)"""
         now = timezone.now()
         BaseProformaSchedule.objects.create(
-            lane_code="FE1",
+            lane_id="FE1",
             proforma_name="3101",
             direction="E",
-            port_code="KRPUS",
+            port_id="KRPUS",
             calling_port_indicator="01",
             calling_port_seq=1,
             effective_from_date=now,
@@ -108,10 +108,10 @@ class TestScenarioCreationService:
             terminal_code="KRPUS01",
         )
         BaseProformaSchedule.objects.create(
-            lane_code="FE1",
+            lane_id="FE1",
             proforma_name="3101",
             direction="E",
-            port_code="USLAX",
+            port_id="USLAX",
             calling_port_indicator="01",
             calling_port_seq=2,
             effective_from_date=now,
@@ -129,21 +129,21 @@ class TestScenarioCreationService:
     def setup_base_cascading_data(self, setup_base_proforma_data):
         """BaseCascadingVesselPosition 데이터 셋업"""
         BaseCascadingVesselPosition.objects.create(
-            lane_code="FE1",
+            lane_id="FE1",
             proforma_name="3101",
             vessel_code="V001",
             vessel_position=1,
             vessel_position_date="2026-02-15",
         )
         BaseCascadingVesselPosition.objects.create(
-            lane_code="FE1",
+            lane_id="FE1",
             proforma_name="3101",
             vessel_code="V002",
             vessel_position=2,
             vessel_position_date="2026-02-22",
         )
         BaseCascadingVesselPosition.objects.create(
-            lane_code="FE1",
+            lane_id="FE1",
             proforma_name="3101",
             vessel_code="V003",
             vessel_position=3,
@@ -200,10 +200,10 @@ class TestScenarioCreationService:
 
         # Base 데이터 하나 추가
         BaseProformaSchedule.objects.create(
-            lane_code="LANE_B",
+            lane_id="LANE_B",
             proforma_name="PF_02",
             direction="S",
-            port_code="PORT_3",
+            port_id="PORT_3",
             calling_port_indicator="1",
             calling_port_seq=1,
             effective_from_date=timezone.now(),
@@ -266,7 +266,7 @@ class TestScenarioCreationService:
         assert masters.count() == 1
 
         master = masters.first()
-        assert master.lane_code_id == "FE1"
+        assert master.lane_id == "FE1"
         assert master.proforma_name == "3101"
         assert master.declared_count == 5
         assert master.scenario == scenario
@@ -282,7 +282,7 @@ class TestScenarioCreationService:
             assert detail.created_by == user
 
         # 기항지 데이터 확인
-        port_codes = list(details.values_list("port_code", flat=True))
+        port_codes = list(details.values_list("port_id", flat=True))
         assert "KRPUS" in port_codes
         assert "USLAX" in port_codes
 
@@ -339,13 +339,13 @@ class TestScenarioCreationService:
 
         # Given: BaseCascadingSchedule 데이터 추가 (BaseCascadingVesselPosition과 같은 proforma)
         BaseCascadingSchedule.objects.create(
-            lane_code="FE1",
+            lane_id="FE1",
             proforma_name="3101",
             vessel_position=1,
             vessel_position_date="2026-02-15",
         )
         BaseCascadingSchedule.objects.create(
-            lane_code="FE1",
+            lane_id="FE1",
             proforma_name="3101",
             vessel_position=3,
             vessel_position_date="2026-03-01",

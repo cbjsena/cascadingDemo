@@ -47,15 +47,15 @@ def proforma_options(request):
         if not lane_code:
             lanes = (
                 ProformaSchedule.objects.filter(scenario_id=scenario_id)
-                .values_list("lane_code", flat=True)
+                .values_list("lane_id", flat=True)
                 .distinct()
-                .order_by("lane_code")
+                .order_by("lane_id")
             )
             data["options"] = list(lanes)
         else:
             pfs = (
                 ProformaSchedule.objects.filter(
-                    scenario_id=scenario_id, lane_code=lane_code
+                    scenario_id=scenario_id, lane_id=lane_code
                 )
                 .values_list("proforma_name", flat=True)
                 .distinct()
@@ -77,7 +77,7 @@ def proforma_detail(request):
         # 1. Master (헤더 정보) 조회
         master = ProformaSchedule.objects.filter(
             scenario_id=scenario_id,
-            lane_code=lane_code,
+            lane_id=lane_code,
             proforma_name=proforma_name,
         ).first()
 
@@ -172,7 +172,7 @@ def vessel_list(request):
 
         # Lane 필터링이 있는 경우 적용
         if lane_code:
-            qs = qs.filter(lane_code=lane_code)
+            qs = qs.filter(lane_id=lane_code)
 
         qs = (
             qs.values("vessel_code")
@@ -202,7 +202,7 @@ def vessel_lane_check(request):
             etb__date__lte=end_date,
         )
         if lrs_qs.exists():
-            data["lane_code"] = lrs_qs.first().lane_code_id
+            data["lane_code"] = lrs_qs.first().lane_id
             return JsonResponse(data)
 
         # 2. [추가됨] LRS가 안 만들어졌다면, CascadingVesselPosition에서 찾아봄
@@ -214,7 +214,7 @@ def vessel_lane_check(request):
         ).select_related("proforma")
 
         if cas_pos_qs.exists():
-            data["lane_code"] = cas_pos_qs.first().proforma.lane_code_id
+            data["lane_code"] = cas_pos_qs.first().proforma.lane_id
 
     return JsonResponse(data)
 
@@ -229,7 +229,7 @@ def vessel_options(request):
     if scenario_id:
         qs = LongRangeSchedule.objects.filter(scenario_id=scenario_id)
         if lane_code:
-            qs = qs.filter(lane_code=lane_code)
+            qs = qs.filter(lane_id=lane_code)
         vessels = (
             qs.values_list("vessel_code", flat=True).distinct().order_by("vessel_code")
         )

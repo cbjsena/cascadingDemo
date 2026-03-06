@@ -29,7 +29,7 @@ class TestLongRangeService:
         qdict.update(
             {
                 "scenario_id": sample_schedule.scenario.id,
-                "lane_code": sample_schedule.lane_code_id,
+                "lane_code": sample_schedule.lane_id,
                 "proforma_name": sample_schedule.proforma_name,
                 "effective_start_date": start_date.strftime("%Y-%m-%d"),
                 "effective_end_date": end_date.strftime("%Y-%m-%d"),
@@ -47,7 +47,7 @@ class TestLongRangeService:
         ).order_by("etb")
 
         assert schedules.count() > 0
-        assert schedules.first().port_code_id == "KRPUS"
+        assert schedules.first().port_id == "KRPUS"
 
     def test_lrs_svc_head_tail_y_logic(self, lrs_service, pf_complex_data):
         """
@@ -57,7 +57,7 @@ class TestLongRangeService:
         # Given: 부모 Master와 분리된 Detail 리스트 가져오기
         rows = list(
             ProformaScheduleDetail.objects.filter(
-                proforma__scenario=pf_complex_data, proforma__lane_code="TEST_LANE"
+                proforma__scenario=pf_complex_data, proforma__lane_id="TEST_LANE"
             ).order_by("calling_port_seq")
         )
 
@@ -68,17 +68,17 @@ class TestLongRangeService:
         head_virtual = expanded[0]
         head_actual = expanded[1]
 
-        assert head_virtual["obj"].port_code_id == "PORT_A"
+        assert head_virtual["obj"].port_id == "PORT_A"
         assert head_virtual["voyage_offset"] == -1
         assert head_virtual["direction"] == "W"  # 원본 'E'의 반대
 
-        assert head_actual["obj"].port_code_id == "PORT_A"
+        assert head_actual["obj"].port_id == "PORT_A"
         assert head_actual["voyage_offset"] == 0
         assert head_actual["direction"] == "E"
 
         # Tail Y 검증 (마지막 포트는 Y여도 Virtual을 만들지 않음)
         tail_actual = expanded[-1]
-        assert tail_actual["obj"].port_code_id == "PORT_C"
+        assert tail_actual["obj"].port_id == "PORT_C"
         assert tail_actual["voyage_offset"] == 0
 
         # 총 확장 길이 검증 (PORT A: Virtual+Actual, PORT B: Actual, PORT C: Actual)
@@ -94,7 +94,7 @@ class TestLongRangeService:
         # 1. Given: Master-Detail N -> Y -> N 데이터 수동 생성
         master = ProformaSchedule.objects.create(
             scenario=pf_complex_data,
-            lane_code="LANE_MID",
+            lane_id="LANE_MID",
             proforma_name="PF_MID_Y",
             effective_from_date=timezone.now(),
             declared_count=2,
@@ -109,7 +109,7 @@ class TestLongRangeService:
             etb_day_code="SUN",
             etb_day_time="0800",
             etb_day_number=0,
-            port_code="PORT_A",
+            port_id="PORT_A",
             calling_port_indicator="1",
             calling_port_seq=1,
             direction="E",
@@ -122,7 +122,7 @@ class TestLongRangeService:
             etb_day_code="MON",
             etb_day_time="0800",
             etb_day_number=0,
-            port_code="PORT_B",
+            port_id="PORT_B",
             calling_port_indicator="2",
             calling_port_seq=2,
             direction="E",
@@ -135,7 +135,7 @@ class TestLongRangeService:
             etb_day_code="SAT",
             etb_day_time="0800",
             etb_day_number=0,
-            port_code="PORT_C",
+            port_id="PORT_C",
             calling_port_indicator="3",
             calling_port_seq=3,
             direction="W",
@@ -164,9 +164,9 @@ class TestLongRangeService:
         # 3. Then: PORT_B(Seq=2)에서 가상 포트가 만들어졌는지 LRS 결과로 확인
         mid_ports = LongRangeSchedule.objects.filter(
             scenario=pf_complex_data,
-            lane_code="LANE_MID",
+            lane_id="LANE_MID",
             vessel_code="V_MID",
-            port_code="PORT_B",
+            port_id="PORT_B",
             voyage_number="0001",
         ).order_by("calling_port_seq")
 
@@ -190,7 +190,7 @@ class TestLongRangeService:
         # Duration이 0인 Proforma 생성
         master = ProformaSchedule.objects.create(
             scenario=pf_complex_data,
-            lane_code="LANE_DUR0",
+            lane_id="LANE_DUR0",
             proforma_name="PF_DUR_ZERO",
             effective_from_date=timezone.now(),
             declared_count=1,
@@ -205,7 +205,7 @@ class TestLongRangeService:
             etb_day_code="SUN",
             etb_day_time="0800",
             etb_day_number=0,
-            port_code="PORT_X",
+            port_id="PORT_X",
             calling_port_indicator="1",
             calling_port_seq=1,
             direction="E",
@@ -234,7 +234,7 @@ class TestLongRangeService:
 
         # DB에 LRS 데이터가 생성되지 않아야 함
         assert not LongRangeSchedule.objects.filter(
-            scenario=pf_complex_data, lane_code="LANE_DUR0"
+            scenario=pf_complex_data, lane_id="LANE_DUR0"
         ).exists()
 
     def test_lrs_svc_date_continuity(self, lrs_service, sample_schedule, user):
@@ -250,7 +250,7 @@ class TestLongRangeService:
         qdict.update(
             {
                 "scenario_id": sample_schedule.scenario.id,
-                "lane_code": sample_schedule.lane_code_id,
+                "lane_code": sample_schedule.lane_id,
                 "proforma_name": sample_schedule.proforma_name,
                 "effective_start_date": start_date.strftime("%Y-%m-%d"),
                 "effective_end_date": end_date.strftime("%Y-%m-%d"),
@@ -296,7 +296,7 @@ class TestLongRangeService:
         qdict.update(
             {
                 "scenario_id": sample_schedule.scenario.id,
-                "lane_code": sample_schedule.lane_code_id,
+                "lane_code": sample_schedule.lane_id,
                 "proforma_name": sample_schedule.proforma_name,
                 "effective_start_date": start_date.strftime("%Y-%m-%d"),
                 "effective_end_date": end_date.strftime("%Y-%m-%d"),

@@ -34,8 +34,8 @@ class TestApiViews:
         # 1. Distance (PUS -> TYO : 500)
         Distance.objects.create(
             scenario=self.scenario,
-            from_port_code="KRPUS",
-            to_port_code="JPTYO",
+            from_port_id="KRPUS",
+            to_port_id="JPTYO",
             distance=500,
             eca_distance=100,
         )
@@ -46,7 +46,7 @@ class TestApiViews:
         # 2-1. PF_01 Master 생성
         pf_01_master = ProformaSchedule.objects.create(
             scenario=self.scenario,
-            lane_code="LANE_A",
+            lane_id="LANE_A",
             proforma_name="PF_01",
             effective_from_date=timezone.now(),
             declared_count=2,
@@ -60,7 +60,7 @@ class TestApiViews:
             calling_port_seq=1,
             calling_port_indicator="1",
             direction="E",
-            port_code="KRPUS",
+            port_id="KRPUS",
             terminal_code="KRPUS01",
             etb_day_code="MON",
             etb_day_time="0800",
@@ -73,7 +73,7 @@ class TestApiViews:
         # 2-3. PF_02 Master 생성
         pf_02_master = ProformaSchedule.objects.create(
             scenario=self.scenario,
-            lane_code="LANE_B",
+            lane_id="LANE_B",
             proforma_name="PF_02",
             effective_from_date=timezone.now(),
             declared_count=3,
@@ -87,7 +87,7 @@ class TestApiViews:
             calling_port_seq=1,
             calling_port_indicator="1",
             direction="W",
-            port_code="JPTYO",
+            port_id="JPTYO",
             terminal_code="JPTYO01",
             etb_day_code="SUN",
             etb_day_time="0800",
@@ -99,8 +99,8 @@ class TestApiViews:
         # 3. Vessel Capacity (Create 화면용)
         VesselCapacity.objects.create(
             scenario=self.scenario,
-            trade_code="ASIA",
-            lane_code="LANE_A",
+            trade_id="ASIA",
+            lane_id="LANE_A",
             vessel_code="V_CAP_1",
             voyage_number="0001",
             direction="E",
@@ -114,11 +114,11 @@ class TestApiViews:
         # - V_BUSY: LANE_X 점유 (오늘 ~ +10일)
         LongRangeSchedule.objects.create(
             scenario=self.scenario,
-            lane_code="LANE_X",
+            lane_id="LANE_X",
             vessel_code="V_BUSY",
             voyage_number="0001",
             direction="E",
-            port_code="PUS",
+            port_id="PUS",
             calling_port_seq=1,
             etb=timezone.now(),  # 오늘 포함
             created_by=user,
@@ -127,11 +127,11 @@ class TestApiViews:
         # - V_LRS_1: LANE_A (검색 필터 테스트용)
         LongRangeSchedule.objects.create(
             scenario=self.scenario,
-            lane_code="LANE_A",
+            lane_id="LANE_A",
             vessel_code="V_LRS_1",
             voyage_number="0001",
             direction="E",
-            port_code="PUS",
+            port_id="PUS",
             calling_port_seq=1,
             etb=timezone.now(),
             created_by=user,

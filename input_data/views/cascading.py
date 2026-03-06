@@ -93,15 +93,15 @@ def cascading_vessel_create(request):
                 # 해당 시나리오의 모든 Lane Code 가져오기
                 lane_options = list(
                     ProformaSchedule.objects.filter(scenario_id=q_scenario)
-                    .values_list("lane_code", flat=True)
+                    .values_list("lane_id", flat=True)
                     .distinct()
-                    .order_by("lane_code")
+                    .order_by("lane_id")
                 )
 
                 # 해당 시나리오와 Lane Code의 모든 Proforma Name 가져오기
                 proforma_options = list(
                     ProformaSchedule.objects.filter(
-                        scenario_id=q_scenario, lane_code=q_lane
+                        scenario_id=q_scenario, lane_id=q_lane
                     )
                     .values_list("proforma_name", flat=True)
                     .distinct()
@@ -232,7 +232,7 @@ def cascading_vessel_info(request):
         proformas_with_positions = (
             ProformaSchedule.objects.filter(scenario_id=scenario_id)
             .prefetch_related("cascading_positions")
-            .order_by("lane_code", "proforma_name")
+            .order_by("lane_id", "proforma_name")
         )
 
         for proforma in proformas_with_positions:
@@ -276,7 +276,7 @@ def cascading_vessel_info(request):
 
             dashboard_data.append(
                 {
-                    "lane_code": proforma.lane_code_id,
+                    "lane_code": proforma.lane_id,
                     "proforma_name": proforma.proforma_name,
                     "declared_count": declared_count,
                     "own_vessel_count": proforma.own_vessel_count,
@@ -325,7 +325,7 @@ def cascading_schedule_list(request):
 
     if scenario_id:
         proformas = ProformaSchedule.objects.filter(scenario_id=scenario_id).order_by(
-            "lane_code", "proforma_name"
+            "lane_id", "proforma_name"
         )
 
         for pf in proformas:
@@ -352,7 +352,7 @@ def cascading_schedule_list(request):
                 {
                     "scenario_id": scenario_id,
                     "proforma_id": pf.id,
-                    "lane_code": pf.lane_code_id,
+                    "lane_code": pf.lane_id,
                     "proforma_name": pf.proforma_name,
                     "effective_from_date": pf.effective_from_date,
                     "declared_count": declared,
@@ -406,7 +406,7 @@ def cascading_create(request):
 
                 # 각 proforma별로 선택된 슬롯 저장
                 proformas = ProformaSchedule.objects.filter(scenario=scenario).order_by(
-                    "lane_code", "proforma_name"
+                    "lane_id", "proforma_name"
                 )
 
                 for pf in proformas:
@@ -437,7 +437,7 @@ def cascading_create(request):
 
     if scenario_id:
         proformas = ProformaSchedule.objects.filter(scenario_id=scenario_id).order_by(
-            "lane_code", "proforma_name"
+            "lane_id", "proforma_name"
         )
 
         for pf in proformas:
@@ -463,7 +463,7 @@ def cascading_create(request):
             dashboard_data.append(
                 {
                     "proforma_id": pf.id,
-                    "lane_code": pf.lane_code_id,
+                    "lane_code": pf.lane_id,
                     "proforma_name": pf.proforma_name,
                     "effective_from_date": pf.effective_from_date,
                     "declared_count": declared,

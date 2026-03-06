@@ -169,7 +169,7 @@ def scenario_dashboard(request, scenario_id):
             ports_count=Count("details", distinct=True)
         )
         .values(
-            "lane_code",
+            "lane_id",
             "proforma_name",
             "declared_capacity",
             "declared_count",
@@ -180,7 +180,7 @@ def scenario_dashboard(request, scenario_id):
             start_date=Min("effective_from_date"),  # 시작일
             ports_count=Count("details", distinct=True),  # 기항지 수
         )
-        .order_by("lane_code", "proforma_name")
+        .order_by("lane_id", "proforma_name")
     )
 
     # 3. 전체 통계 계산 (Summary Calculation)

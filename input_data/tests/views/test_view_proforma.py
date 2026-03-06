@@ -33,8 +33,8 @@ class TestProformaReadViews:
         # 리스트 데이터 확인
         proforma_list = response.context["proforma_list"]
         assert len(proforma_list) >= 1
-        # [수정됨] 딕셔너리 접근(["lane_code"])에서 객체 속성 접근(.lane_code_id)으로 변경
-        assert any(item.lane_code_id == "TEST_LANE" for item in proforma_list)
+        # [수정됨] 딕셔너리 접근(["lane_code"])에서 객체 속성 접근(.lane_id)으로 변경
+        assert any(item.lane_id == "TEST_LANE" for item in proforma_list)
 
         # [Check] 메뉴 그룹 확인
         assert response.context["current_group"] == MenuGroup.SCHEDULE
@@ -46,7 +46,7 @@ class TestProformaReadViews:
         # 검색 대상이 아닌 데이터 추가 (Master - Detail 분리 구조 적용)
         master = ProformaSchedule.objects.create(
             scenario=base_scenario,
-            lane_code="OTHER",
+            lane_id="OTHER",
             proforma_name="PF_002",
             effective_from_date=timezone.now(),
             duration=14.0,
@@ -59,7 +59,7 @@ class TestProformaReadViews:
         ProformaScheduleDetail.objects.create(
             proforma=master,
             direction="E",
-            port_code="KRPUS",
+            port_id="KRPUS",
             calling_port_indicator="1",
             calling_port_seq=1,
             turn_port_info_code="N",
@@ -87,12 +87,12 @@ class TestProformaReadViews:
         response = auth_client.get(url, {"lane_code": "OTHER"})
         results = response.context["proforma_list"]
         assert len(results) == 1
-        assert results[0].lane_code_id == "OTHER"
+        assert results[0].lane_id == "OTHER"
 
         # 'TEST' 검색 (OTHER 제외 확인)
         response = auth_client.get(url, {"lane_code": "TEST"})
         results = response.context["proforma_list"]
-        assert not any(item.lane_code_id == "OTHER" for item in results)
+        assert not any(item.lane_id == "OTHER" for item in results)
 
     def test_proforma_detail_view(self, auth_client, sample_schedule):
         """
@@ -102,7 +102,7 @@ class TestProformaReadViews:
         url = reverse("input_data:proforma_detail")
         params = {
             "scenario_id": sample_schedule.scenario.id,
-            "lane_code": sample_schedule.lane_code_id,
+            "lane_code": sample_schedule.lane_id,
             "proforma_name": sample_schedule.proforma_name,
         }
         response = auth_client.get(url, params)
@@ -140,7 +140,7 @@ class TestProformaReadViews:
         url = reverse("input_data:proforma_create")
         params = {
             "scenario_id": sample_schedule.scenario.id,
-            "lane_code": sample_schedule.lane_code_id,
+            "lane_code": sample_schedule.lane_id,
             "proforma_name": sample_schedule.proforma_name,
         }
         response = auth_client.get(url, params)
@@ -289,8 +289,8 @@ class TestProformaCalculation:
         assert any(msg.SCHEDULE_SAVE_SUCCESS in str(m) for m in messages)
 
         # Master와 Detail이 모두 생성되었는지 확인
-        assert ProformaSchedule.objects.filter(lane_code="TEST_SAVE").exists()
-        assert ProformaScheduleDetail.objects.filter(port_code="KRPUS").exists()
+        assert ProformaSchedule.objects.filter(lane_id="TEST_SAVE").exists()
+        assert ProformaScheduleDetail.objects.filter(port_id="KRPUS").exists()
 
 
 @pytest.mark.django_db
@@ -351,9 +351,9 @@ class TestProformaFileOperations:
         ws["A2"] = "Scenario ID"
         ws["A3"] = base_scenario.id
         ws["C2"] = "Lane"
-        ws["C3"] = "UPLOAD_LANE"
+        ws["C3"] = "UP_LANE"
         ws["B6"] = "Port\nCode"
-        ws["B7"] = "UPLOAD_PORT"
+        ws["B7"] = "UP_PORT"
 
         f = io.BytesIO()
         wb.save(f)
@@ -366,8 +366,8 @@ class TestProformaFileOperations:
 
         assert response.status_code == 200
         # 파싱 결과 Context 확인
-        assert response.context["header"]["lane_code"] == "UPLOAD_LANE"
-        assert response.context["rows"][0]["port_code"] == "UPLOAD_PORT"
+        assert response.context["header"]["lane_code"] == "UP_LANE"
+        assert response.context["rows"][0]["port_code"] == "UP_PORT"
 
     def test_template_download(self, auth_client):
         """

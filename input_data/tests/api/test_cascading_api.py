@@ -30,7 +30,7 @@ class TestCascadingAPI:
         api_url = reverse("api:proforma_detail")
         params = {
             "scenario_id": first_pos.scenario.id,
-            "lane_code": first_pos.proforma.lane_code,
+            "lane_code": first_pos.proforma.lane_id,
             "proforma_name": first_pos.proforma.proforma_name,
         }
 
@@ -60,7 +60,7 @@ class TestCascadingAPI:
         api_url = reverse("api:proforma_detail")
         params = {
             "scenario_id": first_pos.scenario.id,
-            "lane_code": first_pos.proforma.lane_code,
+            "lane_code": first_pos.proforma.lane_id,
             "proforma_name": first_pos.proforma.proforma_name,
         }
 
@@ -86,8 +86,8 @@ class TestCascadingAPI:
         # Given: 시나리오별 선박 용량 데이터 생성
         VesselCapacity.objects.create(
             scenario=sample_schedule.scenario,
-            trade_code="ASIA",
-            lane_code=sample_schedule.lane_code,
+            trade_id="ASIA",
+            lane_id=sample_schedule.lane_id,
             vessel_code="V001",
             voyage_number="0001",
             direction="E",
@@ -98,8 +98,8 @@ class TestCascadingAPI:
 
         VesselCapacity.objects.create(
             scenario=sample_schedule.scenario,
-            trade_code="ASIA",
-            lane_code=sample_schedule.lane_code,
+            trade_id="ASIA",
+            lane_id=sample_schedule.lane_id,
             vessel_code="V002",
             voyage_number="0001",
             direction="E",
@@ -112,7 +112,7 @@ class TestCascadingAPI:
         api_url = reverse("api:vessel_list")
         params = {
             "scenario_id": sample_schedule.scenario.id,
-            "lane_code": sample_schedule.lane_code,
+            "lane_code": sample_schedule.lane_id,
         }
 
         response = auth_client.get(api_url, params)

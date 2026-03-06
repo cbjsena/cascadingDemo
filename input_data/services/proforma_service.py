@@ -312,13 +312,13 @@ class ProformaService:
 
         # 1. 기존 데이터 삭제 (Master 삭제 시 ON_DELETE=CASCADE로 Detail도 자동 삭제됨)
         ProformaSchedule.objects.filter(
-            scenario=scenario_obj, lane_code=lane_code, proforma_name=proforma_name
+            scenario=scenario_obj, lane_id=lane_code, proforma_name=proforma_name
         ).delete()
 
         # 2. Master(헤더) 신규 생성
         master = ProformaSchedule.objects.create(
             scenario=scenario_obj,
-            lane_code=lane_code,
+            lane_id=lane_code,
             proforma_name=proforma_name,
             effective_from_date=effective_from_date,
             duration=Decimal(header.get("duration") or 0),
@@ -350,7 +350,7 @@ class ProformaService:
             detail = ProformaScheduleDetail(
                 proforma=master,  # [핵심] 생성된 Master 객체를 FK로 연결
                 direction=direction,
-                port_code=port_cd,
+                port_id=port_cd,
                 calling_port_indicator=calling_port_indicator,
                 calling_port_seq=int(row.get("port_seq") or 0),
                 turn_port_info_code=row.get("turn_port_info_code", "N"),
@@ -564,7 +564,7 @@ class ProformaService:
             ProformaSchedule.objects.select_related("scenario")
             .filter(
                 scenario_id=scenario_id,
-                lane_code=lane_code,
+                lane_id=lane_code,
                 proforma_name=proforma_name,
             )
             .first()
@@ -577,7 +577,7 @@ class ProformaService:
         header = {
             "scenario_id": master.scenario_id,
             "scenario_code": master.scenario.code,  # 시나리오 코드 추가
-            "lane_code": master.lane_code_id,
+            "lane_code": master.lane_id,
             "proforma_name": master.proforma_name,
             "effective_from_date": (
                 master.effective_from_date.strftime("%Y-%m-%d")
@@ -595,7 +595,7 @@ class ProformaService:
         for obj in details_qs:
             row = {
                 "port_seq": obj.calling_port_seq,
-                "port_code": obj.port_code_id or "",
+                "port_code": obj.port_id or "",
                 "direction": obj.direction or const.DEFAULT_DIRECTION,
                 "turn_port_info_code": obj.turn_port_info_code
                 or const.DEFAULT_TURN_INO,

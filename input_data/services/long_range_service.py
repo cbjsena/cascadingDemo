@@ -48,7 +48,7 @@ class LongRangeService:
         # =========================================================
         # 2-1. Master 조회 (Duration 추출용)
         master = ProformaSchedule.objects.filter(
-            scenario=scenario, lane_code=lane_code, proforma_name=proforma_name
+            scenario=scenario, lane_id=lane_code, proforma_name=proforma_name
         ).first()
 
         if not master:
@@ -70,9 +70,7 @@ class LongRangeService:
         expanded_sequence = self._get_expanded_sequence(proforma_rows)
 
         # 4. 기존 LRS 삭제 (해당 시나리오/Lane)
-        LongRangeSchedule.objects.filter(
-            scenario=scenario, lane_code=lane_code
-        ).delete()
+        LongRangeSchedule.objects.filter(scenario=scenario, lane_id=lane_code).delete()
 
         # 5. 선박별 LRS 생성 Loop
         new_lrs_list = []
@@ -180,20 +178,20 @@ class LongRangeService:
                     real_etd = v_base_dt + timedelta(days=total_etd_delta)
 
                     # Calling Port Indicator
-                    ind_key = (pf_obj.port_code, direction)
+                    ind_key = (pf_obj.port_id, direction)
                     curr_ind = indicator_map.get(ind_key, 0) + 1
                     indicator_map[ind_key] = curr_ind
 
                     # Create Instance
                     lrs = LongRangeSchedule(
                         scenario=scenario,
-                        lane_code=lane_code,
+                        lane_id=lane_code,
                         vessel_code=v_code,
                         voyage_number=f"{real_voy_num:04d}",
                         direction=direction,
                         start_port_berthing_year_week=start_port_y_w,
                         proforma_name=proforma_name,
-                        port_code=pf_obj.port_code,
+                        port_id=pf_obj.port_id,
                         calling_port_indicator=str(curr_ind),
                         calling_port_seq=lrs_seq,
                         schedule_change_status_code=None,
@@ -221,7 +219,7 @@ class LongRangeService:
             print(f"new_lrs_list length: {len(new_lrs_list)}")
             for i, lrs in enumerate(new_lrs_list):
                 print(
-                    f"[{i}] Vessel: {lrs.vessel_code}{lrs.voyage_number}{lrs.direction} Port: {lrs.port_code}"
+                    f"[{i}] Vessel: {lrs.vessel_code}{lrs.voyage_number}{lrs.direction} Port: {lrs.port_id}"
                 )
 
             LongRangeSchedule.objects.bulk_create(new_lrs_list)
