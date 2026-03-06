@@ -23,7 +23,7 @@ from input_data.services.long_range_service import LongRangeService
 
 
 @login_required
-def cascading_create(request):
+def cascading_vessel_create(request):
     """
     Cascading Schedule 생성 화면
     """
@@ -114,7 +114,7 @@ def cascading_create(request):
             else:
                 messages.error(request, msg.CASCADING_NOT_FOUND)
 
-        return render(request, "input_data/cascading_create.html", context)
+        return render(request, "input_data/cascading_vessel_create.html", context)
 
     # =========================================================
     # 2. POST 처리 (Cascading 저장 -> LRS 엔진 호출)
@@ -136,7 +136,7 @@ def cascading_create(request):
                     messages.success(request, msg.CASCADING_LRS_CREATE_SUCCESS)
 
             # 처리가 끝나면 다시 현재 화면으로 (GET 파라미터는 제거되거나 유지할 수 있음)
-            return redirect("input_data:cascading_create")
+            return redirect("input_data:cascading_vessel_create")
 
         except Exception as e:
             messages.error(request, msg.CASCADING_PROCESS_ERROR.format(error=str(e)))
@@ -173,11 +173,11 @@ def cascading_create(request):
             context["is_error_state"] = True
 
     # 템플릿 이름은 요청하신 대로 변경된 파일을 바라봄
-    return render(request, "input_data/cascading_create.html", context)
+    return render(request, "input_data/cascading_vessel_create.html", context)
 
 
 @login_required
-def cascading_detail(request, pk):
+def cascading_vessel_detail(request, pk):
     """
     Cascading Schedule 상세 조회 (Read-Only)
     """

@@ -43,7 +43,7 @@ CREATION_MENU_STRUCTURE = {
         },
         {
             "name": "Cascading Vessel Creation",
-            "url_name": "input_data:cascading_create",
+            "url_name": "input_data:cascading_vessel_create",
             "key": MenuItem.CASCADING_VESSEL_CREATE,
         },
     ],

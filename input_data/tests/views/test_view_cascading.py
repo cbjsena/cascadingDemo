@@ -20,11 +20,11 @@ class TestCascadingView:
         [CASCADING_VIEW_001] Cascading 초기 진입
         생성 화면 초기 진입 시 빈 껍데기로 정상 로드되는지 확인
         """
-        url = reverse("input_data:cascading_create")
+        url = reverse("input_data:cascading_vessel_create")
         response = auth_client.get(url)
 
         assert response.status_code == 200
-        assert "input_data/cascading_create.html" in [
+        assert "input_data/cascading_vessel_create.html" in [
             t.name for t in response.templates
         ]
         assert response.context["is_edit_mode"] is False
@@ -39,7 +39,7 @@ class TestCascadingView:
         Detail 화면에서 넘어온 파라미터로 수정 모드 진입 시 기존 데이터가 정확히 로드되는지 검증
         """
         # When: 수정 모드 파라미터를 포함하여 GET 요청
-        url = reverse("input_data:cascading_create")
+        url = reverse("input_data:cascading_vessel_create")
         response = auth_client.get(
             url,
             {
@@ -70,7 +70,7 @@ class TestCascadingView:
         [CASCADING_ACT_001] Save Cascading (생성)
         새로운 Cascading 생성 시 변경된 모델 필드명에 맞춰 DB에 정상 저장되는지 검증
         """
-        url = reverse("input_data:cascading_create")
+        url = reverse("input_data:cascading_vessel_create")
         form_data = cascading_form_data.copy()
         form_data["action"] = "save"
 
@@ -105,7 +105,7 @@ class TestCascadingView:
         assert cascading_with_details.proforma.own_vessel_count == 2
 
         # When: Own Vessels를 5로 변경하여 수정
-        url = reverse("input_data:cascading_create")
+        url = reverse("input_data:cascading_vessel_create")
         form_data = cascading_form_data.copy()
         form_data.update(
             {
@@ -142,7 +142,7 @@ class TestCascadingView:
         [CASCADING_ACT_003] Create LRS
         저장 및 LRS 생성 엔진 구동 동시 수행
         """
-        url = reverse("input_data:cascading_create")
+        url = reverse("input_data:cascading_vessel_create")
         form_data = cascading_form_data.copy()
         form_data["action"] = "create_lrs"
 
@@ -167,7 +167,7 @@ class TestCascadingView:
         서버 측에서는 own_vessel_count를 실제 vessel_code[] 개수로 산출하여 저장하므로,
         폼에 own_vessel_count=3을 보내도 실제 선박 2대만 보내면 2로 저장되는지 확인한다.
         """
-        url = reverse("input_data:cascading_create")
+        url = reverse("input_data:cascading_vessel_create")
         form_data = cascading_invalid_form_data.copy()
         form_data["action"] = "save"
 
@@ -187,7 +187,7 @@ class TestCascadingView:
         """
         # 이 테스트는 주로 프론트엔드 JavaScript 로직을 검증하므로,
         # 서버 측에서는 1년 후 날짜로 저장되는지만 확인
-        url = reverse("input_data:cascading_create")
+        url = reverse("input_data:cascading_vessel_create")
         form_data = cascading_form_data.copy()
         form_data["action"] = "save"
 
@@ -204,7 +204,7 @@ class TestCascadingView:
         [CASCADING_ACT_006] 에러 시 데이터 복구
         필수값 누락/에러 발생 시 입력값이 보존되는지 검증
         """
-        url = reverse("input_data:cascading_create")
+        url = reverse("input_data:cascading_vessel_create")
 
         # 불완전한 폼 데이터 (vessel_code[] 누락)
         incomplete_data = {
@@ -273,7 +273,7 @@ class TestCascadingView:
         assert str(cascading.proforma.own_vessel_count) in content
 
         # Edit 버튼의 href에 올바른 파라미터 포함
-        edit_url = reverse("input_data:cascading_create")
+        edit_url = reverse("input_data:cascading_vessel_create")
         assert edit_url in content
         assert f"scenario_id={cascading.scenario.id}" in content
 
@@ -293,7 +293,7 @@ class TestCascadingView:
         assert response.status_code == 200
 
         # Edit URL 생성 및 이동
-        edit_url = reverse("input_data:cascading_create")
+        edit_url = reverse("input_data:cascading_vessel_create")
         edit_response = auth_client.get(
             edit_url,
             {

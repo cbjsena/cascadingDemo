@@ -1,6 +1,6 @@
 from .cascading import (  # noqa: F401
-    cascading_create,
-    cascading_detail,
+    cascading_vessel_create,
+    cascading_vessel_detail,
     cascading_vessel_info,
 )
 from .common import input_list  # noqa: F401

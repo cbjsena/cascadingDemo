@@ -34,13 +34,21 @@ urlpatterns = [
     path(
         "proforma/template/", views.proforma_template_download, name="proforma_template"
     ),
-    path("cascading/create/", views.cascading_create, name="cascading_create"),
+    path(
+        "cascading/create/",
+        views.cascading_vessel_create,
+        name="cascading_vessel_create",
+    ),
     path(
         "cascading/vessel-info/",
         views.cascading_vessel_info,
         name="cascading_vessel_info",
     ),
-    path("cascading/detail/<int:pk>/", views.cascading_detail, name="cascading_detail"),
+    path(
+        "cascading/detail/<int:pk>/",
+        views.cascading_vessel_detail,
+        name="cascading_detail",
+    ),
     path("long_range/list/", views.long_range_list, name="long_range_list"),
     # AJAX용
     # Input List (Common)
