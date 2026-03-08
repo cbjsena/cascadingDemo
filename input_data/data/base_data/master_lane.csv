@@ -1,4 +1,4 @@
-lane_code,lane_name,vessel_service_type_code,start_effective_date,end_effective_date,feeder_division_code
+lane_code,lane_name,vessel_service_type_code,effective_from_date,effective_to_date,feeder_division_code
 1CO,UNIFEEDER,O,2024/08/27,2037/08/01,O
 1IT,ITACOATIARA FEEDER,O,,,O
 1MX,MAREXBACKUP,O,,,O

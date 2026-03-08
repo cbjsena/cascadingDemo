@@ -99,11 +99,11 @@ class MasterLane(models.Model):
     vessel_service_type_code = models.CharField(
         max_length=10, null=True, blank=True, verbose_name="Vessel Service Type Code"
     )
-    start_effective_date = models.DateField(
-        null=True, blank=True, verbose_name="Start Effective Date"
+    effective_from_date = models.DateField(
+        null=True, blank=True, verbose_name="Effective start date of the lane."
     )
-    end_effective_date = models.DateField(
-        null=True, blank=True, verbose_name="End Effective Date"
+    effective_to_date = models.DateField(
+        null=True, blank=True, verbose_name="Effective end date of the lane."
     )
     feeder_division_code = models.CharField(
         max_length=10, null=True, blank=True, verbose_name="Feeder Division Code"
