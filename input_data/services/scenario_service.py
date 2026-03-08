@@ -102,22 +102,37 @@ def create_scenario_from_base(
 
         if filter_kwargs:
             # 조건이 있는 경우 filter() 사용
-            base_objects = base_model.objects.filter(**filter_kwargs)
+            qs = base_model.objects.filter(**filter_kwargs)
         else:
             # 조건이 없으면 전체 데이터 가져오기
-            base_objects = base_model.objects.all()
+            qs = base_model.objects.all()
 
-        if not base_objects.exists():
+        # FK lazy loading 방지: select_related 적용
+        fk_fields = [
+            f.name for f in base_model._meta.fields if f.is_relation and f.name != "id"
+        ]
+        if fk_fields:
+            qs = qs.select_related(*fk_fields)
+
+        base_objects = list(qs)
+
+        if not base_objects:
             result_summary[table_name] = 0
             continue
 
         new_objects = []
-        # ID를 제외한 데이터 필드 목록 추출
-        fields = [f.name for f in base_model._meta.fields if f.name != "id"]
+        # ID를 제외한 데이터 필드 목록 추출 (FK는 attname(_id)으로 직접 복사)
+        concrete_fields = [f for f in base_model._meta.fields if f.name != "id"]
 
         for base_obj in base_objects:
-            # Base 모델의 데이터를 딕셔너리로 추출
-            data = {field: getattr(base_obj, field) for field in fields}
+            # Base 모델의 데이터를 딕셔너리로 추출 (FK는 _id 컬럼으로 직접 복사하여 lazy loading 방지)
+            data = {}
+            for f in concrete_fields:
+                if f.is_relation:
+                    # FK는 attname(예: lane_id, port_id)으로 직접 ID 복사
+                    data[f.attname] = getattr(base_obj, f.attname)
+                else:
+                    data[f.name] = getattr(base_obj, f.name)
 
             # Scenario FK 연결
             data["scenario"] = scenario
@@ -133,7 +148,7 @@ def create_scenario_from_base(
 
         # Bulk Create 실행
         if new_objects:
-            sce_model.objects.bulk_create(new_objects)
+            sce_model.objects.bulk_create(new_objects, batch_size=1000)
         result_summary[table_name] = len(new_objects)
 
     return scenario, result_summary
@@ -147,8 +162,8 @@ def _copy_proforma_to_scenario(scenario, user, now):
     """
     summary = {"sce_proforma_schedule": 0, "sce_proforma_schedule_detail": 0}
 
-    base_qs = BaseProformaSchedule.objects.all()
-    if not base_qs.exists():
+    base_qs = list(BaseProformaSchedule.objects.select_related("lane", "port").all())
+    if not base_qs:
         return summary
 
     # 1. Master(Header) 추출 및 생성
@@ -176,7 +191,7 @@ def _copy_proforma_to_scenario(scenario, user, now):
             masters_to_create.append(master)
 
     if masters_to_create:
-        ProformaSchedule.objects.bulk_create(masters_to_create)
+        ProformaSchedule.objects.bulk_create(masters_to_create, batch_size=1000)
         summary["sce_proforma_schedule"] = len(masters_to_create)
 
     # DB에 생성된 Master 객체들을 다시 조회하여 PK(id)를 확보합니다.
@@ -220,7 +235,7 @@ def _copy_proforma_to_scenario(scenario, user, now):
         details_to_create.append(detail)
 
     if details_to_create:
-        ProformaScheduleDetail.objects.bulk_create(details_to_create)
+        ProformaScheduleDetail.objects.bulk_create(details_to_create, batch_size=1000)
         summary["sce_proforma_schedule_detail"] = len(details_to_create)
 
     return summary
@@ -240,8 +255,8 @@ def _copy_cascading_to_scenario(scenario, user, now):
 
     summary = {"sce_schedule_cascading_vessel_position": 0}
 
-    base_qs = BaseCascadingVesselPosition.objects.all()
-    if not base_qs.exists():
+    base_qs = list(BaseCascadingVesselPosition.objects.select_related("lane").all())
+    if not base_qs:
         return summary
 
     # Proforma 매핑 캐시 (lane_code, proforma_name) -> ProformaSchedule
@@ -272,7 +287,9 @@ def _copy_cascading_to_scenario(scenario, user, now):
         )
 
     if positions_to_create:
-        CascadingVesselPosition.objects.bulk_create(positions_to_create)
+        CascadingVesselPosition.objects.bulk_create(
+            positions_to_create, batch_size=1000
+        )
         summary["sce_schedule_cascading_vessel_position"] = len(positions_to_create)
 
     return summary
@@ -292,8 +309,8 @@ def _copy_cascading_schedule_to_scenario(scenario, user, now):
 
     summary = {"sce_schedule_cascading": 0}
 
-    base_qs = BaseCascadingSchedule.objects.all()
-    if not base_qs.exists():
+    base_qs = list(BaseCascadingSchedule.objects.select_related("lane").all())
+    if not base_qs:
         return summary
 
     proforma_map = {
@@ -322,7 +339,7 @@ def _copy_cascading_schedule_to_scenario(scenario, user, now):
         )
 
     if schedules_to_create:
-        CascadingSchedule.objects.bulk_create(schedules_to_create)
+        CascadingSchedule.objects.bulk_create(schedules_to_create, batch_size=1000)
         summary["sce_schedule_cascading"] = len(schedules_to_create)
 
     return summary

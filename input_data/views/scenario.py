@@ -331,8 +331,16 @@ def _clone_relation_data(
     if cross_fk_rules is None:
         cross_fk_rules = {}
 
-    # 1. 원본 Master 데이터 조회
-    originals = list(master_model.objects.filter(scenario_id=source_id))
+    # 1. 원본 Master 데이터 조회 (FK lazy loading 방지)
+    fk_fields = [
+        f.name
+        for f in master_model._meta.fields
+        if f.is_relation and f.name not in ("id", "scenario")
+    ]
+    qs = master_model.objects.filter(scenario_id=source_id)
+    if fk_fields:
+        qs = qs.select_related(*fk_fields)
+    originals = list(qs)
     if not originals:
         return {}
 
@@ -354,7 +362,7 @@ def _clone_relation_data(
         new_masters.append(obj)
 
     # PostgreSQL 등에서 신규 PK를 객체에 채워줌
-    master_model.objects.bulk_create(new_masters)
+    master_model.objects.bulk_create(new_masters, batch_size=1000)
 
     # 원본 ID -> 신규 객체 매핑 맵 생성
     id_map = {old_id: new_obj for old_id, new_obj in zip(old_ids, new_masters)}
@@ -385,6 +393,6 @@ def _clone_relation_data(
                 new_details.append(d)
 
         if new_details:
-            detail_model.objects.bulk_create(new_details)
+            detail_model.objects.bulk_create(new_details, batch_size=1000)
 
     return id_map

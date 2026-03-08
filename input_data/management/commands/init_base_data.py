@@ -15,7 +15,24 @@ from common import messages as msg
 class Command(BaseCommand):
     help = "Load base data from CSV files into Base tables"
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        # FK 캐시: {(related_model, pk_value): obj} 형태로 한 번 조회한 FK를 재사용
+        self._fk_cache = {}
+
+    def _get_fk_object(self, related_model, pk_val):
+        """FK 참조 객체를 캐시에서 조회하거나, 없으면 전체 로드 후 캐시"""
+        cache_key = related_model._meta.label
+        if cache_key not in self._fk_cache:
+            # 해당 모델의 전체 데이터를 한 번에 로드하여 캐시
+            self._fk_cache[cache_key] = {
+                str(obj.pk): obj for obj in related_model.objects.all()
+            }
+        return self._fk_cache[cache_key].get(str(pk_val))
+
     def handle(self, *args, **kwargs):
+        # FK 캐시 초기화
+        self._fk_cache = {}
         # 1. CSV 파일 위치 설정
         base_data_dir = os.path.join(
             settings.BASE_DIR, "input_data", "data", "base_data"
@@ -98,7 +115,7 @@ class Command(BaseCommand):
 
             # Bulk Create
             if data_list:
-                model.objects.bulk_create(data_list)
+                model.objects.bulk_create(data_list, batch_size=1000)
                 # debugInsert(data_list, model)
                 self.stdout.write(
                     self.style.SUCCESS(
@@ -138,23 +155,22 @@ class Command(BaseCommand):
             val = value.strip() if isinstance(value, str) else value
             internal_type = field.get_internal_type()
 
-            # 0. FK 필드 처리: 참조 모델에서 PK로 객체 조회
+            # 0. FK 필드 처리: 캐시에서 참조 객체 조회 (N+1 쿼리 방지)
             if field.is_relation:
                 related_model = field.related_model
                 if val == "":
                     cleaned[field.name] = None if field.null else None
                 else:
-                    try:
-                        ref_obj = related_model.objects.get(pk=val)
+                    ref_obj = self._get_fk_object(related_model, val)
+                    if ref_obj:
                         cleaned[field.name] = ref_obj
-                    except related_model.DoesNotExist:
-                        if field.null:
-                            cleaned[field.name] = None
-                        else:
-                            raise ValueError(
-                                f"FK '{key}' references {related_model.__name__} "
-                                f"with pk='{val}', but not found"
-                            )
+                    elif field.null:
+                        cleaned[field.name] = None
+                    else:
+                        raise ValueError(
+                            f"FK '{key}' references {related_model.__name__} "
+                            f"with pk='{val}', but not found"
+                        )
                 continue
 
             # 1. 빈 값 처리

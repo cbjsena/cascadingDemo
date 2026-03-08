@@ -23,10 +23,10 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 APP_ENV = os.environ.get("APP_ENV", "local")
 if APP_ENV == "docker":
     env_path = BASE_DIR / ".env.docker"
-    print(f"🚀 Loading environment: DOCKER ({env_path})")
+    print(f"[DOCKER] Loading environment: ({env_path})")
 else:
     env_path = BASE_DIR / ".env.local"
-    print(f"💻 Loading environment: LOCAL ({env_path})")
+    print(f"[LOCAL] Loading environment: ({env_path})")
 
 load_dotenv(env_path)
 
@@ -182,9 +182,7 @@ EXTERNAL_API_KEY = os.environ.get("EXTERNAL_API_KEY", "")
 
 # Simple validation warning
 if DATA_SOURCE_TYPE == "API" and not EXTERNAL_API_URL:
-    print(
-        "⚠️  WARNING: DATA_SOURCE_TYPE is set to 'API', but EXTERNAL_API_URL is missing."
-    )
+    print("WARNING: DATA_SOURCE_TYPE is set to 'API', but EXTERNAL_API_URL is missing.")
 
 # ==============================================================================
 # Celery Configuration
@@ -198,7 +196,7 @@ if APP_ENV == "docker":
 
 else:
     # [Local 환경] -> 브로커 없이 '즉시 동기' 실행 (디버깅 용이)
-    print("🐢 Celery running in EAGER mode (Synchronous)")
+    print("[LOCAL] Celery running in EAGER mode (Synchronous)")
     CELERY_TASK_ALWAYS_EAGER = True
     # 로컬에 Redis가 아예 없어도 에러가 안 나도록 메모리 브로커 사용 (선택 사항)
     CELERY_BROKER_URL = "memory://"
