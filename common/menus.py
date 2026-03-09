@@ -9,8 +9,8 @@ class MenuSection:
 
 # 메뉴 그룹 상수
 class MenuGroup:
-    SCHEDULE = "Schedule"
     MASTER = "Master"
+    SCHEDULE = "Schedule"
     VESSEL = "Vessel"
     COST = "Cost"
     BUNKER = "Bunker"
@@ -36,6 +36,11 @@ class MenuItem:
     TRADE_INFO = "trade_info"
     PORT_INFO = "port_info"
     LANE_INFO = "lane_info"
+
+    # Input Management - Vessel
+    VESSEL_INFO = "vessel_info"
+    CHARTER_COST = "charter_cost"
+    VESSEL_CAPACITY = "vessel_capacity"
 
     # Input Management - Dashboard & Scenario
     DASHBOARD = "input_home"
@@ -68,7 +73,26 @@ CREATION_MENU_STRUCTURE = {
     ],
 }
 
-# Input Management 메뉴 구조
+# Master 메뉴 구조 (시나리오 독립 기준 데이터 - Scenario List 위에 배치)
+MASTER_MENU_STRUCTURE = [
+    {
+        "name": "Trade Info",
+        "key": MenuItem.TRADE_INFO,
+        "url_name": "input_data:master_trade_list",
+    },
+    {
+        "name": "Port Info",
+        "key": MenuItem.PORT_INFO,
+        "url_name": "input_data:master_port_list",
+    },
+    {
+        "name": "Lane Info",
+        "key": MenuItem.LANE_INFO,
+        "url_name": "input_data:master_lane_list",
+    },
+]
+
+# Input Management 메뉴 구조 (시나리오 의존 데이터)
 MENU_STRUCTURE = {
     MenuGroup.SCHEDULE: [
         {
@@ -97,27 +121,22 @@ MENU_STRUCTURE = {
             "url_name": "input_data:long_range_list",
         },
     ],
-    MenuGroup.MASTER: [
-        {
-            "name": "Trade Info",
-            "key": MenuItem.TRADE_INFO,
-            "url_name": "input_data:master_trade_list",
-        },
-        {
-            "name": "Port Info",
-            "key": MenuItem.PORT_INFO,
-            "url_name": "input_data:master_port_list",
-        },
-        {
-            "name": "Lane Info",
-            "key": MenuItem.LANE_INFO,
-            "url_name": "input_data:master_lane_list",
-        },
-    ],
     MenuGroup.VESSEL: [
-        {"name": "Vessel Info", "key": "vessel_info"},
-        {"name": "Charter Cost", "key": "charter_cost"},
-        {"name": "Vessel Capacity", "key": "vessel_capacity"},
+        {
+            "name": "Vessel Info",
+            "key": MenuItem.VESSEL_INFO,
+            "url_name": "input_data:vessel_info_list",
+        },
+        {
+            "name": "Charter Cost",
+            "key": MenuItem.CHARTER_COST,
+            "url_name": "input_data:charter_cost_list",
+        },
+        {
+            "name": "Vessel Capacity",
+            "key": MenuItem.VESSEL_CAPACITY,
+            "url_name": "input_data:vessel_capacity_list",
+        },
     ],
     MenuGroup.COST: [
         {"name": "Canal Fee", "key": "canal_fee"},

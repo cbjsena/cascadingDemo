@@ -31,3 +31,8 @@ from .scenario import (  # noqa: F401
     scenario_delete,
     scenario_list,
 )
+from .vessel import (  # noqa: F401
+    charter_cost_list,
+    vessel_capacity_list,
+    vessel_info_list,
+)

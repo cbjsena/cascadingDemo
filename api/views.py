@@ -10,6 +10,7 @@ from common import messages as msg
 # ProformaScheduleDetail은 ORM의 related_name('details')으로 접근 가능하지만,
 # 명시적으로 필요한 경우 import 할 수 있습니다.
 from input_data.models import (
+    BaseVesselInfo,
     LongRangeSchedule,
     ProformaSchedule,
     VesselCapacity,
@@ -217,6 +218,18 @@ def vessel_lane_check(request):
             data["lane_code"] = cas_pos_qs.first().proforma.lane_id
 
     return JsonResponse(data)
+
+
+@login_required
+@require_GET
+def base_vessel_list(request):
+    """[API] Base Vessel Info 마스터 선박 목록 반환"""
+    vessels = list(
+        BaseVesselInfo.objects.all()
+        .order_by("vessel_code")
+        .values("vessel_code", "vessel_name", "own_yn")
+    )
+    return JsonResponse({"vessels": vessels})
 
 
 @login_required

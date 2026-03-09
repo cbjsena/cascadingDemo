@@ -1,0 +1,204 @@
+{% extends "base.html" %}
+
+{% block title %}Vessel Capacity - Cascading Opt{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small">
+                    <li class="breadcrumb-item"><a href="{% url 'input_data:input_home' %}" class="text-decoration-none">Home</a></li>
+                    <li class="breadcrumb-item text-muted">Vessel</li>
+                    <li class="breadcrumb-item active" aria-current="page">Vessel Capacity</li>
+                </ol>
+            </nav>
+            <h1 class="h3">Vessel Capacity</h1>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light fw-bold">Search Filter</div>
+        <div class="card-body">
+            <form method="get" action="{% url 'input_data:vessel_capacity_list' %}" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small text-muted">Scenario</label>
+                    <select class="form-select form-select-sm" name="scenario_id" onchange="this.form.submit()">
+                        <option value="">All Scenarios</option>
+                        {% for scenario in scenarios %}
+                        <option value="{{ scenario.id }}"
+                            {% if search_params.scenario_id|stringformat:"s" == scenario.id|stringformat:"s" %}selected{% endif %}>
+                            {{ scenario.code }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small text-muted">Search (Vessel / Lane Code)</label>
+                    <input type="text" class="form-control form-control-sm" name="search" value="{{ search }}" placeholder="Vessel or Lane code...">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-sm btn-secondary w-100">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                </div>
+                <div class="col-md-1">
+                    <a href="{% url 'input_data:vessel_capacity_list' %}" class="btn btn-sm btn-outline-secondary w-100" title="Reset">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <div>
+                <span class="fw-bold">Vessel Capacity List</span>
+                <span class="badge bg-primary ms-2">{{ items|length }} records</span>
+            </div>
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-outline-primary" id="btnSave" style="display:none;">
+                    <i class="bi bi-check-lg"></i> Save
+                </button>
+                <button type="button" class="btn btn-success" id="btnAddRow">
+                    <i class="bi bi-plus-lg"></i> Add Row
+                </button>
+                <button type="button" class="btn btn-danger" id="btnDeleteRow">
+                    <i class="bi bi-trash"></i> Delete Row
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <form method="post" id="masterForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" id="formAction" value="">
+                <input type="hidden" name="scenario_id" value="{{ search_params.scenario_id }}">
+                <div class="table-responsive" style="max-height: 600px;">
+                    <table class="table table-hover table-striped align-middle mb-0 table-sm" id="masterTable">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th class="text-center" style="width: 40px;">
+                                    <input type="checkbox" id="checkAll" class="form-check-input">
+                                </th>
+                                <th class="text-center" style="width: 50px;">No</th>
+                                <th>Trade</th>
+                                <th>Lane</th>
+                                <th>Vessel Code</th>
+                                <th>Voyage No</th>
+                                <th>Direction</th>
+                                <th class="text-end">Capacity (TEU)</th>
+                                <th class="text-end">Reefer (Plug)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td class="text-center">
+                                    <input type="checkbox" name="selected_pks" value="{{ item.pk }}" class="form-check-input row-check">
+                                </td>
+                                <td class="text-center">{{ forloop.counter }}</td>
+                                <td><span class="badge bg-info text-dark">{{ item.trade_id }}</span></td>
+                                <td><span class="badge bg-secondary">{{ item.lane_id }}</span></td>
+                                <td class="fw-bold">{{ item.vessel_code }}</td>
+                                <td>{{ item.voyage_number }}</td>
+                                <td>{{ item.get_direction_display }}</td>
+                                <td class="text-end">{{ item.vessel_capacity }}</td>
+                                <td class="text-end">{{ item.reefer_capacity }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr id="emptyRow">
+                                <td colspan="9" class="text-center py-5 text-muted">
+                                    <i class="bi bi-exclamation-circle fs-3 d-block mb-2"></i>
+                                    No vessel capacity data found. Please select a scenario.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('masterForm');
+    const actionInput = document.getElementById('formAction');
+    const tbody = document.querySelector('#masterTable tbody');
+    const checkAll = document.getElementById('checkAll');
+    const btnSave = document.getElementById('btnSave');
+    const BASE_VESSEL_API = '{% url "api:base_vessel_list" %}';
+
+    let baseVessels = null;
+
+    async function fetchBaseVessels() {
+        if (baseVessels) return baseVessels;
+        const res = await fetch(BASE_VESSEL_API);
+        const data = await res.json();
+        baseVessels = data.vessels || [];
+        return baseVessels;
+    }
+
+    function buildVesselSelect(name) {
+        const sel = document.createElement('select');
+        sel.name = name;
+        sel.className = 'form-select form-select-sm';
+        sel.required = true;
+        sel.innerHTML = '<option value="">-- Select Vessel --</option>';
+        baseVessels.forEach(v => {
+            const opt = document.createElement('option');
+            opt.value = v.vessel_code;
+            opt.textContent = v.vessel_code + ' - ' + v.vessel_name;
+            sel.appendChild(opt);
+        });
+        return sel;
+    }
+
+    checkAll.addEventListener('change', function() {
+        document.querySelectorAll('.row-check').forEach(cb => cb.checked = this.checked);
+    });
+
+    document.getElementById('btnAddRow').addEventListener('click', async function() {
+        const scenarioId = form.querySelector('input[name="scenario_id"]').value;
+        if (!scenarioId) { alert('Please select a scenario first.'); return; }
+        await fetchBaseVessels();
+        const emptyRow = document.getElementById('emptyRow');
+        if (emptyRow) emptyRow.remove();
+        const rowCount = tbody.querySelectorAll('tr').length;
+        const newRow = document.createElement('tr');
+        newRow.classList.add('table-warning');
+        newRow.innerHTML = `
+            <td class="text-center"><input type="checkbox" name="selected_pks" value="" class="form-check-input row-check"></td>
+            <td class="text-center">${rowCount + 1}</td>
+            <td><input type="text" name="new_trade_code_${rowCount}" class="form-control form-control-sm" placeholder="Trade" required></td>
+            <td><input type="text" name="new_lane_code_${rowCount}" class="form-control form-control-sm" placeholder="Lane" required></td>
+            <td id="vessel-select-${rowCount}"></td>
+            <td><input type="text" name="new_voyage_number_${rowCount}" class="form-control form-control-sm" placeholder="Voy No" required></td>
+            <td><select name="new_direction_${rowCount}" class="form-select form-select-sm" required>
+                <option value="E">East</option><option value="W">West</option>
+                <option value="S">South</option><option value="N">North</option></select></td>
+            <td><input type="number" name="new_vessel_capacity_${rowCount}" class="form-control form-control-sm text-end" placeholder="TEU" required></td>
+            <td><input type="number" name="new_reefer_capacity_${rowCount}" class="form-control form-control-sm text-end" placeholder="Reefer" required></td>
+        `;
+        tbody.appendChild(newRow);
+        const selectTd = newRow.querySelector('#vessel-select-' + rowCount);
+        selectTd.appendChild(buildVesselSelect('new_vessel_code_' + rowCount));
+        btnSave.style.display = 'inline-block';
+    });
+
+    document.getElementById('btnDeleteRow').addEventListener('click', function() {
+        const checked = document.querySelectorAll('.row-check:checked');
+        if (checked.length === 0) { alert('Please select rows to delete.'); return; }
+        let hasExisting = false;
+        checked.forEach(cb => { if (!cb.value) { cb.closest('tr').remove(); } else { hasExisting = true; } });
+        if (hasExisting) {
+            if (confirm('Are you sure you want to delete selected rows?')) { actionInput.value = 'delete'; form.submit(); }
+        }
+    });
+
+    btnSave.addEventListener('click', function() { actionInput.value = 'save'; form.submit(); });
+});
+</script>
+{% endblock %}

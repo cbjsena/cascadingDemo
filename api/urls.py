@@ -19,6 +19,7 @@ urlpatterns = [
     path("proforma/options/", views.proforma_options, name="proforma_options"),
     path("proforma/info/", views.proforma_detail, name="proforma_detail"),
     path("vessel/list/", views.vessel_list, name="vessel_list"),
+    path("vessel/base/", views.base_vessel_list, name="base_vessel_list"),
     path("vessel/options/", views.vessel_options, name="vessel_options"),
     path("vessel/lane/check/", views.vessel_lane_check, name="vessel_lane_check"),
 ]
