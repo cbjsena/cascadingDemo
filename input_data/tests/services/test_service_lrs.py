@@ -1,5 +1,3 @@
-from datetime import timedelta
-
 import pytest
 
 from django.http.request import QueryDict
@@ -23,7 +21,6 @@ class TestLongRangeService:
         """[LRS_SVC_001] 기본 LRS 생성 엔진 테스트 (단일 선박, 가상포트 없음)"""
         # Given
         start_date = timezone.now().date()
-        end_date = start_date + timedelta(days=30)
 
         qdict = QueryDict(mutable=True)
         qdict.update(
@@ -31,8 +28,6 @@ class TestLongRangeService:
                 "scenario_id": sample_schedule.scenario.id,
                 "lane_code": sample_schedule.lane_id,
                 "proforma_name": sample_schedule.proforma_name,
-                "effective_start_date": start_date.strftime("%Y-%m-%d"),
-                "effective_end_date": end_date.strftime("%Y-%m-%d"),
             }
         )
         qdict.setlist("vessel_code[]", ["V_TEST"])
@@ -149,10 +144,6 @@ class TestLongRangeService:
                 "scenario_id": pf_complex_data.id,
                 "lane_code": "LANE_MID",
                 "proforma_name": "PF_MID_Y",
-                "effective_start_date": start_date.strftime("%Y-%m-%d"),
-                "effective_end_date": (start_date + timedelta(days=15)).strftime(
-                    "%Y-%m-%d"
-                ),
             }
         )
         qdict.setlist("vessel_code[]", ["V_MID"])
@@ -219,10 +210,6 @@ class TestLongRangeService:
                 "scenario_id": pf_complex_data.id,
                 "lane_code": "LANE_DUR0",
                 "proforma_name": "PF_DUR_ZERO",
-                "effective_start_date": start_date.strftime("%Y-%m-%d"),
-                "effective_end_date": (start_date + timedelta(days=15)).strftime(
-                    "%Y-%m-%d"
-                ),
             }
         )
         qdict.setlist("vessel_code[]", ["V_DUR0"])
@@ -243,8 +230,6 @@ class TestLongRangeService:
         항차 간 날짜 증가 검증 (Voyage 2 Start = Voyage 1 Start + Duration)
         """
         start_date = timezone.now().date()
-        # 충분한 기간을 주어 여러 항차가 생성되도록 함
-        end_date = start_date + timedelta(days=60)
 
         qdict = QueryDict(mutable=True)
         qdict.update(
@@ -252,8 +237,6 @@ class TestLongRangeService:
                 "scenario_id": sample_schedule.scenario.id,
                 "lane_code": sample_schedule.lane_id,
                 "proforma_name": sample_schedule.proforma_name,
-                "effective_start_date": start_date.strftime("%Y-%m-%d"),
-                "effective_end_date": end_date.strftime("%Y-%m-%d"),
             }
         )
         qdict.setlist("vessel_code[]", ["V_DATE_CNT"])
@@ -290,7 +273,6 @@ class TestLongRangeService:
         동일 선박 중복 입력 시 처리 (에러 없이 중복 건너뜀)
         """
         start_date = timezone.now().date()
-        end_date = start_date + timedelta(days=30)
 
         qdict = QueryDict(mutable=True)
         qdict.update(
@@ -298,8 +280,6 @@ class TestLongRangeService:
                 "scenario_id": sample_schedule.scenario.id,
                 "lane_code": sample_schedule.lane_id,
                 "proforma_name": sample_schedule.proforma_name,
-                "effective_start_date": start_date.strftime("%Y-%m-%d"),
-                "effective_end_date": end_date.strftime("%Y-%m-%d"),
             }
         )
         # 동일한 선박을 중복 입력

@@ -23,9 +23,11 @@ class MenuItem:
     PROFORMA_CREATE = "proforma_create"
     CASCADING_CREATE = "cascading_create"
     CASCADING_VESSEL_CREATE = "cascading_vessel_create"
+    LANE_PROFORMA_MAPPING = "lane_proforma_mapping"
 
     # Input Management - Schedule
     PROFORMA_SCHEDULE = "proforma_schedule"
+    LANE_PROFORMA_LIST = "lane_proforma_list"
     CASCADING_SCHEDULE = "cascading_schedule"
     CASCADING_VESSEL_INFO = "cascading_vessel_info"
     LONG_RANGE_SCHEDULE = "long_range_schedule"
@@ -42,6 +44,11 @@ CREATION_MENU_STRUCTURE = {
             "name": "Proforma Creation",
             "url_name": "input_data:proforma_create",
             "key": MenuItem.PROFORMA_CREATE,
+        },
+        {
+            "name": "Lane Proforma Mapping",
+            "url_name": "input_data:lane_proforma_mapping",
+            "key": MenuItem.LANE_PROFORMA_MAPPING,
         },
         {
             "name": "Cascading Creation",
@@ -68,6 +75,11 @@ MENU_STRUCTURE = {
             "name": "Proforma Schedule",
             "key": MenuItem.PROFORMA_SCHEDULE,
             "url_name": "input_data:proforma_list",
+        },
+        {
+            "name": "Lane Proforma Mapping",
+            "key": MenuItem.LANE_PROFORMA_LIST,
+            "url_name": "input_data:lane_proforma_list",
         },
         {
             "name": "Cascading Schedule",

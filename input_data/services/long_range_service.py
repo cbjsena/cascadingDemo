@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, timedelta
 
 from django.db import transaction
 from django.utils import timezone
@@ -21,27 +21,22 @@ class LongRangeService:
         scenario_id = post_data.get("scenario_id")
         lane_code = post_data.get("lane_code")
         proforma_name = post_data.get("proforma_name")
-        start_date_str = post_data.get("effective_start_date")
-        end_date_str = post_data.get("effective_end_date")
 
         # UI에서 넘어오는 배열 데이터
         vessel_codes = post_data.getlist("vessel_code[]")
         vessel_start_dates = post_data.getlist("vessel_start_date[]")
 
         # Validation
-        if not (
-            scenario_id
-            and lane_code
-            and proforma_name
-            and start_date_str
-            and end_date_str
-        ):
+        if not (scenario_id and lane_code and proforma_name):
             raise ValueError(msg.MISSING_REQUIRED_FIELDS)
 
         try:
             scenario = ScenarioInfo.objects.get(id=scenario_id)
         except ScenarioInfo.DoesNotExist:
             raise ValueError(msg.SCENARIO_NOT_FOUND)
+
+        # 시나리오의 base_year_week / to_year_week에서 LRS 기간 자동 계산
+        lrs_start_date, lrs_end_date = self._get_scenario_date_range(scenario)
 
         # =========================================================
         # [수정됨] 2. Base Proforma Fetching (Master - Detail 분리)
@@ -74,8 +69,6 @@ class LongRangeService:
 
         # 5. 선박별 LRS 생성 Loop
         new_lrs_list = []
-        lrs_start_date = timezone.datetime.strptime(start_date_str, "%Y-%m-%d").date()
-        lrs_end_date = timezone.datetime.strptime(end_date_str, "%Y-%m-%d").date()
 
         # [중복 방지] 이미 처리한 선박 코드를 추적하기 위한 집합
         processed_vessels = set()
@@ -101,6 +94,11 @@ class LongRangeService:
             v_base_dt = timezone.make_aware(v_base_dt)
             voyage_num = 1  # 0001 항차부터 시작
 
+            # vessel 전체 범위에서 (voyage, port, direction) 별 indicator 추적
+            vessel_indicator_map = {}
+            # 이미 생성한 유니크 키 조합 추적 (중복 방지)
+            vessel_unique_keys = set()
+
             # -------------------------------------------------------------
             # Voyage Loop: LRS 종료일을 넘을 때까지 반복
             # -------------------------------------------------------------
@@ -114,8 +112,6 @@ class LongRangeService:
                 if curr_voy_start_dt.date() > lrs_end_date:
                     break
 
-                # 한 항차 내에서의 Port Call Indicator 관리
-                indicator_map = {}
                 lrs_seq = 1
 
                 # Start Port Berthing Year Week (현재 항차 기준)
@@ -178,9 +174,22 @@ class LongRangeService:
                     real_etd = v_base_dt + timedelta(days=total_etd_delta)
 
                     # Calling Port Indicator
-                    ind_key = (pf_obj.port_id, direction)
-                    curr_ind = indicator_map.get(ind_key, 0) + 1
-                    indicator_map[ind_key] = curr_ind
+                    # vessel 전체 범위에서 (voyage, port, direction) 별 indicator 관리
+                    ind_key = (real_voy_num, pf_obj.port_id, direction)
+                    curr_ind = vessel_indicator_map.get(ind_key, 0) + 1
+                    vessel_indicator_map[ind_key] = curr_ind
+
+                    # 유니크 키 중복 체크
+                    unique_key = (
+                        v_code,
+                        f"{real_voy_num:04d}",
+                        direction,
+                        pf_obj.port_id,
+                        str(curr_ind),
+                    )
+                    if unique_key in vessel_unique_keys:
+                        continue
+                    vessel_unique_keys.add(unique_key)
 
                     # Create Instance
                     lrs = LongRangeSchedule(
@@ -278,3 +287,24 @@ class LongRangeService:
 
     def _get_opposite_direction(self, direction):
         return {"E": "W", "W": "E", "S": "N", "N": "S"}.get(direction, direction)
+
+    def _get_scenario_date_range(self, scenario):
+        """
+        시나리오의 base_year_week와 planning_horizon_months에서
+        LRS 기간(start_date, end_date)을 계산하여 반환
+        """
+        if not scenario.base_year_week:
+            raise ValueError("Scenario base_year_week is not set.")
+
+        try:
+            year = int(scenario.base_year_week[:4])
+            week = int(scenario.base_year_week[4:])
+            start_date = date.fromisocalendar(year, week, 1)  # ISO 주차 월요일
+
+            horizon_months = scenario.planning_horizon_months or 12
+            total_weeks = int(horizon_months * 4.33)
+            end_date = start_date + timedelta(weeks=total_weeks)
+
+            return start_date, end_date
+        except (ValueError, TypeError) as e:
+            raise ValueError(f"Invalid scenario date configuration: {e}")

@@ -9,6 +9,7 @@ from common import constants
 from input_data.models import (
     CascadingVesselPosition,
     Distance,
+    LaneProformaMapping,
     LongRangeSchedule,
     MasterLane,
     MasterPort,
@@ -462,3 +463,108 @@ def multiple_cascading_data(db, base_scenario, user):
             all_positions.append(position)
 
     return all_positions
+
+
+# =========================================================
+# Lane Proforma Mapping Fixtures
+# =========================================================
+@pytest.fixture
+def lane_proforma_scenario(db, user):
+    """
+    Lane Proforma Mapping 테스트용 시나리오 + 동일 Lane에 기간이 다른 Proforma 2개
+    LPM_VIEW_*, LPM_ACT_*, LPM_LIST_* 테스트에서 사용
+    """
+    from datetime import datetime
+
+    from django.utils.timezone import make_aware
+
+    scenario = ScenarioInfo.objects.create(
+        code="SC_LPM_TEST",
+        description="Lane Proforma Mapping Test",
+        base_year_week="202610",
+        planning_horizon_months=12,
+        scenario_type="WHAT_IF",
+        status="ACTIVE",
+        created_by=user,
+        updated_by=user,
+    )
+
+    # 같은 Lane(TEST_LANE)에 기간이 다른 Proforma 2개
+    pf1 = ProformaSchedule.objects.create(
+        scenario=scenario,
+        lane_id="TEST_LANE",
+        proforma_name="6101",
+        effective_from_date=make_aware(datetime(2026, 1, 1)),
+        duration=14.0,
+        declared_capacity="5000",
+        declared_count=3,
+        created_by=user,
+        updated_by=user,
+    )
+
+    pf2 = ProformaSchedule.objects.create(
+        scenario=scenario,
+        lane_id="TEST_LANE",
+        proforma_name="6102",
+        effective_from_date=make_aware(datetime(2026, 7, 2)),
+        duration=14.0,
+        declared_capacity="6000",
+        declared_count=4,
+        created_by=user,
+        updated_by=user,
+    )
+
+    # 다른 Lane(FE1)에 Proforma 1개
+    pf3 = ProformaSchedule.objects.create(
+        scenario=scenario,
+        lane_id="FE1",
+        proforma_name="7001",
+        effective_from_date=make_aware(datetime(2026, 3, 1)),
+        duration=21.0,
+        declared_capacity="8000",
+        declared_count=5,
+        created_by=user,
+        updated_by=user,
+    )
+
+    return {
+        "scenario": scenario,
+        "pf1": pf1,
+        "pf2": pf2,
+        "pf3": pf3,
+    }
+
+
+@pytest.fixture
+def lane_proforma_with_mapping(db, lane_proforma_scenario, user):
+    """
+    Lane Proforma Mapping이 저장된 상태
+    pf1, pf2 모두 선택 (같은 Lane에 기간별 매핑)
+    """
+    data = lane_proforma_scenario
+    m1 = LaneProformaMapping.objects.create(
+        scenario=data["scenario"],
+        lane_id="TEST_LANE",
+        proforma=data["pf1"],
+        is_active=True,
+        created_by=user,
+        updated_by=user,
+    )
+    m2 = LaneProformaMapping.objects.create(
+        scenario=data["scenario"],
+        lane_id="TEST_LANE",
+        proforma=data["pf2"],
+        is_active=True,
+        created_by=user,
+        updated_by=user,
+    )
+    m3 = LaneProformaMapping.objects.create(
+        scenario=data["scenario"],
+        lane_id="FE1",
+        proforma=data["pf3"],
+        is_active=True,
+        created_by=user,
+        updated_by=user,
+    )
+    data["mappings"] = [m1, m2, m3]
+    return data

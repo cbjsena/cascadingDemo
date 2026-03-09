@@ -1,0 +1,310 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Lane Proforma Mapping{% endblock %}
+
+{% block content %}
+<style>
+    .mapping-table th, .mapping-table td { vertical-align: middle; }
+    .lane-badge { font-size: 0.85rem; }
+
+    /* Timeline cells */
+    .timeline-cell {
+        width: 20px; min-width: 20px; max-width: 20px;
+        height: 20px; padding: 0 1px !important;
+    }
+    .timeline-bar {
+        width: 100%; height: 14px; border-radius: 2px;
+    }
+    .timeline-header {
+        width: 20px; min-width: 20px; max-width: 20px;
+        font-size: 0.55rem; color: #6c757d;
+        padding: 1px !important; text-align: center; white-space: nowrap;
+    }
+    .timeline-year-header {
+        font-size: 0.65rem; color: #495057; font-weight: 600;
+        text-align: center; padding: 1px !important;
+    }
+
+    /* Lane group */
+    .lane-group-separator td { height: 3px; background-color: #dee2e6; padding: 0 !important; }
+    .lane-header-cell { background-color: #f8f9fa; }
+
+    /* Checkbox styling */
+    .pf-checkbox { cursor: pointer; }
+
+    /* Scrollable table - sticky left columns */
+    .table-scroll-wrapper {
+        overflow-x: auto;
+        overflow-y: visible;
+        max-width: 100%;
+        -webkit-overflow-scrolling: touch;
+    }
+    .mapping-table {
+        table-layout: auto;
+        white-space: nowrap;
+        border-collapse: separate;
+        border-spacing: 0;
+    }
+    /* Sticky fixed columns */
+    .col-no       { position: sticky; left: 0;    z-index: 2; background: #fff; min-width: 36px; width: 36px; }
+    .col-lane     { position: sticky; left: 36px;  z-index: 2; background: #fff; min-width: 72px; width: 72px; }
+    .col-proforma { position: sticky; left: 108px; z-index: 2; background: #fff; min-width: 88px; width: 88px; }
+    .col-eff      { position: sticky; left: 196px; z-index: 2; background: #fff; min-width: 82px; width: 82px; }
+    .col-select   { position: sticky; left: 278px; z-index: 2; background: #fff; min-width: 44px; width: 44px;
+                    border-right: 2px solid #dee2e6; }
+
+    /* Header z-index higher than body sticky */
+    thead .col-no, thead .col-lane, thead .col-proforma, thead .col-eff, thead .col-select {
+        z-index: 4; background: #f8f9fa;
+    }
+    /* Lane header cell bg */
+    .lane-header-cell { background-color: #f8f9fa !important; }
+</style>
+
+<div class="container-fluid py-4">
+    {% if is_readonly %}
+    <h4 class="fw-bold mb-4"><i class="bi bi-eye me-2"></i>Lane Proforma Mapping</h4>
+    {% else %}
+    <h4 class="fw-bold mb-4"><i class="bi bi-diagram-3 me-2"></i>Lane Proforma Mapping</h4>
+    {% endif %}
+
+    {% include "messages_display.html" %}
+
+    <!-- 1. Scenario Selection -->
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light fw-bold">
+            <i class="bi bi-1-circle me-2"></i>Select Scenario
+        </div>
+        <div class="card-body">
+            <form method="get" class="row g-3 align-items-end">
+                <div class="col-md-5">
+                    <label class="form-label fw-semibold">Scenario</label>
+                    <select name="scenario_id" class="form-select" onchange="this.form.submit()">
+                        <option value="">-- Select Scenario --</option>
+                        {% for s in scenarios %}
+                        <option value="{{ s.id }}" {% if selected_scenario_id == s.id|stringformat:"s" %}selected{% endif %}>
+                            {{ s.code }} - {{ s.description|truncatechars:40 }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% if scenario %}
+                <div class="col-md-4">
+                    <span class="badge bg-secondary me-1">From: W{{ scenario.base_year_week }}</span>
+                    <span class="badge bg-secondary me-1">To: W{{ scenario.to_year_week }}</span>
+                    <span class="badge bg-info">{{ scenario.planning_horizon_months }}M</span>
+                </div>
+                {% endif %}
+                <div class="col-md-1">
+                    <a href="{% url 'input_data:lane_proforma_mapping' %}" class="btn btn-outline-secondary w-100" title="Reset">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    {% if selected_scenario_id and mapping_data %}
+    <!-- 2. Lane Proforma Mapping Table -->
+    <form method="post" id="mappingForm">
+        {% csrf_token %}
+        <input type="hidden" name="scenario_id" value="{{ selected_scenario_id }}">
+
+        <div class="card shadow-sm mb-4">
+            <div class="card-header bg-light fw-bold d-flex justify-content-between align-items-center">
+                <span><i class="bi bi-2-circle me-2"></i>Lane Proforma Assignment</span>
+                <div>
+                    <span class="d-inline-block me-1" style="width:14px;height:14px;background:#0d6efd;border-radius:2px;vertical-align:middle;"></span>
+                    <small class="text-muted me-3">Applied</small>
+                    <span class="d-inline-block me-1" style="width:14px;height:14px;background:#cfe2ff;border:1px solid #b6d4fe;border-radius:2px;vertical-align:middle;"></span>
+                    <small class="text-muted me-3">Available Period</small>
+                    <span class="d-inline-block me-1" style="width:14px;height:14px;background:#f0f0f0;border:1px solid #dee2e6;border-radius:2px;vertical-align:middle;"></span>
+                    <small class="text-muted">Out of Range</small>
+                </div>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-scroll-wrapper">
+                    <table class="table table-sm align-middle mb-0 mapping-table">
+                        <thead class="table-light">
+                            <!-- Year header row -->
+                            <tr>
+                                <th rowspan="2" class="text-center col-no">No</th>
+                                <th rowspan="2" class="text-center col-lane">Lane</th>
+                                <th rowspan="2" class="text-center col-proforma">Proforma</th>
+                                <th rowspan="2" class="text-center col-eff">Eff. From</th>
+                                <th rowspan="2" class="text-center col-select">Sel</th>
+                                {% regroup timeline_weeks by year as year_groups %}
+                                {% for yg in year_groups %}
+                                <th colspan="{{ yg.list|length }}" class="timeline-year-header">{{ yg.grouper }}</th>
+                                {% endfor %}
+                            </tr>
+                            <!-- Week number header row -->
+                            <tr>
+                                {% for wk in timeline_weeks %}
+                                <th class="timeline-header">{{ wk.label }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for lane in mapping_data %}
+                                {% for pf_item in lane.proforma_items %}
+                                <tr data-lane="{{ lane.lane_code }}" data-pf-id="{{ pf_item.proforma.id }}">
+                                    {% if forloop.first %}
+                                    <td rowspan="{{ lane.proforma_count }}"
+                                        class="text-center small col-no lane-header-cell">
+                                        {{ forloop.parentloop.counter }}
+                                    </td>
+                                    <td rowspan="{{ lane.proforma_count }}"
+                                        class="text-center col-lane lane-header-cell">
+                                        <span class="badge bg-dark lane-badge">{{ lane.lane_code }}</span>
+                                        <br><small class="text-muted">{{ lane.selected_count }}/{{ lane.proforma_count }}</small>
+                                    </td>
+                                    {% endif %}
+                                    <td class="text-start small col-proforma">
+                                        <strong>{{ pf_item.proforma.proforma_name }}</strong>
+                                        <br><small class="text-muted">C:{{ pf_item.proforma.declared_capacity }} V:{{ pf_item.proforma.declared_count }}</small>
+                                    </td>
+                                    <td class="text-center small col-eff">
+                                        {{ pf_item.proforma.effective_from_date|date:"Y-m-d" }}
+                                    </td>
+                                    <td class="text-center col-select">
+                                        <input type="checkbox" class="form-check-input pf-checkbox"
+                                               name="selected_proformas" value="{{ pf_item.proforma.id }}"
+                                               data-pf-id="{{ pf_item.proforma.id }}"
+                                               {% if pf_item.is_selected %}checked{% endif %}
+                                               {% if is_readonly %}disabled{% endif %}
+                                               onchange="toggleTimeline(this)">
+                                    </td>
+                                    {% for cell in pf_item.cells %}
+                                    <td class="timeline-cell">
+                                        <div class="timeline-bar timeline-cell-{{ pf_item.proforma.id }}"
+                                             data-in-range="{% if cell.in_range %}true{% else %}false{% endif %}"
+                                             data-effective="{% if cell.effective %}true{% else %}false{% endif %}"
+                                             {% if pf_item.is_selected and cell.effective %}
+                                             style="background-color:#0d6efd;"
+                                             {% elif cell.in_range %}
+                                             style="background-color:#cfe2ff;"
+                                             {% else %}
+                                             style="background-color:#f0f0f0;"
+                                             {% endif %}>
+                                        </div>
+                                    </td>
+                                    {% endfor %}
+                                </tr>
+                                {% endfor %}
+                                {% if not forloop.last %}
+                                <tr class="lane-group-separator">
+                                    <td colspan="{{ timeline_weeks|length|add:5 }}"></td>
+                                </tr>
+                                {% endif %}
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+
+        <!-- Summary -->
+        <div class="card shadow-sm mb-4">
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <h6 class="text-muted">Total Lanes</h6>
+                        <h4 class="fw-bold">{{ mapping_data|length }}</h4>
+                    </div>
+                    <div class="col-md-3">
+                        <h6 class="text-muted">Total Proformas</h6>
+                        <h4 class="fw-bold" id="totalProformas">0</h4>
+                    </div>
+                    <div class="col-md-3">
+                        <h6 class="text-muted">Selected</h6>
+                        <h4 class="fw-bold text-success" id="selectedCount">0</h4>
+                    </div>
+                    <div class="col-md-3">
+                        <h6 class="text-muted">Unselected</h6>
+                        <h4 class="fw-bold text-danger" id="unselectedCount">0</h4>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="card shadow-sm">
+            <div class="card-body d-flex justify-content-end gap-2">
+                {% if is_readonly %}
+                <a href="{% url 'input_data:lane_proforma_mapping' %}{% if selected_scenario_id %}?scenario_id={{ selected_scenario_id }}{% endif %}"
+                   class="btn btn-primary">
+                    <i class="bi bi-pencil-square me-1"></i>Edit Mapping
+                </a>
+                {% else %}
+                <a href="{% url 'input_data:lane_proforma_mapping' %}"
+                   class="btn btn-outline-secondary">
+                    <i class="bi bi-x-circle me-1"></i>Cancel
+                </a>
+                <button type="submit" class="btn btn-primary">
+                    <i class="bi bi-check-circle me-1"></i>Save Mapping
+                </button>
+                {% endif %}
+            </div>
+        </div>
+    </form>
+
+    {% elif selected_scenario_id %}
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-info-circle display-4 text-muted"></i>
+            <h5 class="mt-3 text-muted">No Proforma data found for this scenario</h5>
+            <p class="text-muted">Please create Proforma Schedules first.</p>
+        </div>
+    </div>
+    {% else %}
+    <div class="card shadow-sm">
+        <div class="card-body text-center py-5">
+            <i class="bi bi-arrow-up-circle display-4 text-muted"></i>
+            <h5 class="mt-3 text-muted">Please select a Scenario to configure Lane Proforma Mapping</h5>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script>
+var COLOR_ACTIVE   = '#0d6efd';  // 선택 + 실제 적용 기간
+var COLOR_INRANGE  = '#cfe2ff';  // 유효기간 (미선택 또는 겹침으로 잘림)
+var COLOR_INACTIVE = '#f0f0f0';  // 기간 밖
+
+function toggleTimeline(checkbox) {
+    var pfId = checkbox.dataset.pfId;
+    var isChecked = checkbox.checked;
+    var bars = document.querySelectorAll('.timeline-cell-' + pfId);
+    bars.forEach(function(bar) {
+        var inRange = bar.getAttribute('data-in-range') === 'true';
+        var effective = bar.getAttribute('data-effective') === 'true';
+        if (isChecked && effective) {
+            bar.style.backgroundColor = COLOR_ACTIVE;
+        } else if (inRange) {
+            bar.style.backgroundColor = COLOR_INRANGE;
+        } else {
+            bar.style.backgroundColor = COLOR_INACTIVE;
+        }
+    });
+    updateSummary();
+}
+
+function updateSummary() {
+    var checkboxes = document.querySelectorAll('.pf-checkbox');
+    var total = checkboxes.length;
+    var selected = 0;
+    checkboxes.forEach(function(cb) {
+        if (cb.checked) selected++;
+    });
+    document.getElementById('totalProformas').textContent = total;
+    document.getElementById('selectedCount').textContent = selected;
+    document.getElementById('unselectedCount').textContent = total - selected;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    updateSummary();
+});
+</script>
+{% endblock %}

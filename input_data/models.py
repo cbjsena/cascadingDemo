@@ -748,6 +748,51 @@ class CascadingSchedule(ScenarioBaseModel):
         return f"[{self.scenario.id}] {self.proforma.proforma_name} - Pos{self.vessel_position}"
 
 
+# 2-1. Lane Proforma Mapping
+class LaneProformaMapping(ScenarioBaseModel):
+    """시나리오별 Lane에 적용할 Proforma 매핑 정보"""
+
+    scenario = models.ForeignKey(
+        "ScenarioInfo",
+        on_delete=models.CASCADE,
+        db_column="scenario_id",
+        related_name="lane_proforma_mappings",
+    )
+    lane = models.ForeignKey(
+        MasterLane,
+        on_delete=models.PROTECT,
+        db_column="lane_code",
+        verbose_name="Lane Code",
+    )
+    proforma = models.ForeignKey(
+        ProformaSchedule,
+        on_delete=models.CASCADE,
+        related_name="lane_mappings",
+        db_column="proforma_id",
+        verbose_name="Applied Proforma",
+    )
+    is_active = models.BooleanField(
+        default=True,
+        verbose_name="Active",
+        help_text="Whether this proforma is currently applied to the lane",
+    )
+
+    class Meta:
+        db_table = "sce_lane_proforma_mapping"
+        verbose_name = "Lane Proforma Mapping"
+        verbose_name_plural = "Lane Proforma Mappings"
+        constraints = [
+            models.UniqueConstraint(
+                fields=["scenario", "lane", "proforma"],
+                name="uq_laneproformamapping",
+            ),
+        ]
+        ordering = ["scenario", "lane"]
+
+    def __str__(self):
+        return f"[{self.scenario.id}] {self.lane} → {self.proforma.proforma_name}"
+
+
 # 3. Long Range Schedule
 class AbsLongRangeSchedule(models.Model):
     """Long Range Schedule 데이터 필드 (추상)"""
@@ -855,7 +900,7 @@ class LongRangeSchedule(AbsLongRangeSchedule, ScenarioBaseModel):
         ]
 
     def __str__(self):
-        return f"{self.lane_code} - {self.vessel_code}{self.voyage_number}{self.direction} - {self.port_code} ({self.calling_port_indicator})"
+        return f"{self.lane_id} - {self.vessel_code}{self.voyage_number}{self.direction} - {self.port_id} ({self.calling_port_indicator})"
 
 
 # ==========================================
@@ -1118,7 +1163,7 @@ class CanalFee(AbsCanalFee, ScenarioBaseModel):
         ]
 
     def __str__(self):
-        return f"[{self.scenario.id}] {self.vessel_code} @ {self.port_code}"
+        return f"[{self.scenario.id}] {self.vessel_code} @ {self.port_id}"
 
 
 # 2. Distance
@@ -1536,7 +1581,7 @@ class FixedScheduleChange(AbsFixedScheduleChange, ScenarioBaseModel):
 
     def __str__(self):
         return (
-            f"[{self.scenario.id}] {self.vessel_code} : {self.port_code} "
+            f"[{self.scenario.id}] {self.vessel_code} : {self.port_id} "
             f"({self.get_schedule_change_status_code_display()}) @ {self.eta.date()}"
         )
 
@@ -1596,7 +1641,7 @@ class PortConstraint(AbsPortConstraint, ScenarioBaseModel):
         ]
 
     def __str__(self):
-        return f"[{self.scenario.id}] {self.port_code} - {self.terminal_code} Limit"
+        return f"[{self.scenario.id}] {self.port_id} - {self.terminal_code} Limit"
 
 
 class BaseWeekPeriod(models.Model):

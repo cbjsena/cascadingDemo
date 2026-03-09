@@ -1,0 +1,92 @@
+{% extends "base.html" %}
+
+{% block title %}Lane Info - Cascading Opt{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small">
+                    <li class="breadcrumb-item"><a href="{% url 'input_data:input_home' %}" class="text-decoration-none">Home</a></li>
+                    <li class="breadcrumb-item text-muted">Master</li>
+                    <li class="breadcrumb-item active" aria-current="page">Lane Info</li>
+                </ol>
+            </nav>
+            <h1 class="h3">Lane Info</h1>
+        </div>
+        <div class="btn-group">
+            <button class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-download"></i> Download
+            </button>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light fw-bold">Search Filter</div>
+        <div class="card-body">
+            <form method="get" action="{% url 'input_data:master_lane_list' %}" class="row g-3 align-items-end">
+                <div class="col-md-4">
+                    <label class="form-label fw-bold small text-muted">Search (Code / Name)</label>
+                    <div class="input-group input-group-sm">
+                        <input type="text" class="form-control" name="search" value="{{ search }}" placeholder="Lane code or name...">
+                        <button class="btn btn-secondary" type="submit">
+                            <i class="bi bi-search"></i> Search
+                        </button>
+                    </div>
+                </div>
+                <div class="col-md-1">
+                    <a href="{% url 'input_data:master_lane_list' %}" class="btn btn-sm btn-outline-secondary w-100" title="Reset">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <span class="fw-bold">Lane List</span>
+            <span class="badge bg-primary">{{ items|length }} records</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover table-striped align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th class="text-center" style="width: 60px;">No</th>
+                            <th>Lane Code</th>
+                            <th>Lane Name</th>
+                            <th>Service Type</th>
+                            <th>Effective From</th>
+                            <th>Effective To</th>
+                            <th>Feeder Division</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td class="text-center">{{ forloop.counter }}</td>
+                            <td><span class="badge bg-secondary">{{ item.lane_code }}</span></td>
+                            <td class="fw-bold">{{ item.lane_name }}</td>
+                            <td>{{ item.vessel_service_type_code|default:"-" }}</td>
+                            <td>{{ item.effective_from_date|date:"Y-m-d"|default:"-" }}</td>
+                            <td>{{ item.effective_to_date|date:"Y-m-d"|default:"-" }}</td>
+                            <td>{{ item.feeder_division_code|default:"-" }}</td>
+                        </tr>
+                        {% empty %}
+                        <tr>
+                            <td colspan="7" class="text-center py-5 text-muted">
+                                <i class="bi bi-exclamation-circle fs-3 d-block mb-2"></i>
+                                No lane data found.
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+

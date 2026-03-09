@@ -60,6 +60,17 @@ urlpatterns = [
         name="cascading_vessel_detail",
     ),
     path("long_range/list/", views.long_range_list, name="long_range_list"),
+    # Lane Proforma Mapping
+    path(
+        "lane-proforma-mapping/",
+        views.lane_proforma_mapping,
+        name="lane_proforma_mapping",
+    ),
+    path(
+        "lane-proforma-list/",
+        views.lane_proforma_list,
+        name="lane_proforma_list",
+    ),
     # AJAX용
     # Input List (Common)
     # 동적 데이터 조회: /input/schedule/proforma/ 등 형태
