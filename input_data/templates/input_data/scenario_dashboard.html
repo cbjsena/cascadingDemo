@@ -182,7 +182,7 @@
                     <tbody>
                         {% for item in schedules %}
                         <tr>
-                            <td class="text-start ps-4 fw-bold text-primary">{{ item.lane_code }}</td>
+                            <td class="text-start ps-4 fw-bold text-primary">{{ item.lane_id }}</td>
                             <td>{{ item.proforma_name }}</td>
                             <td>
                                 {% if item.start_date %}
@@ -202,7 +202,7 @@
                             </td>
                             
                             <td>
-                                <a href="{% url 'input_data:proforma_create' %}?scenario_id={{ scenario.id }}&lane_code={{ item.lane_code }}&proforma_name={{ item.proforma_name }}" 
+                                <a href="{% url 'input_data:proforma_create' %}?scenario_id={{ scenario.id }}&lane_code={{ item.lane_id }}&proforma_name={{ item.proforma_name }}"
                                    class="btn btn-sm btn-outline-secondary" title="View Schedule">
                                     <i class="bi bi-calendar-week"></i>
                                 </a>

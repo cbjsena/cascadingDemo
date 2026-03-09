@@ -212,3 +212,32 @@ class TestScenarioView:
 
         assert response.status_code == 302
         assert not ScenarioInfo.objects.filter(code="SC_TARGET_ADMIN").exists()
+
+
+@pytest.mark.django_db
+class TestScenarioDashboardView:
+    """
+    Scenario Dashboard 화면 테스트
+    """
+
+    def test_dashboard_lane_link_not_empty(self, auth_client, sample_schedule):
+        """
+        [SCE_DASHBOARD_LINK_001] Dashboard에서 Proforma 링크의 lane_code 파라미터가
+        비어있지 않은지 검증.
+        Bug Fix: .values() 딕셔너리에서 item.lane_code(없는 키) → item.lane_id
+        """
+        scenario = sample_schedule.scenario
+        url = reverse("input_data:scenario_dashboard", args=[scenario.id])
+        response = auth_client.get(url)
+
+        assert response.status_code == 200
+        content = response.content.decode("utf-8")
+
+        # lane_code= 뒤에 값이 비어있으면 안 됨
+        assert "lane_code=&" not in content, (
+            "Dashboard link has empty lane_code parameter. "
+            "Template should use item.lane_id instead of item.lane_code"
+        )
+
+        # lane_code=TEST_LANE 이 포함되어 있어야 함
+        assert f"lane_code={sample_schedule.lane_id}" in content

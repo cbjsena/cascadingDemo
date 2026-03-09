@@ -15,7 +15,7 @@ LEFT JOIN pg_catalog.pg_description pgd
        ON pgd.objoid = st.relid
       AND pgd.objsubid = c.ordinal_position
 WHERE c.table_schema = 'public'
-  AND c.table_name  LIKE 'base%%'  -- Django raw query에서 %는 %%로 이스케이프 필요
+  AND c.table_name  LIKE 'sce%%'  -- Django raw query에서 %는 %%로 이스케이프 필요
   AND c.column_name != 'id'
 ORDER BY c.table_name, c.ordinal_position;
 """

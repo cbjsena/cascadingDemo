@@ -1227,6 +1227,12 @@ class AbsTSCost(models.Model):
     base_year_month = models.CharField(
         max_length=6, verbose_name="Year and month used as the base period / YYYYMM"
     )
+    lane = models.ForeignKey(
+        MasterLane,
+        on_delete=models.PROTECT,
+        db_column="lane_code",
+        verbose_name="Lane Code / 3 alphanum",
+    )
     port = models.ForeignKey(
         MasterPort,
         on_delete=models.PROTECT,
@@ -1248,7 +1254,7 @@ class BaseTSCost(AbsTSCost):
         db_table = "base_cost_ts_cost"
         constraints = [
             models.UniqueConstraint(
-                fields=["base_year_month", "port"], name="uq_basetscost"
+                fields=["base_year_month", "lane", "port"], name="uq_basetscost"
             ),
         ]
 
@@ -1261,7 +1267,7 @@ class TSCost(AbsTSCost, ScenarioBaseModel):
         db_table = "sce_cost_ts_cost"
         constraints = [
             models.UniqueConstraint(
-                fields=["scenario", "base_year_month", "port"], name="uq_tscost"
+                fields=["scenario", "base_year_month", "lane", "port"], name="uq_tscost"
             ),
         ]
 

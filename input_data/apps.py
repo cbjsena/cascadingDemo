@@ -207,20 +207,20 @@ def create_default_superuser(sender, **kwargs):
 
 def run_init_base_data(sender, **kwargs):
     """
-    migrate 완료 후 'init_base_data' 커맨드를 자동으로 실행하는 함수
+    migrate 완료 후 'init_master_data' → 'init_base_data' 순서로 자동 실행.
+    base_ 테이블이 master_ 테이블을 FK(PROTECT)로 참조하므로
+    master_ 데이터가 먼저 존재해야 한다.
     """
-    # plan 매개변수가 있는 경우(특정 마이그레이션만 실행 시) 등을 방지하기 위해
-    # 실제 마이그레이션이 수행되었을 때만 실행하도록 조건 추가 가능하지만,
-    # 보통은 post_migrate 시점에 매번 체크해도 무방합니다.
-    command_name = "init_base_data"
-    print(msg.AUTO_SETUP_COMMAND_START.format(command=command_name))
-
-    try:
-        call_command(command_name)
-        # (선택) 성공 로그
-        print(msg.AUTO_SETUP_COMMAND_SUCCESS.format(command=command_name))
-    except Exception as e:
-        print(msg.AUTO_SETUP_COMMAND_FAILED.format(command=command_name, error=e))
+    for command_name in ["init_master_data", "init_base_data"]:
+        print(msg.AUTO_SETUP_COMMAND_START.format(command=command_name))
+        try:
+            if command_name == "init_master_data":
+                call_command(command_name, "--force")
+            else:
+                call_command(command_name)
+            print(msg.AUTO_SETUP_COMMAND_SUCCESS.format(command=command_name))
+        except Exception as e:
+            print(msg.AUTO_SETUP_COMMAND_FAILED.format(command=command_name, error=e))
 
 
 def _map_data_type(data_type):
