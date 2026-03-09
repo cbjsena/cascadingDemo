@@ -32,6 +32,11 @@ class MenuItem:
     CASCADING_VESSEL_INFO = "cascading_vessel_info"
     LONG_RANGE_SCHEDULE = "long_range_schedule"
 
+    # Input Management - Master
+    TRADE_INFO = "trade_info"
+    PORT_INFO = "port_info"
+    LANE_INFO = "lane_info"
+
     # Input Management - Dashboard & Scenario
     DASHBOARD = "input_home"
     SCENARIO_LIST = "scenario_list"
@@ -60,11 +65,6 @@ CREATION_MENU_STRUCTURE = {
             "url_name": "input_data:cascading_vessel_create",
             "key": MenuItem.CASCADING_VESSEL_CREATE,
         },
-    ],
-    MenuGroup.MASTER: [
-        {"name": "Trade Info", "key": "trade_info", "url_name": None},
-        {"name": "Lane Info", "key": "lane_info", "url_name": None},
-        {"name": "Port Info", "key": "port_info", "url_name": None},
     ],
 }
 
@@ -95,6 +95,23 @@ MENU_STRUCTURE = {
             "name": "Long Range Schedule",
             "key": MenuItem.LONG_RANGE_SCHEDULE,
             "url_name": "input_data:long_range_list",
+        },
+    ],
+    MenuGroup.MASTER: [
+        {
+            "name": "Trade Info",
+            "key": MenuItem.TRADE_INFO,
+            "url_name": "input_data:master_trade_list",
+        },
+        {
+            "name": "Port Info",
+            "key": MenuItem.PORT_INFO,
+            "url_name": "input_data:master_port_list",
+        },
+        {
+            "name": "Lane Info",
+            "key": MenuItem.LANE_INFO,
+            "url_name": "input_data:master_lane_list",
         },
     ],
     MenuGroup.VESSEL: [

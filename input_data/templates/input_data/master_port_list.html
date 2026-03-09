@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Lane Info - Cascading Opt{% endblock %}
+{% block title %}Port Info - Cascading Opt{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -10,28 +10,37 @@
                 <ol class="breadcrumb mb-1 small">
                     <li class="breadcrumb-item"><a href="{% url 'input_data:input_home' %}" class="text-decoration-none">Home</a></li>
                     <li class="breadcrumb-item text-muted">Master</li>
-                    <li class="breadcrumb-item active" aria-current="page">Lane Info</li>
+                    <li class="breadcrumb-item active" aria-current="page">Port Info</li>
                 </ol>
             </nav>
-            <h1 class="h3">Lane Info</h1>
+            <h1 class="h3">Port Info</h1>
         </div>
     </div>
 
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-light fw-bold">Search Filter</div>
         <div class="card-body">
-            <form method="get" action="{% url 'input_data:master_lane_list' %}" class="row g-3 align-items-end">
-                <div class="col-md-4">
+            <form method="get" action="{% url 'input_data:master_port_list' %}" class="row g-3 align-items-end">
+                <div class="col-md-3">
                     <label class="form-label fw-bold small text-muted">Search (Code / Name)</label>
-                    <div class="input-group input-group-sm">
-                        <input type="text" class="form-control" name="search" value="{{ search }}" placeholder="Lane code or name...">
-                        <button class="btn btn-secondary" type="submit">
-                            <i class="bi bi-search"></i> Search
-                        </button>
-                    </div>
+                    <input type="text" class="form-control form-control-sm" name="search" value="{{ search }}" placeholder="Port code or name...">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small text-muted">Continent</label>
+                    <select class="form-select form-select-sm" name="continent">
+                        <option value="">All Continents</option>
+                        {% for code in continent_codes %}
+                        <option value="{{ code }}" {% if continent == code %}selected{% endif %}>{{ code }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-sm btn-secondary w-100">
+                        <i class="bi bi-search"></i> Search
+                    </button>
                 </div>
                 <div class="col-md-1">
-                    <a href="{% url 'input_data:master_lane_list' %}" class="btn btn-sm btn-outline-secondary w-100" title="Reset">
+                    <a href="{% url 'input_data:master_port_list' %}" class="btn btn-sm btn-outline-secondary w-100" title="Reset">
                         <i class="bi bi-arrow-clockwise"></i>
                     </a>
                 </div>
@@ -42,7 +51,7 @@
     <div class="card shadow-sm">
         <div class="card-header bg-light d-flex justify-content-between align-items-center">
             <div>
-                <span class="fw-bold">Lane List</span>
+                <span class="fw-bold">Port List</span>
                 <span class="badge bg-primary ms-2">{{ items|length }} records</span>
             </div>
             <div class="btn-group btn-group-sm">
@@ -69,35 +78,31 @@
                                     <input type="checkbox" id="checkAll" class="form-check-input">
                                 </th>
                                 <th class="text-center" style="width: 50px;">No</th>
-                                <th>Lane Code</th>
-                                <th>Lane Name</th>
-                                <th>Service Type</th>
-                                <th>Effective From</th>
-                                <th>Effective To</th>
-                                <th>Feeder Division</th>
+                                <th>Port Code</th>
+                                <th>Port Name</th>
+                                <th>Continent Code</th>
+                                <th>Country Code</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for item in items %}
                             <tr>
                                 <td class="text-center">
-                                    <input type="checkbox" name="selected_pks" value="{{ item.lane_code }}" class="form-check-input row-check">
+                                    <input type="checkbox" name="selected_pks" value="{{ item.port_code }}" class="form-check-input row-check">
                                 </td>
                                 <td class="text-center">{{ forloop.counter }}</td>
                                 <td>
-                                    <span class="badge bg-secondary">{{ item.lane_code }}</span>
+                                    <span class="badge bg-secondary">{{ item.port_code }}</span>
                                 </td>
-                                <td class="fw-bold">{{ item.lane_name }}</td>
-                                <td>{{ item.vessel_service_type_code|default:"-" }}</td>
-                                <td>{{ item.effective_from_date|date:"Y-m-d"|default:"-" }}</td>
-                                <td>{{ item.effective_to_date|date:"Y-m-d"|default:"-" }}</td>
-                                <td>{{ item.feeder_division_code|default:"-" }}</td>
+                                <td class="fw-bold">{{ item.port_name }}</td>
+                                <td>{{ item.continent_code|default:"-" }}</td>
+                                <td>{{ item.country_code|default:"-" }}</td>
                             </tr>
                             {% empty %}
                             <tr id="emptyRow">
-                                <td colspan="8" class="text-center py-5 text-muted">
+                                <td colspan="6" class="text-center py-5 text-muted">
                                     <i class="bi bi-exclamation-circle fs-3 d-block mb-2"></i>
-                                    No lane data found.
+                                    No port data found.
                                 </td>
                             </tr>
                             {% endfor %}
@@ -133,12 +138,10 @@ document.addEventListener('DOMContentLoaded', function() {
                 <input type="checkbox" name="selected_pks" value="" class="form-check-input row-check">
             </td>
             <td class="text-center">${rowCount + 1}</td>
-            <td><input type="text" name="new_lane_code_${rowCount}" class="form-control form-control-sm" placeholder="Lane Code" required></td>
-            <td><input type="text" name="new_lane_name_${rowCount}" class="form-control form-control-sm" placeholder="Lane Name" required></td>
-            <td><input type="text" name="new_service_type_${rowCount}" class="form-control form-control-sm" placeholder="Service Type"></td>
-            <td><input type="date" name="new_eff_from_${rowCount}" class="form-control form-control-sm"></td>
-            <td><input type="date" name="new_eff_to_${rowCount}" class="form-control form-control-sm"></td>
-            <td><input type="text" name="new_feeder_div_${rowCount}" class="form-control form-control-sm" placeholder="Feeder Division"></td>
+            <td><input type="text" name="new_port_code_${rowCount}" class="form-control form-control-sm" placeholder="Port Code" required></td>
+            <td><input type="text" name="new_port_name_${rowCount}" class="form-control form-control-sm" placeholder="Port Name" required></td>
+            <td><input type="text" name="new_continent_code_${rowCount}" class="form-control form-control-sm" placeholder="Continent Code"></td>
+            <td><input type="text" name="new_country_code_${rowCount}" class="form-control form-control-sm" placeholder="Country Code"></td>
         `;
         tbody.appendChild(newRow);
         btnSave.style.display = 'inline-block';

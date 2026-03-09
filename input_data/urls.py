@@ -71,6 +71,10 @@ urlpatterns = [
         views.lane_proforma_list,
         name="lane_proforma_list",
     ),
+    # Master 테이블 조회
+    path("master/trade/", views.master_trade_list, name="master_trade_list"),
+    path("master/port/", views.master_port_list, name="master_port_list"),
+    path("master/lane/", views.master_lane_list, name="master_lane_list"),
     # AJAX용
     # Input List (Common)
     # 동적 데이터 조회: /input/schedule/proforma/ 등 형태

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Lane Info - Cascading Opt{% endblock %}
+{% block title %}Trade Info - Cascading Opt{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
@@ -10,28 +10,28 @@
                 <ol class="breadcrumb mb-1 small">
                     <li class="breadcrumb-item"><a href="{% url 'input_data:input_home' %}" class="text-decoration-none">Home</a></li>
                     <li class="breadcrumb-item text-muted">Master</li>
-                    <li class="breadcrumb-item active" aria-current="page">Lane Info</li>
+                    <li class="breadcrumb-item active" aria-current="page">Trade Info</li>
                 </ol>
             </nav>
-            <h1 class="h3">Lane Info</h1>
+            <h1 class="h3">Trade Info</h1>
         </div>
     </div>
 
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-light fw-bold">Search Filter</div>
         <div class="card-body">
-            <form method="get" action="{% url 'input_data:master_lane_list' %}" class="row g-3 align-items-end">
+            <form method="get" action="{% url 'input_data:master_trade_list' %}" class="row g-3 align-items-end">
                 <div class="col-md-4">
                     <label class="form-label fw-bold small text-muted">Search (Code / Name)</label>
                     <div class="input-group input-group-sm">
-                        <input type="text" class="form-control" name="search" value="{{ search }}" placeholder="Lane code or name...">
+                        <input type="text" class="form-control" name="search" value="{{ search }}" placeholder="Trade code or name...">
                         <button class="btn btn-secondary" type="submit">
                             <i class="bi bi-search"></i> Search
                         </button>
                     </div>
                 </div>
                 <div class="col-md-1">
-                    <a href="{% url 'input_data:master_lane_list' %}" class="btn btn-sm btn-outline-secondary w-100" title="Reset">
+                    <a href="{% url 'input_data:master_trade_list' %}" class="btn btn-sm btn-outline-secondary w-100" title="Reset">
                         <i class="bi bi-arrow-clockwise"></i>
                     </a>
                 </div>
@@ -42,7 +42,7 @@
     <div class="card shadow-sm">
         <div class="card-header bg-light d-flex justify-content-between align-items-center">
             <div>
-                <span class="fw-bold">Lane List</span>
+                <span class="fw-bold">Trade List</span>
                 <span class="badge bg-primary ms-2">{{ items|length }} records</span>
             </div>
             <div class="btn-group btn-group-sm">
@@ -69,35 +69,31 @@
                                     <input type="checkbox" id="checkAll" class="form-check-input">
                                 </th>
                                 <th class="text-center" style="width: 50px;">No</th>
-                                <th>Lane Code</th>
-                                <th>Lane Name</th>
-                                <th>Service Type</th>
-                                <th>Effective From</th>
-                                <th>Effective To</th>
-                                <th>Feeder Division</th>
+                                <th>Trade Code</th>
+                                <th>Trade Name</th>
+                                <th>From Continent</th>
+                                <th>To Continent</th>
                             </tr>
                         </thead>
                         <tbody>
                             {% for item in items %}
                             <tr>
                                 <td class="text-center">
-                                    <input type="checkbox" name="selected_pks" value="{{ item.lane_code }}" class="form-check-input row-check">
+                                    <input type="checkbox" name="selected_pks" value="{{ item.trade_code }}" class="form-check-input row-check">
                                 </td>
                                 <td class="text-center">{{ forloop.counter }}</td>
                                 <td>
-                                    <span class="badge bg-secondary">{{ item.lane_code }}</span>
+                                    <span class="badge bg-secondary">{{ item.trade_code }}</span>
                                 </td>
-                                <td class="fw-bold">{{ item.lane_name }}</td>
-                                <td>{{ item.vessel_service_type_code|default:"-" }}</td>
-                                <td>{{ item.effective_from_date|date:"Y-m-d"|default:"-" }}</td>
-                                <td>{{ item.effective_to_date|date:"Y-m-d"|default:"-" }}</td>
-                                <td>{{ item.feeder_division_code|default:"-" }}</td>
+                                <td class="fw-bold">{{ item.trade_name }}</td>
+                                <td>{{ item.from_continent_code|default:"-" }}</td>
+                                <td>{{ item.to_continent_code|default:"-" }}</td>
                             </tr>
                             {% empty %}
                             <tr id="emptyRow">
-                                <td colspan="8" class="text-center py-5 text-muted">
+                                <td colspan="6" class="text-center py-5 text-muted">
                                     <i class="bi bi-exclamation-circle fs-3 d-block mb-2"></i>
-                                    No lane data found.
+                                    No trade data found.
                                 </td>
                             </tr>
                             {% endfor %}
@@ -116,6 +112,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const tbody = document.querySelector('#masterTable tbody');
     const checkAll = document.getElementById('checkAll');
     const btnSave = document.getElementById('btnSave');
+    let newRowAdded = false;
 
     checkAll.addEventListener('change', function() {
         document.querySelectorAll('.row-check').forEach(cb => cb.checked = this.checked);
@@ -133,14 +130,13 @@ document.addEventListener('DOMContentLoaded', function() {
                 <input type="checkbox" name="selected_pks" value="" class="form-check-input row-check">
             </td>
             <td class="text-center">${rowCount + 1}</td>
-            <td><input type="text" name="new_lane_code_${rowCount}" class="form-control form-control-sm" placeholder="Lane Code" required></td>
-            <td><input type="text" name="new_lane_name_${rowCount}" class="form-control form-control-sm" placeholder="Lane Name" required></td>
-            <td><input type="text" name="new_service_type_${rowCount}" class="form-control form-control-sm" placeholder="Service Type"></td>
-            <td><input type="date" name="new_eff_from_${rowCount}" class="form-control form-control-sm"></td>
-            <td><input type="date" name="new_eff_to_${rowCount}" class="form-control form-control-sm"></td>
-            <td><input type="text" name="new_feeder_div_${rowCount}" class="form-control form-control-sm" placeholder="Feeder Division"></td>
+            <td><input type="text" name="new_trade_code_${rowCount}" class="form-control form-control-sm" placeholder="Trade Code" required></td>
+            <td><input type="text" name="new_trade_name_${rowCount}" class="form-control form-control-sm" placeholder="Trade Name" required></td>
+            <td><input type="text" name="new_from_continent_${rowCount}" class="form-control form-control-sm" placeholder="From Continent"></td>
+            <td><input type="text" name="new_to_continent_${rowCount}" class="form-control form-control-sm" placeholder="To Continent"></td>
         `;
         tbody.appendChild(newRow);
+        newRowAdded = true;
         btnSave.style.display = 'inline-block';
     });
 
