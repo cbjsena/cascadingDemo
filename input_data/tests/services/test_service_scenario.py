@@ -376,3 +376,121 @@ class TestScenarioCreationService:
 
         # Summary 결과 확인
         assert summary["sce_schedule_cascading"] == 2
+
+
+@pytest.mark.django_db
+class TestScenarioCreationFilters:
+    """
+    SCENARIO_CREATION_FILTERS 검증 (V### 정규식 필터)
+    Test Scenarios: SCE_FILTER_001, SCE_FILTER_002
+    """
+
+    @pytest.fixture
+    def setup_filter_data(self, db):
+        """V### 필터 검증용 Base 데이터"""
+        # V### 형태 (복사 대상)
+        BaseVesselInfo.objects.create(
+            vessel_code="V001", vessel_name="Ship 001", own_yn="O"
+        )
+        BaseVesselInfo.objects.create(
+            vessel_code="V123", vessel_name="Ship 123", own_yn="C"
+        )
+        BaseVesselInfo.objects.create(
+            vessel_code="V999", vessel_name="Ship 999", own_yn="O"
+        )
+
+        # V### 아닌 형태 (복사 제외 대상)
+        BaseVesselInfo.objects.create(
+            vessel_code="V0AB", vessel_name="Not digit", own_yn="O"
+        )
+        BaseVesselInfo.objects.create(
+            vessel_code="VSSL", vessel_name="Not V###", own_yn="C"
+        )
+        BaseVesselInfo.objects.create(
+            vessel_code="V1234", vessel_name="Four digits", own_yn="O"
+        )
+        BaseVesselInfo.objects.create(
+            vessel_code="ABCD", vessel_name="No V prefix", own_yn="C"
+        )
+
+        # VesselCapacity용 (trade/lane FK 필요)
+        from input_data.models import BaseVesselCapacity
+
+        BaseVesselCapacity.objects.create(
+            trade_id="ASIA",
+            lane_id="LANE_A",
+            vessel_code="V001",
+            voyage_number="0001",
+            direction="E",
+            vessel_capacity=5000,
+            reefer_capacity=100,
+        )
+        BaseVesselCapacity.objects.create(
+            trade_id="ASIA",
+            lane_id="LANE_A",
+            vessel_code="V999",
+            voyage_number="0001",
+            direction="E",
+            vessel_capacity=6000,
+            reefer_capacity=200,
+        )
+        BaseVesselCapacity.objects.create(
+            trade_id="ASIA",
+            lane_id="LANE_A",
+            vessel_code="ABCD",
+            voyage_number="0001",
+            direction="E",
+            vessel_capacity=7000,
+            reefer_capacity=300,
+        )
+
+    def test_vessel_info_v_hash_filter(self, setup_filter_data):
+        """
+        [SCE_FILTER_001] VesselInfo V### 형태만 복사 검증
+        V001, V123, V999 -> 복사됨
+        V0AB, VSSL, V1234, ABCD -> 복사 안 됨
+        """
+        user = User.objects.create_user(username="filter_user", password="password")
+        scenario, summary = create_scenario_from_base(
+            description="Filter Test", user=user
+        )
+
+        copied_codes = set(
+            VesselInfo.objects.filter(scenario=scenario).values_list(
+                "vessel_code", flat=True
+            )
+        )
+
+        # 복사 대상
+        assert "V001" in copied_codes
+        assert "V123" in copied_codes
+        assert "V999" in copied_codes
+
+        # 복사 제외
+        assert "V0AB" not in copied_codes
+        assert "VSSL" not in copied_codes
+        assert "V1234" not in copied_codes
+        assert "ABCD" not in copied_codes
+
+    def test_vessel_capacity_v_hash_filter(self, setup_filter_data):
+        """
+        [SCE_FILTER_002] VesselCapacity도 V### 필터 적용 검증
+        V001, V999 -> 복사됨
+        ABCD -> 복사 안 됨
+        """
+        user = User.objects.create_user(username="filter_user2", password="password")
+        scenario, summary = create_scenario_from_base(
+            description="Filter Test 2", user=user
+        )
+
+        from input_data.models import VesselCapacity as SceVesselCapacity
+
+        copied_codes = set(
+            SceVesselCapacity.objects.filter(scenario=scenario).values_list(
+                "vessel_code", flat=True
+            )
+        )
+
+        assert "V001" in copied_codes
+        assert "V999" in copied_codes
+        assert "ABCD" not in copied_codes

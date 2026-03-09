@@ -313,3 +313,64 @@ class TestApiViews:
 
         assert "V_LRS_1" in options
         assert "V_BUSY" not in options
+
+
+@pytest.mark.django_db
+class TestBaseVesselAPI:
+    """
+    Base Vessel List API 테스트
+    Test Scenarios: API_BASE_VSL_001, API_BASE_VSL_002, API_BASE_VSL_003
+    """
+
+    def test_api_base_vsl_001_list(self, auth_client):
+        """
+        [API_BASE_VSL_001] BaseVesselInfo 전체 목록 JSON 반환
+        """
+        from input_data.models import BaseVesselInfo
+
+        BaseVesselInfo.objects.create(
+            vessel_code="V001", vessel_name="Ship1", own_yn="O"
+        )
+        BaseVesselInfo.objects.create(
+            vessel_code="V002", vessel_name="Ship2", own_yn="C"
+        )
+
+        url = reverse("api:base_vessel_list")
+        response = auth_client.get(url)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert "vessels" in data
+        assert len(data["vessels"]) == 2
+
+        # vessel_code 기준 정렬 확인
+        codes = [v["vessel_code"] for v in data["vessels"]]
+        assert codes == sorted(codes)
+
+        # 필드 존재 확인
+        first = data["vessels"][0]
+        assert "vessel_code" in first
+        assert "vessel_name" in first
+        assert "own_yn" in first
+
+    def test_api_base_vsl_002_empty(self, auth_client):
+        """
+        [API_BASE_VSL_002] 데이터 없을 때 빈 배열 반환
+        """
+        url = reverse("api:base_vessel_list")
+        response = auth_client.get(url)
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["vessels"] == []
+
+    def test_api_base_vsl_003_unauthenticated(self, client):
+        """
+        [API_BASE_VSL_003] 비로그인 사용자 접근 차단
+        """
+        url = reverse("api:base_vessel_list")
+        response = client.get(url)
+
+        # login_required -> redirect to login
+        assert response.status_code == 302
+        assert "/accounts/login/" in response.url
