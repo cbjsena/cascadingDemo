@@ -1,0 +1,240 @@
+{% extends "base.html" %}
+
+{% block title %}Bunker Price - Cascading Opt{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small">
+                    <li class="breadcrumb-item"><a href="{% url 'input_data:input_home' %}" class="text-decoration-none">Home</a></li>
+                    <li class="breadcrumb-item text-muted">Bunker</li>
+                    <li class="breadcrumb-item active" aria-current="page">Bunker Price</li>
+                </ol>
+            </nav>
+            <h1 class="h3">Bunker Price</h1>
+        </div>
+    </div>
+
+    {% include "components/csv_buttons.html" %}
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light fw-bold">Search Filter</div>
+        <div class="card-body">
+            <form method="get" action="{% url 'input_data:bunker_price_list' %}" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small text-muted">Scenario</label>
+                    <select class="form-select form-select-sm" name="scenario_id" onchange="this.form.submit()">
+                        <option value="">All Scenarios</option>
+                        {% for scenario in scenarios %}
+                        <option value="{{ scenario.id }}"
+                            {% if search_params.scenario_id|stringformat:"s" == scenario.id|stringformat:"s" %}selected{% endif %}>
+                            {{ scenario.code }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small text-muted">Base Year Month</label>
+                    <select class="form-select form-select-sm" name="base_year_month">
+                        <option value="">All</option>
+                        {% for ym in base_year_month_choices %}
+                        <option value="{{ ym }}"
+                            {% if base_year_month == ym %}selected{% endif %}>
+                            {{ ym }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small text-muted">Search (Trade / Lane / Bunker Type)</label>
+                    <input type="text" class="form-control form-control-sm" name="search" value="{{ search }}" placeholder="Trade Code, Lane Code, or Bunker Type...">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-sm btn-secondary w-100">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                </div>
+                <div class="col-md-1">
+                    <a href="{% url 'input_data:bunker_price_list' %}" class="btn btn-sm btn-outline-secondary w-100" title="Reset">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <div>
+                <span class="fw-bold">Bunker Price List</span>
+                <span class="badge bg-primary ms-2">{{ items|length }} records</span>
+            </div>
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-success" id="btnAddRow">
+                    <i class="bi bi-plus-lg"></i> Add Row
+                </button>
+                <button type="button" class="btn btn-danger" id="btnDeleteRow">
+                    <i class="bi bi-trash"></i> Delete Row
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <form method="post" id="deleteForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="scenario_id" value="{{ search_params.scenario_id }}">
+                <div class="table-responsive" style="max-height: 600px;">
+                    <table class="table table-hover table-striped align-middle mb-0 table-sm" id="masterTable">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th class="text-center" style="width: 40px;">
+                                    <input type="checkbox" id="checkAll" class="form-check-input">
+                                </th>
+                                <th class="text-center" style="width: 50px;">No</th>
+                                <th>Base Year Month</th>
+                                <th>Trade Code</th>
+                                <th>Lane Code</th>
+                                <th>Bunker Type</th>
+                                <th class="text-end">Bunker Price (USD/Ton)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td class="text-center">
+                                    <input type="checkbox" name="selected_pks" value="{{ item.pk }}" class="form-check-input row-check">
+                                </td>
+                                <td class="text-center">{{ forloop.counter }}</td>
+                                <td><span class="badge bg-info text-dark">{{ item.base_year_month }}</span></td>
+                                <td><span class="badge bg-secondary">{{ item.trade.trade_code }}</span></td>
+                                <td><span class="badge bg-primary">{{ item.lane.lane_code }}</span></td>
+                                <td>
+                                    {% if item.bunker_type == 'LSFO' %}
+                                    <span class="badge bg-success">LSFO</span>
+                                    {% else %}
+                                    <span class="badge bg-warning text-dark">MGO</span>
+                                    {% endif %}
+                                </td>
+                                <td class="text-end">{{ item.bunker_price }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="7" class="text-center py-5 text-muted">
+                                    <i class="bi bi-exclamation-circle fs-3 d-block mb-2"></i>
+                                    No bunker price data found. Please select a scenario.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add Bunker Price Modal -->
+<div class="modal fade" id="addModal" tabindex="-1" aria-labelledby="addModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" id="addForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save">
+                <input type="hidden" name="scenario_id" value="{{ search_params.scenario_id }}">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="addModalLabel">
+                        <i class="bi bi-plus-circle"></i> Add Bunker Price
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="modalBaseYearMonth" class="form-label fw-bold">Base Year Month <span class="text-danger">*</span></label>
+                        <select class="form-select" id="modalBaseYearMonth" name="new_base_year_month_0" required>
+                            <option value="">-- Select Base Year Month --</option>
+                            {% for ym in base_year_month_choices %}
+                            <option value="{{ ym }}">{{ ym }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modalTrade" class="form-label fw-bold">Trade <span class="text-danger">*</span></label>
+                        <select class="form-select" id="modalTrade" name="new_trade_0" required>
+                            <option value="">-- Select Trade --</option>
+                            {% for trade in trade_choices %}
+                            <option value="{{ trade.trade_code }}">{{ trade.trade_code }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modalLane" class="form-label fw-bold">Lane <span class="text-danger">*</span></label>
+                        <select class="form-select" id="modalLane" name="new_lane_0" required>
+                            <option value="">-- Select Lane --</option>
+                            {% for lane in lane_choices %}
+                            <option value="{{ lane.lane_code }}">{{ lane.lane_code }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modalBunkerType" class="form-label fw-bold">Bunker Type <span class="text-danger">*</span></label>
+                        <select class="form-select" id="modalBunkerType" name="new_bunker_type_0" required>
+                            <option value="">-- Select Bunker Type --</option>
+                            <option value="LSFO">LSFO (Low Sulphur Fuel Oil)</option>
+                            <option value="MGO">MGO (Marine Gas Oil)</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modalBunkerPrice" class="form-label fw-bold">Bunker Price (USD/Ton) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="modalBunkerPrice" name="new_bunker_price_0" min="0" step="0.001" placeholder="e.g. 650.500" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="modalSaveBtn">
+                        <i class="bi bi-check-lg"></i> Save
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const deleteForm = document.getElementById('deleteForm');
+    const checkAll = document.getElementById('checkAll');
+    const modal = new bootstrap.Modal(document.getElementById('addModal'));
+
+    // Add Row → 모달
+    document.getElementById('btnAddRow').addEventListener('click', function() {
+        const scenarioId = deleteForm.querySelector('input[name="scenario_id"]').value;
+        if (!scenarioId) { alert('Please select a scenario first.'); return; }
+
+        // 초기화
+        document.getElementById('modalBaseYearMonth').selectedIndex = 0;
+        document.getElementById('modalTrade').selectedIndex = 0;
+        document.getElementById('modalLane').selectedIndex = 0;
+        document.getElementById('modalBunkerType').selectedIndex = 0;
+        document.getElementById('modalBunkerPrice').value = '';
+
+        modal.show();
+    });
+
+    // CheckAll
+    checkAll.addEventListener('change', function() {
+        document.querySelectorAll('.row-check').forEach(cb => cb.checked = this.checked);
+    });
+
+    // Delete
+    document.getElementById('btnDeleteRow').addEventListener('click', function() {
+        const checked = document.querySelectorAll('.row-check:checked');
+        if (checked.length === 0) { alert('Please select rows to delete.'); return; }
+        if (confirm('Are you sure you want to delete selected rows?')) {
+            deleteForm.submit();
+        }
+    });
+});
+</script>
+{% endblock %}

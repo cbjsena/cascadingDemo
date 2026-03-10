@@ -18,3 +18,11 @@ DEFAULT_SEA_TIME = 24.0  # 행 추가 시 ETD -> 다음 ETB 간격 (가정)
 DEFAULT_STAY_HOURS = 24.0  # 행 추가 시 ETB -> ETD 간격
 
 DEFAULT_BASE_YEAR_WEEK = "202605"
+
+# ==========================================
+# Bunker Sea Speed Defaults
+# ==========================================
+# Sea Speed 범위 (Knot) — 0.5 단위
+SEA_SPEED_MIN = 14.0
+SEA_SPEED_MAX = 20.0
+SEA_SPEED_STEP = 0.5

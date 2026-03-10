@@ -1,3 +1,8 @@
+from .bunker import (  # noqa: F401
+    bunker_consumption_port_list,
+    bunker_consumption_sea_list,
+    bunker_price_list,
+)
 from .cascading import (  # noqa: F401
     cascading_create,
     cascading_schedule_list,

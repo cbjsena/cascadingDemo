@@ -329,3 +329,21 @@
         ]
     15.5 처음 접속 시 고급 설정으로 이동
 
+16. vs code 실행방법
+    16.1 Python 확장 설치
+        - Python extension for Visual Studio Code(Django 자동완성, 디버깅, 테스트 실행, 가상환경 인식)
+        - Pylance(빠른 자동완성, 타입 분석, import 경로 분석)
+        - Black Formatter, Ruff  설치하면 cntr+S 저장 시 자동으로 코드 정리
+        - Django Template(.html template syntax highlight, {% block %} 자동완성, {% url %} 지원)
+        - GitLens
+        - GitHub Copilot, Claude Code
+    16.2 File → Open Folder
+    16.3 Python 인터프리터 설정
+        - Ctrl + Shift + P -> Python: Select Interpreter 검색 ->.venv\Scripts\python.exe 선택
+    16.4 Django 라면
+        - 터미널 열기: Ctrl + `
+    16.5 VS Code 디버깅 설정
+        - .vscode 폴더 생성 후 launch.json 파일 만들면 F5로 실행 가능
+    16.6 pytest
+        - Ctrl + Shift + P -> Python: Configure Tests -> pytest -> tests 폴더 선택
+        - settings.json

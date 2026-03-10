@@ -83,6 +83,22 @@ urlpatterns = [
     path("cost/canal-fee/", views.canal_fee_list, name="canal_fee_list"),
     path("cost/distance/", views.distance_list, name="distance_list"),
     path("cost/ts-cost/", views.ts_cost_list, name="ts_cost_list"),
+    # Bunker 테이블 조회
+    path(
+        "bunker/consumption-sea/",
+        views.bunker_consumption_sea_list,
+        name="bunker_consumption_sea_list",
+    ),
+    path(
+        "bunker/consumption-port/",
+        views.bunker_consumption_port_list,
+        name="bunker_consumption_port_list",
+    ),
+    path(
+        "bunker/price/",
+        views.bunker_price_list,
+        name="bunker_price_list",
+    ),
     # AJAX용
     # Input List (Common)
     # 동적 데이터 조회: /input/schedule/proforma/ 등 형태

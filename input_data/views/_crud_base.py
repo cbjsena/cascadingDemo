@@ -388,7 +388,18 @@ def _handle_get(request, *, config):
 
     # ---- Step 6: 추가 context (모달 드롭다운용 데이터) ----
     for key, loader_fn in config.get("extra_context", {}).items():
-        extra_context[key] = loader_fn()
+        try:
+            # 함수가 scenario_id 파라미터를 받을 수 있는지 확인
+            import inspect
+
+            sig = inspect.signature(loader_fn)
+            if "scenario_id" in sig.parameters:
+                extra_context[key] = loader_fn(scenario_id=scenario_id)
+            else:
+                extra_context[key] = loader_fn()
+        except Exception:
+            # 에러 발생 시 파라미터 없이 호출
+            extra_context[key] = loader_fn()
 
     # ---- Step 7: 템플릿 렌더링 ----
     context = {

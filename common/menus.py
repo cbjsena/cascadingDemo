@@ -50,6 +50,11 @@ class MenuItem:
     # OWN_VESSEL_COST = "own_vessel_cost"
     # PORT_CHARGE = "port_charge"
 
+    # Input Management - Bunker
+    BUNKER_CONSUMPTION_SEA = "bunker_consumption_sea"
+    BUNKER_CONSUMPTION_PORT = "bunker_consumption_port"
+    BUNKER_PRICE = "bunker_price"
+
     # Input Management - Dashboard & Scenario
     DASHBOARD = "input_home"
     SCENARIO_LIST = "scenario_list"
@@ -167,10 +172,22 @@ MENU_STRUCTURE = {
         # {"name": "Port Charge", "key": "port_charge"},
     ],
     MenuGroup.BUNKER: [
-        {"name": "Bunker Consumption Sea", "key": "bunker_consumption_sea"},
-        {"name": "Bunker Consumption Port", "key": "bunker_consumption_port"},
+        {
+            "name": "Bunker Consumption Sea",
+            "key": MenuItem.BUNKER_CONSUMPTION_SEA,
+            "url_name": "input_data:bunker_consumption_sea_list",
+        },
+        {
+            "name": "Bunker Consumption Port",
+            "key": MenuItem.BUNKER_CONSUMPTION_PORT,
+            "url_name": "input_data:bunker_consumption_port_list",
+        },
         # {"name": "Bunkering Port", "key": "bunkering_port"},
-        {"name": "Bunker Price", "key": "bunker_price"},
+        {
+            "name": "Bunker Price",
+            "key": MenuItem.BUNKER_PRICE,
+            "url_name": "input_data:bunker_price_list",
+        },
     ],
     MenuGroup.CONSTRAINT: [
         {"name": "Fix Lane Vessel", "key": "constraint_fixed_deployment"},
