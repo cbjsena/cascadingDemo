@@ -1,4 +1,4 @@
-from datetime import timedelta
+from datetime import date, timedelta
 
 import pytest
 
@@ -145,7 +145,7 @@ def scenario_with_data(db, user):
         scenario=scenario,
         lane_id="TEST_LANE",
         proforma_name="PF_DATA",
-        effective_from_date=timezone.now(),
+        effective_from_date=timezone.now().date(),
         duration=40.0,
         declared_capacity="10000",
         declared_count=1,
@@ -184,7 +184,7 @@ def sample_schedule(db, base_scenario, user):
         scenario=base_scenario,
         lane_id="TEST_LANE",
         proforma_name="PF_001",
-        effective_from_date=timezone.now(),
+        effective_from_date=timezone.now().date(),
         duration=14.0,
         declared_capacity="5000",
         declared_count=2,
@@ -236,7 +236,7 @@ def pf_complex_data(db, base_scenario, user):
         scenario=base_scenario,
         lane_id="TEST_LANE",
         proforma_name="PF_COMPLEX",
-        effective_from_date=timezone.now(),
+        effective_from_date=timezone.now().date(),
         duration=14.0,  # Round Trip 14일
         declared_capacity="5000",
         declared_count=2,
@@ -440,7 +440,7 @@ def multiple_cascading_data(db, base_scenario, user):
             scenario=base_scenario,
             lane_id="TEST_LANE",
             proforma_name=f"PF_MULTI_{idx+1}",
-            effective_from_date=timezone.now(),
+            effective_from_date=timezone.now().date(),
             duration=14.0,
             declared_capacity="5000",
             declared_count=2,
@@ -474,9 +474,6 @@ def lane_proforma_scenario(db, user):
     Lane Proforma Mapping 테스트용 시나리오 + 동일 Lane에 기간이 다른 Proforma 2개
     LPM_VIEW_*, LPM_ACT_*, LPM_LIST_* 테스트에서 사용
     """
-    from datetime import datetime
-
-    from django.utils.timezone import make_aware
 
     scenario = ScenarioInfo.objects.create(
         code="SC_LPM_TEST",
@@ -494,7 +491,7 @@ def lane_proforma_scenario(db, user):
         scenario=scenario,
         lane_id="TEST_LANE",
         proforma_name="6101",
-        effective_from_date=make_aware(datetime(2026, 1, 1)),
+        effective_from_date=date(2026, 1, 1),
         duration=14.0,
         declared_capacity="5000",
         declared_count=3,
@@ -506,7 +503,7 @@ def lane_proforma_scenario(db, user):
         scenario=scenario,
         lane_id="TEST_LANE",
         proforma_name="6102",
-        effective_from_date=make_aware(datetime(2026, 7, 2)),
+        effective_from_date=date(2026, 7, 2),
         duration=14.0,
         declared_capacity="6000",
         declared_count=4,
@@ -519,7 +516,7 @@ def lane_proforma_scenario(db, user):
         scenario=scenario,
         lane_id="FE1",
         proforma_name="7001",
-        effective_from_date=make_aware(datetime(2026, 3, 1)),
+        effective_from_date=date(2026, 3, 1),
         duration=21.0,
         declared_capacity="8000",
         declared_count=5,

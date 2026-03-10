@@ -152,6 +152,70 @@ class TestVesselInfoView:
         assert f"scenario_id={s1.id}" in response.url
         assert VesselInfo.objects.filter(scenario=s1, vessel_code="V001").exists()
 
+    def test_vessel_info_duplicate_vessel_code(
+        self, auth_client, vessel_data, base_vessel_data
+    ):
+        """
+        [VESSEL_INFO_007] 동일 scenario+vessel_code 중복 저장 시 skip + 경고 메시지
+        """
+        from django.contrib.messages import get_messages
+
+        s1 = vessel_data["s1"]
+        # V001은 vessel_data fixture에서 이미 s1에 존재
+        url = reverse("input_data:vessel_info_list")
+        response = auth_client.post(
+            url,
+            {
+                "action": "save",
+                "scenario_id": s1.id,
+                "new_vessel_code_0": "V001",
+                "new_vessel_name_0": "Base Ship 1",
+                "new_own_yn_0": "O",
+            },
+            follow=True,
+        )
+
+        msgs = [str(m) for m in get_messages(response.wsgi_request)]
+        assert any("skipped" in m for m in msgs)
+        # 기존 데이터가 덮어써지지 않았는지 확인 (이름 변경 안 됨)
+        obj = VesselInfo.objects.get(scenario=s1, vessel_code="V001")
+        assert obj.vessel_name == "TestShip1"  # 원래 이름 유지
+
+    def test_vessel_info_add_with_all_fields(
+        self, auth_client, vessel_data, base_vessel_data
+    ):
+        """
+        [VESSEL_INFO_008] 모달에서 전체 필드(Delivery/Redelivery/Dock) 입력하여 저장
+        """
+        s1 = vessel_data["s1"]
+        url = reverse("input_data:vessel_info_list")
+        response = auth_client.post(
+            url,
+            {
+                "action": "save",
+                "scenario_id": s1.id,
+                "new_vessel_code_0": "V099",
+                "new_vessel_name_0": "Full Field Ship",
+                "new_own_yn_0": "C",
+                "new_delivery_port_0": "KRPUS",
+                "new_delivery_date_0": "2026-06-01",
+                "new_redelivery_port_0": "CNSHA",
+                "new_redelivery_date_0": "2027-06-01",
+                "new_dock_port_0": "SGSIN",
+                "new_dock_in_0": "2026-09-01",
+                "new_dock_out_0": "2026-09-15",
+            },
+        )
+
+        assert response.status_code == 302
+        obj = VesselInfo.objects.get(scenario=s1, vessel_code="V099")
+        assert obj.delivery_port_code == "KRPUS"
+        assert obj.delivery_date is not None
+        assert obj.redelivery_port_code == "CNSHA"
+        assert obj.next_dock_port_code == "SGSIN"
+        assert obj.next_dock_in_date is not None
+        assert obj.next_dock_out_date is not None
+
     def test_vessel_info_delete(self, auth_client, vessel_data):
         """
         [VESSEL_INFO_005] 선택 Vessel 삭제
@@ -219,12 +283,12 @@ class TestCharterCostView:
     @pytest.fixture
     def charter_data(self, db, vessel_scenario, user):
         s1, s2 = vessel_scenario
-        now = timezone.now()
+        today = timezone.now().date()
         c1 = CharterCost.objects.create(
             scenario=s1,
             vessel_code="V001",
-            hire_from_date=now,
-            hire_to_date=now,
+            hire_from_date=today,
+            hire_to_date=today,
             hire_rate=10000.00,
             created_by=user,
             updated_by=user,
@@ -232,8 +296,8 @@ class TestCharterCostView:
         c2 = CharterCost.objects.create(
             scenario=s2,
             vessel_code="V002",
-            hire_from_date=now,
-            hire_to_date=now,
+            hire_from_date=today,
+            hire_to_date=today,
             hire_rate=20000.00,
             created_by=user,
             updated_by=user,
@@ -277,8 +341,8 @@ class TestCharterCostView:
                 "action": "save",
                 "scenario_id": s1.id,
                 "new_vessel_code_0": "V001",
-                "new_hire_from_0": "2026-01-01T00:00:00+09:00",
-                "new_hire_to_0": "2026-12-31T23:59:00+09:00",
+                "new_hire_from_0": "2026-01-01",
+                "new_hire_to_0": "2026-12-31",
                 "new_hire_rate_0": "15000.50",
             },
         )

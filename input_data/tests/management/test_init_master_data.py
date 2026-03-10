@@ -205,7 +205,7 @@ class TestInitBaseDataSeparation:
         base_csv = data_dir / "base_vessel_info.csv"
         base_csv.write_text(
             "vessel_code,vessel_name,own_yn,delivery_date\n"
-            "V_LD1,Loader Test 1,O,2026/01/01 12:00:00\n"
+            "V_LD1,Loader Test 1,O,2026/01/01\n"
             "V_LD2,Loader Test 2,C,2026/06/15\n",
             encoding="utf-8-sig",
         )
@@ -216,4 +216,5 @@ class TestInitBaseDataSeparation:
         assert BaseVesselInfo.objects.count() == 2
         obj1 = BaseVesselInfo.objects.get(vessel_code="V_LD1")
         assert obj1.delivery_date.year == 2026
-        assert obj1.delivery_date.hour == 12
+        assert obj1.delivery_date.month == 1
+        assert obj1.delivery_date.day == 1

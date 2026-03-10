@@ -58,9 +58,6 @@
                 <span class="badge bg-primary ms-2">{{ items|length }} records</span>
             </div>
             <div class="btn-group btn-group-sm">
-                <button type="button" class="btn btn-outline-primary" id="btnSave" style="display:none;">
-                    <i class="bi bi-check-lg"></i> Save
-                </button>
                 <button type="button" class="btn btn-success" id="btnAddRow">
                     <i class="bi bi-plus-lg"></i> Add Row
                 </button>
@@ -70,9 +67,9 @@
             </div>
         </div>
         <div class="card-body p-0">
-            <form method="post" id="masterForm">
+            <form method="post" id="deleteForm">
                 {% csrf_token %}
-                <input type="hidden" name="action" id="formAction" value="">
+                <input type="hidden" name="action" value="delete">
                 <input type="hidden" name="scenario_id" value="{{ search_params.scenario_id }}">
                 <div class="table-responsive" style="max-height: 600px;">
                     <table class="table table-hover table-striped align-middle mb-0 table-sm" id="masterTable">
@@ -116,7 +113,7 @@
                                 <td class="small">{{ item.next_dock_out_date|date:"Y-m-d"|default:"-" }}</td>
                             </tr>
                             {% empty %}
-                            <tr id="emptyRow">
+                            <tr>
                                 <td colspan="12" class="text-center py-5 text-muted">
                                     <i class="bi bi-exclamation-circle fs-3 d-block mb-2"></i>
                                     No vessel data found. Please select a scenario.
@@ -131,16 +128,119 @@
     </div>
 </div>
 
+<!-- Add Vessel Modal -->
+<div class="modal fade" id="addVesselModal" tabindex="-1" aria-labelledby="addVesselModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <form method="post" id="addVesselForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save">
+                <input type="hidden" name="scenario_id" value="{{ search_params.scenario_id }}">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="addVesselModalLabel">
+                        <i class="bi bi-plus-circle"></i> Add Vessel
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <!-- Basic Info -->
+                    <h6 class="fw-bold text-muted border-bottom pb-2 mb-3">
+                        <i class="bi bi-ship"></i> Basic Info
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label for="modalVesselCode" class="form-label fw-bold">Vessel Code <span class="text-danger">*</span></label>
+                            <select class="form-select" id="modalVesselCode" name="new_vessel_code_0" required>
+                                <option value="">-- Select Vessel --</option>
+                            </select>
+                            <div class="form-text">Base Vessel Info에 등록된 선박만 선택 가능합니다.</div>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="modalVesselName" class="form-label fw-bold">Vessel Name</label>
+                            <input type="text" class="form-control" id="modalVesselName" name="new_vessel_name_0" readonly>
+                        </div>
+                        <div class="col-md-6">
+                            <label for="modalOwnYn" class="form-label fw-bold">Own/Charter <span class="text-danger">*</span></label>
+                            <select class="form-select" id="modalOwnYn" name="new_own_yn_0" required>
+                                <option value="">-- Select --</option>
+                                <option value="O">Own</option>
+                                <option value="C">Chartered</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <!-- Delivery Info -->
+                    <h6 class="fw-bold text-muted border-bottom pb-2 mb-3">
+                        <i class="bi bi-box-arrow-right"></i> Delivery
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Delivery Port Code</label>
+                            <input type="text" class="form-control form-control-sm" name="new_delivery_port_0" maxlength="10" placeholder="e.g. KRPUS">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Delivery Date</label>
+                            <input type="date" class="form-control form-control-sm" name="new_delivery_date_0">
+                        </div>
+                    </div>
+
+                    <!-- Redelivery Info -->
+                    <h6 class="fw-bold text-muted border-bottom pb-2 mb-3">
+                        <i class="bi bi-box-arrow-in-left"></i> Redelivery
+                    </h6>
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-6">
+                            <label class="form-label">Redelivery Port Code</label>
+                            <input type="text" class="form-control form-control-sm" name="new_redelivery_port_0" maxlength="10" placeholder="e.g. CNSHA">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label">Redelivery Date</label>
+                            <input type="date" class="form-control form-control-sm" name="new_redelivery_date_0">
+                        </div>
+                    </div>
+
+                    <!-- Dock Info -->
+                    <h6 class="fw-bold text-muted border-bottom pb-2 mb-3">
+                        <i class="bi bi-tools"></i> Next Dock
+                    </h6>
+                    <div class="row g-3">
+                        <div class="col-md-4">
+                            <label class="form-label">Dock Port Code</label>
+                            <input type="text" class="form-control form-control-sm" name="new_dock_port_0" maxlength="10" placeholder="e.g. SGSIN">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Dock In Date</label>
+                            <input type="date" class="form-control form-control-sm" name="new_dock_in_0">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label">Dock Out Date</label>
+                            <input type="date" class="form-control form-control-sm" name="new_dock_out_0">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="modalSaveBtn" disabled>
+                        <i class="bi bi-check-lg"></i> Save
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('masterForm');
-    const actionInput = document.getElementById('formAction');
-    const tbody = document.querySelector('#masterTable tbody');
+    const deleteForm = document.getElementById('deleteForm');
     const checkAll = document.getElementById('checkAll');
-    const btnSave = document.getElementById('btnSave');
     const BASE_VESSEL_API = '{% url "api:base_vessel_list" %}';
 
-    let baseVessels = null;  // 캐시
+    let baseVessels = null;
+    const modal = new bootstrap.Modal(document.getElementById('addVesselModal'));
+    const vesselSelect = document.getElementById('modalVesselCode');
+    const vesselNameInput = document.getElementById('modalVesselName');
+    const ownYnInput = document.getElementById('modalOwnYn');
+    const saveBtn = document.getElementById('modalSaveBtn');
 
     async function fetchBaseVessels() {
         if (baseVessels) return baseVessels;
@@ -150,73 +250,59 @@ document.addEventListener('DOMContentLoaded', function() {
         return baseVessels;
     }
 
-    function buildVesselSelect(name, required) {
-        const sel = document.createElement('select');
-        sel.name = name;
-        sel.className = 'form-select form-select-sm';
-        if (required) sel.required = true;
-        sel.innerHTML = '<option value="">-- Select Vessel --</option>';
-        baseVessels.forEach(v => {
+    function populateVesselSelect(vessels) {
+        vesselSelect.innerHTML = '<option value="">-- Select Vessel --</option>';
+        vessels.forEach(v => {
             const opt = document.createElement('option');
             opt.value = v.vessel_code;
             opt.textContent = v.vessel_code + ' - ' + v.vessel_name;
             opt.dataset.vesselName = v.vessel_name;
             opt.dataset.ownYn = v.own_yn;
-            sel.appendChild(opt);
+            vesselSelect.appendChild(opt);
         });
-        return sel;
     }
 
+    // Vessel 선택 시 자동 채움
+    vesselSelect.addEventListener('change', function() {
+        const selected = this.options[this.selectedIndex];
+        vesselNameInput.value = selected.dataset.vesselName || '';
+        ownYnInput.value = selected.dataset.ownYn || '';  // select의 value 설정
+        saveBtn.disabled = !this.value;
+    });
+
+    // Add Row 버튼 → 모달 열기
+    document.getElementById('btnAddRow').addEventListener('click', async function() {
+        const scenarioId = deleteForm.querySelector('input[name="scenario_id"]').value;
+        if (!scenarioId) { alert('Please select a scenario first.'); return; }
+
+        await fetchBaseVessels();
+        populateVesselSelect(baseVessels);
+
+        // 초기화
+        vesselSelect.value = '';
+        vesselNameInput.value = '';
+        ownYnInput.value = '';
+        saveBtn.disabled = true;
+
+        // 선택적 필드 초기화
+        document.querySelectorAll('#addVesselForm input[type="text"]:not([readonly]), #addVesselForm input[type="date"]').forEach(el => el.value = '');
+
+        modal.show();
+    });
+
+    // CheckAll
     checkAll.addEventListener('change', function() {
         document.querySelectorAll('.row-check').forEach(cb => cb.checked = this.checked);
     });
 
-    document.getElementById('btnAddRow').addEventListener('click', async function() {
-        const scenarioId = form.querySelector('input[name="scenario_id"]').value;
-        if (!scenarioId) { alert('Please select a scenario first.'); return; }
-        await fetchBaseVessels();
-        const emptyRow = document.getElementById('emptyRow');
-        if (emptyRow) emptyRow.remove();
-        const rowCount = tbody.querySelectorAll('tr').length;
-        const newRow = document.createElement('tr');
-        newRow.classList.add('table-warning');
-
-        const tdCheck = '<td class="text-center"><input type="checkbox" name="selected_pks" value="" class="form-check-input row-check"></td>';
-        const tdNo = '<td class="text-center">' + (rowCount + 1) + '</td>';
-        const tdCode = '<td id="vessel-select-' + rowCount + '"></td>';
-        const tdName = '<td><input type="text" name="new_vessel_name_' + rowCount + '" class="form-control form-control-sm" placeholder="Auto-filled" readonly></td>';
-        const tdOwn = '<td><input type="text" name="new_own_yn_' + rowCount + '" class="form-control form-control-sm" placeholder="Auto-filled" readonly></td>';
-        const tdRest = '<td colspan="6" class="text-muted small fst-italic">Additional fields can be edited after creation</td>';
-        newRow.innerHTML = tdCheck + tdNo + tdCode + tdName + tdOwn + tdRest;
-        tbody.appendChild(newRow);
-
-        const selectTd = newRow.querySelector('#vessel-select-' + rowCount);
-        const vesselSelect = buildVesselSelect('new_vessel_code_' + rowCount, true);
-        selectTd.appendChild(vesselSelect);
-
-        // Auto-fill vessel_name and own_yn on selection
-        vesselSelect.addEventListener('change', function() {
-            const selected = this.options[this.selectedIndex];
-            const nameInput = newRow.querySelector('input[name="new_vessel_name_' + rowCount + '"]');
-            const ownInput = newRow.querySelector('input[name="new_own_yn_' + rowCount + '"]');
-            nameInput.value = selected.dataset.vesselName || '';
-            ownInput.value = selected.dataset.ownYn || '';
-        });
-
-        btnSave.style.display = 'inline-block';
-    });
-
+    // Delete
     document.getElementById('btnDeleteRow').addEventListener('click', function() {
         const checked = document.querySelectorAll('.row-check:checked');
         if (checked.length === 0) { alert('Please select rows to delete.'); return; }
-        let hasExisting = false;
-        checked.forEach(cb => { if (!cb.value) { cb.closest('tr').remove(); } else { hasExisting = true; } });
-        if (hasExisting) {
-            if (confirm('Are you sure you want to delete selected rows?')) { actionInput.value = 'delete'; form.submit(); }
+        if (confirm('Are you sure you want to delete selected rows?')) {
+            deleteForm.submit();
         }
     });
-
-    btnSave.addEventListener('click', function() { actionInput.value = 'save'; form.submit(); });
 });
 </script>
 {% endblock %}

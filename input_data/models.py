@@ -330,10 +330,10 @@ class BaseProformaSchedule(models.Model):
     proforma_name = models.CharField(
         max_length=30, verbose_name="Proforma Name / 4 numeric digits"
     )
-    effective_from_date = models.DateTimeField(
+    effective_from_date = models.DateField(
         verbose_name="Effective start date of the proforma."
     )
-    effective_to_date = models.DateTimeField(
+    effective_to_date = models.DateField(
         null=True, verbose_name="Effective end date of the proforma."
     )
     duration = models.DecimalField(
@@ -471,10 +471,10 @@ class ProformaSchedule(ScenarioBaseModel):
     proforma_name = models.CharField(
         max_length=30, verbose_name="Proforma Name / 4 numeric digits"
     )
-    effective_from_date = models.DateTimeField(
+    effective_from_date = models.DateField(
         verbose_name="Effective start date of the proforma."
     )
-    effective_to_date = models.DateTimeField(
+    effective_to_date = models.DateField(
         null=True, verbose_name="Effective end date of the proforma."
     )
     duration = models.DecimalField(
@@ -923,22 +923,22 @@ class AbsVesselInfo(models.Model):
     delivery_port_code = models.CharField(
         max_length=10, null=True, blank=True, verbose_name="Delivery Port Code"
     )
-    delivery_date = models.DateTimeField(
+    delivery_date = models.DateField(
         null=True, blank=True, verbose_name="Delivery Date"
     )
     redelivery_port_code = models.CharField(
         max_length=10, null=True, blank=True, verbose_name="Redelivery Port Code"
     )
-    redelivery_date = models.DateTimeField(
+    redelivery_date = models.DateField(
         null=True, blank=True, verbose_name="Redelivery Date"
     )
     next_dock_port_code = models.CharField(
         max_length=10, null=True, blank=True, verbose_name="Next Dock Port Code"
     )
-    next_dock_in_date = models.DateTimeField(
+    next_dock_in_date = models.DateField(
         null=True, blank=True, verbose_name="Next Dock In Date"
     )
-    next_dock_out_date = models.DateTimeField(
+    next_dock_out_date = models.DateField(
         null=True, blank=True, verbose_name="Next Dock Out Date"
     )
     built_port_code = models.CharField(
@@ -990,12 +990,10 @@ class AbsCharterCost(models.Model):
         max_length=4, verbose_name="Vessel Code / 4 alphanum"
     )
     # currency_code = models.CharField(max_length=3, verbose_name="Currency Code")
-    hire_from_date = models.DateTimeField(
+    hire_from_date = models.DateField(
         verbose_name="From date for applying the hire cost"
     )
-    hire_to_date = models.DateTimeField(
-        verbose_name="To date for applying the hire cost"
-    )
+    hire_to_date = models.DateField(verbose_name="To date for applying the hire cost")
     hire_rate = models.DecimalField(
         max_digits=15, decimal_places=6, verbose_name="Hire Rate (USD)"
     )
@@ -1469,7 +1467,7 @@ class AbsFixedVesselDeployment(models.Model):
     vessel_code = models.CharField(
         max_length=20, verbose_name="Vessel Code / 4 alphanum"
     )
-    effective_from_date = models.DateTimeField(
+    effective_from_date = models.DateField(
         verbose_name="Effective date from which the deployment is applied."
     )
     deployment_type = models.CharField(
@@ -1654,8 +1652,8 @@ class BaseWeekPeriod(models.Model):
     base_year = models.IntegerField(verbose_name="Base Year / YYYY")
     base_week = models.IntegerField(verbose_name="Base Week / WK")
     base_month = models.IntegerField(verbose_name="Base Month / MM")
-    week_start_date = models.DateTimeField(verbose_name="Week Start")
-    week_end_date = models.DateTimeField(verbose_name="Week End")
+    week_start_date = models.DateField(verbose_name="Week Start")
+    week_end_date = models.DateField(verbose_name="Week End")
 
     class Meta:
         verbose_name = "Week Period"

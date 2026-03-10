@@ -29,7 +29,7 @@ class TestInitBaseData:
         # 테스트용 CSV 작성 (BaseVesselInfo)
         # 헤더: vessel_code,vessel_name,own_yn,delivery_date
         csv_content = """vessel_code,vessel_name,own_yn,delivery_date
-TEST,Test Vessel,O,2025/01/01 12:00:00
+TEST,Test Vessel,O,2025/01/01
 TEST2,Test Vessel 2,C,2025/02/01"""
 
         csv_file = data_dir / "base_vessel_info.csv"
@@ -43,14 +43,11 @@ TEST2,Test Vessel 2,C,2025/02/01"""
         assert BaseVesselInfo.objects.count() == 2
 
         obj1 = BaseVesselInfo.objects.get(vessel_code="TEST")
-        # assert obj1.nominal_capacity == 10000
-        # Timezone Aware 변환 확인
         assert obj1.delivery_date.year == 2025
         assert obj1.delivery_date.month == 1
-        assert obj1.delivery_date.hour == 12
+        assert obj1.delivery_date.day == 1
 
         obj2 = BaseVesselInfo.objects.get(vessel_code="TEST2")
-        # 시간 없는 날짜 포맷 확인
         assert obj2.delivery_date.year == 2025
         assert obj2.delivery_date.month == 2
 
@@ -60,9 +57,9 @@ TEST2,Test Vessel 2,C,2025/02/01"""
         """
         base_dir, data_dir = temp_base_data_dir
 
-        # 두 가지 날짜 형식 혼용
+        # 두 가지 날짜 형식 혼용 (YYYY/MM/DD 또는 YYYY-MM-DD)
         csv_content = """vessel_code,vessel_name,own_yn,delivery_date
-TEST_FMT1,Test Vessel 1,O,2025/01/01 12:30:45
+TEST_FMT1,Test Vessel 1,O,2025/01/01
 TEST_FMT2,Test Vessel 2,C,2025/02/15"""
 
         csv_file = data_dir / "base_vessel_info.csv"
@@ -75,8 +72,7 @@ TEST_FMT2,Test Vessel 2,C,2025/02/15"""
         obj1 = BaseVesselInfo.objects.get(vessel_code="TEST_FMT1")
         assert obj1.delivery_date.year == 2025
         assert obj1.delivery_date.month == 1
-        assert obj1.delivery_date.hour == 12
-        assert obj1.delivery_date.minute == 30
+        assert obj1.delivery_date.day == 1
 
         obj2 = BaseVesselInfo.objects.get(vessel_code="TEST_FMT2")
         assert obj2.delivery_date.year == 2025

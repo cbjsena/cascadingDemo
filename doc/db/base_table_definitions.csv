@@ -1,5 +1,5 @@
 ﻿[Base Data Table Definition]
-Generated At,2026-03-09 07:20:22
+Generated At,2026-03-10 00:07:15
 
 Table Name,Column Name,Data Type,Nullable,Description (Comment)
 sce_bunker_consumption_port,created_at,datetime,NO,Created At
@@ -34,7 +34,7 @@ sce_bunker_price,scenario_id,int,NO,Scenario ID
 sce_constraint_fixed_deployment,created_at,datetime,NO,Created At
 sce_constraint_fixed_deployment,updated_at,datetime,NO,Updated At
 sce_constraint_fixed_deployment,vessel_code,string,NO,Vessel Code / 4 alphanum
-sce_constraint_fixed_deployment,effective_from_date,datetime,NO,Effective date from which the deployment is applied.
+sce_constraint_fixed_deployment,effective_from_date,date,NO,Effective date from which the deployment is applied.
 sce_constraint_fixed_deployment,deployment_type,string,NO,"Indicates whether the vessel must be included in or excluded from the lane {I: Include, E: Exclude}"
 sce_constraint_fixed_deployment,remark,string,YES,Remark
 sce_constraint_fixed_deployment,created_by_id,int,YES,Created By
@@ -171,8 +171,8 @@ sce_schedule_long_range,scenario_id,int,NO,Scenario ID
 sce_schedule_proforma,created_at,datetime,NO,Created At
 sce_schedule_proforma,updated_at,datetime,NO,Updated At
 sce_schedule_proforma,proforma_name,string,NO,Proforma Name / 4 numeric digits
-sce_schedule_proforma,effective_from_date,datetime,NO,Effective start date of the proforma.
-sce_schedule_proforma,effective_to_date,datetime,YES,Effective end date of the proforma.
+sce_schedule_proforma,effective_from_date,date,NO,Effective start date of the proforma.
+sce_schedule_proforma,effective_to_date,date,YES,Effective end date of the proforma.
 sce_schedule_proforma,duration,numeric,NO,Total number of days from the ETB of the first port to the ETB of the last port
 sce_schedule_proforma,declared_capacity,string,NO,"Declared vessel capacity (TEU) for the lane, Currently equal to vessel_capacity"
 sce_schedule_proforma,declared_count,int,NO,Declared number of vessels for the lane
@@ -231,8 +231,8 @@ sce_vessel_capacity,updated_by_id,int,YES,Updated By
 sce_vessel_charter_cost,created_at,datetime,NO,Created At
 sce_vessel_charter_cost,updated_at,datetime,NO,Updated At
 sce_vessel_charter_cost,vessel_code,string,NO,Vessel Code / 4 alphanum
-sce_vessel_charter_cost,hire_from_date,datetime,NO,From date for applying the hire cost
-sce_vessel_charter_cost,hire_to_date,datetime,NO,To date for applying the hire cost
+sce_vessel_charter_cost,hire_from_date,date,NO,From date for applying the hire cost
+sce_vessel_charter_cost,hire_to_date,date,NO,To date for applying the hire cost
 sce_vessel_charter_cost,hire_rate,numeric,NO,Hire Rate (USD)
 sce_vessel_charter_cost,created_by_id,int,YES,Created By
 sce_vessel_charter_cost,updated_by_id,int,YES,Updated By
@@ -243,12 +243,12 @@ sce_vessel_info,vessel_code,string,NO,Vessel Code / 4 alphanum
 sce_vessel_info,vessel_name,string,NO,Vessel Name
 sce_vessel_info,own_yn,string,NO,"Distinguish if it's own {O: Own, C: Charter}"
 sce_vessel_info,delivery_port_code,string,YES,Delivery Port Code
-sce_vessel_info,delivery_date,datetime,YES,Delivery Date
+sce_vessel_info,delivery_date,date,YES,Delivery Date
 sce_vessel_info,redelivery_port_code,string,YES,Redelivery Port Code
-sce_vessel_info,redelivery_date,datetime,YES,Redelivery Date
+sce_vessel_info,redelivery_date,date,YES,Redelivery Date
 sce_vessel_info,next_dock_port_code,string,YES,Next Dock Port Code
-sce_vessel_info,next_dock_in_date,datetime,YES,Next Dock In Date
-sce_vessel_info,next_dock_out_date,datetime,YES,Next Dock Out Date
+sce_vessel_info,next_dock_in_date,date,YES,Next Dock In Date
+sce_vessel_info,next_dock_out_date,date,YES,Next Dock Out Date
 sce_vessel_info,built_port_code,string,YES,Built Port Code
 sce_vessel_info,built_date,string,YES,Built Date
 sce_vessel_info,created_by_id,int,YES,Created By

@@ -38,6 +38,7 @@ def vessel_info_list(request):
 
         elif action == "save":
             created = 0
+            duplicated = 0
             prefix_indices = set()
             for key in request.POST:
                 if key.startswith("new_vessel_code_"):
@@ -48,19 +49,51 @@ def vessel_info_list(request):
                 vessel_name = request.POST.get(f"new_vessel_name_{idx}", "").strip()
                 own_yn = request.POST.get(f"new_own_yn_{idx}", "").strip()
 
-                if scenario_id and vessel_code and vessel_name and own_yn:
-                    VesselInfo.objects.update_or_create(
-                        scenario_id=scenario_id,
-                        vessel_code=vessel_code,
-                        defaults={
-                            "vessel_name": vessel_name,
-                            "own_yn": own_yn,
-                        },
-                    )
-                    created += 1
+                if not (scenario_id and vessel_code and vessel_name and own_yn):
+                    continue
+
+                # 중복 체크
+                if VesselInfo.objects.filter(
+                    scenario_id=scenario_id, vessel_code=vessel_code
+                ).exists():
+                    duplicated += 1
+                    continue
+
+                # 선택적 필드
+                delivery_port = request.POST.get(f"new_delivery_port_{idx}", "").strip()
+                delivery_date = request.POST.get(f"new_delivery_date_{idx}", "").strip()
+                redelivery_port = request.POST.get(
+                    f"new_redelivery_port_{idx}", ""
+                ).strip()
+                redelivery_date = request.POST.get(
+                    f"new_redelivery_date_{idx}", ""
+                ).strip()
+                dock_port = request.POST.get(f"new_dock_port_{idx}", "").strip()
+                dock_in = request.POST.get(f"new_dock_in_{idx}", "").strip()
+                dock_out = request.POST.get(f"new_dock_out_{idx}", "").strip()
+
+                VesselInfo.objects.create(
+                    scenario_id=scenario_id,
+                    vessel_code=vessel_code,
+                    vessel_name=vessel_name,
+                    own_yn=own_yn,
+                    delivery_port_code=delivery_port or None,
+                    delivery_date=delivery_date or None,
+                    redelivery_port_code=redelivery_port or None,
+                    redelivery_date=redelivery_date or None,
+                    next_dock_port_code=dock_port or None,
+                    next_dock_in_date=dock_in or None,
+                    next_dock_out_date=dock_out or None,
+                )
+                created += 1
 
             if created:
                 messages.success(request, f"{created} vessel(s) added.")
+            if duplicated:
+                messages.warning(
+                    request,
+                    f"{duplicated} vessel(s) skipped (already exists in this scenario).",
+                )
             url = reverse("input_data:vessel_info_list")
             if scenario_id:
                 return redirect(f"{url}?scenario_id={scenario_id}")

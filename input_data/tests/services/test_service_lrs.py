@@ -91,7 +91,7 @@ class TestLongRangeService:
             scenario=pf_complex_data,
             lane_id="LANE_MID",
             proforma_name="PF_MID_Y",
-            effective_from_date=timezone.now(),
+            effective_from_date=timezone.now().date(),
             declared_count=2,
             duration=10.0,
             created_by=user,
@@ -183,7 +183,7 @@ class TestLongRangeService:
             scenario=pf_complex_data,
             lane_id="LANE_DUR0",
             proforma_name="PF_DUR_ZERO",
-            effective_from_date=timezone.now(),
+            effective_from_date=timezone.now().date(),
             declared_count=1,
             duration=0,  # Duration 0
             created_by=user,
