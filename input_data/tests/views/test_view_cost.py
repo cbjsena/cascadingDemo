@@ -1,7 +1,10 @@
 """
 Cost 화면 테스트
-Test Scenarios: CANAL_FEE_001~005, DISTANCE_001~005, TS_COST_001~007
+Test Scenarios: CANAL_FEE_001~005, DISTANCE_001~005, TS_COST_001~007,
+                CSV_DOWNLOAD_001~003, CSV_UPLOAD_001~003
 """
+
+import io
 
 import pytest
 
@@ -11,6 +14,7 @@ from input_data.models import (
     BaseVesselInfo,
     CanalFee,
     Distance,
+    MasterPort,
     ScenarioInfo,
     TSCost,
 )
@@ -429,3 +433,164 @@ class TestTSCostView:
             port_id="KRPUS",
         )
         assert obj.ts_cost == 5000  # 원래 값 유지
+
+
+@pytest.mark.django_db
+class TestCsvDownloadUpload:
+    """CSV Download / Upload 공통 기능 테스트 (Canal Fee 기준)"""
+
+    @pytest.fixture
+    def canal_fee_data(self, db, cost_scenario, user):
+        s1, s2 = cost_scenario
+        # CSV 업로드 테스트를 위해 MasterPort 생성
+        for code in ["KRPUS", "JPTYO", "SGSIN"]:
+            MasterPort.objects.get_or_create(
+                port_code=code, defaults={"port_name": code}
+            )
+        CanalFee.objects.create(
+            scenario=s1,
+            vessel_code="V001",
+            direction="E",
+            port_id="KRPUS",
+            canal_fee=150000.00,
+            created_by=user,
+            updated_by=user,
+        )
+        CanalFee.objects.create(
+            scenario=s1,
+            vessel_code="V002",
+            direction="W",
+            port_id="JPTYO",
+            canal_fee=200000.00,
+            created_by=user,
+            updated_by=user,
+        )
+        return {"s1": s1, "s2": s2}
+
+    def test_csv_download(self, auth_client, canal_fee_data):
+        """
+        [CSV_DOWNLOAD_001] CSV 다운로드 시 올바른 content-type과 데이터 검증
+        """
+        s1 = canal_fee_data["s1"]
+        url = reverse("input_data:canal_fee_list")
+        response = auth_client.post(
+            url,
+            {"action": "csv_download", "scenario_id": s1.id},
+        )
+
+        assert response.status_code == 200
+        assert "text/csv" in response["Content-Type"]
+        assert "attachment" in response["Content-Disposition"]
+
+        # CSV 내용 검증 (헤더는 DB 컬럼명)
+        content = response.content.decode("utf-8-sig")
+        lines = content.strip().split("\n")
+        assert len(lines) >= 3  # 헤더 + 2 데이터 행
+        assert "scenario_code" in lines[0]
+        assert "vessel_code" in lines[0]
+        assert "V001" in content
+        assert "V002" in content
+
+    def test_csv_download_scenario_filter(self, auth_client, canal_fee_data):
+        """
+        [CSV_DOWNLOAD_002] 시나리오 미선택 시에도 다운로드 가능 (전체)
+        """
+        url = reverse("input_data:canal_fee_list")
+        response = auth_client.post(
+            url,
+            {"action": "csv_download", "scenario_id": ""},
+        )
+        assert response.status_code == 200
+        assert "text/csv" in response["Content-Type"]
+
+    def test_csv_download_has_scenario_code_column(self, auth_client, canal_fee_data):
+        """
+        [CSV_DOWNLOAD_003] CSV에 scenario_code 컬럼이 포함되고 값이 정확한지 검증
+        """
+        s1 = canal_fee_data["s1"]
+        url = reverse("input_data:canal_fee_list")
+        response = auth_client.post(
+            url,
+            {"action": "csv_download", "scenario_id": s1.id},
+        )
+
+        content = response.content.decode("utf-8-sig")
+        lines = content.strip().split("\n")
+        assert len(lines) >= 2
+        # 데이터 행의 첫 번째 컬럼이 시나리오 코드
+        assert lines[1].startswith("SC_COST_01")
+
+    def test_csv_upload(self, auth_client, canal_fee_data):
+        """
+        [CSV_UPLOAD_001] CSV 업로드 시 DB에 데이터 저장 검증
+        """
+        s1 = canal_fee_data["s1"]
+        # 헤더는 DB 컬럼명 사용
+        csv_content = (
+            "scenario_code,vessel_code,direction,port_code,canal_fee\n"
+            "SC_COST_01,V099,E,SGSIN,999999.50\n"
+        )
+        csv_file = io.BytesIO(csv_content.encode("utf-8-sig"))
+        csv_file.name = "test_upload.csv"
+
+        url = reverse("input_data:canal_fee_list")
+        response = auth_client.post(
+            url,
+            {
+                "action": "csv_upload",
+                "scenario_id": s1.id,
+                "csv_file": csv_file,
+            },
+        )
+
+        assert response.status_code == 302
+        obj = CanalFee.objects.get(
+            scenario=s1, vessel_code="V099", direction="E", port_id="SGSIN"
+        )
+        assert obj.canal_fee == 999999.50
+
+    def test_csv_upload_no_file(self, auth_client, canal_fee_data):
+        """
+        [CSV_UPLOAD_002] 파일 미선택 시 에러 메시지 검증
+        """
+        from django.contrib.messages import get_messages
+
+        s1 = canal_fee_data["s1"]
+        url = reverse("input_data:canal_fee_list")
+        response = auth_client.post(
+            url,
+            {"action": "csv_upload", "scenario_id": s1.id},
+            follow=True,
+        )
+
+        msgs = [str(m) for m in get_messages(response.wsgi_request)]
+        assert any("No file" in m for m in msgs)
+
+    def test_csv_upload_no_scenario(self, auth_client, canal_fee_data):
+        """
+        [CSV_UPLOAD_003] 시나리오 미선택 시 에러 메시지 검증
+        """
+        from django.contrib.messages import get_messages
+
+        csv_content = (
+            "scenario_code,vessel_code,direction,port_code,canal_fee\n"
+            "SC_COST_01,V099,E,SGSIN,999999.50\n"
+        )
+        csv_file = io.BytesIO(csv_content.encode("utf-8-sig"))
+        csv_file.name = "test_upload.csv"
+
+        url = reverse("input_data:canal_fee_list")
+        response = auth_client.post(
+            url,
+            {
+                "action": "csv_upload",
+                "scenario_id": "",
+                "csv_file": csv_file,
+            },
+            follow=True,
+        )
+
+        msgs = [str(m) for m in get_messages(response.wsgi_request)]
+        assert any("scenario" in m.lower() for m in msgs)
+        # 데이터가 생성되지 않았는지 확인
+        assert not CanalFee.objects.filter(vessel_code="V099").exists()
