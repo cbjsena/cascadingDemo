@@ -10,6 +10,8 @@ import os
 from datetime import datetime
 from decimal import Decimal
 
+from tqdm import tqdm  # 진행 표시용
+
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import transaction
@@ -78,15 +80,25 @@ class BaseDataLoader(BaseCommand):
         )
 
         data_list = []
+        total_count = 0
+
+        # base_bunker_consumption_sea는 배치 크기를 5000으로 설정
+        batch_size = 5000 if table_name == "base_bunker_consumption_sea" else 1000
+        # base_bunker_consumption_sea는 clean_row를 스킵 (직접 필드명 매칭)
+        skip_clean_row = table_name == "base_bunker_consumption_sea"
 
         try:
             with open(file_path, mode="r", encoding="utf-8-sig") as csvfile:
                 reader = csv.DictReader(csvfile)
-
-                for i, row in enumerate(reader):
+                rows = list(reader)  # 전체 행을 리스트로 변환하여 tqdm에 사용
+                for i, row in enumerate(tqdm(rows, desc=table_name, unit="row")):
                     try:
-                        cleaned_row = self.clean_row(model, row)
-                        data_list.append(model(**cleaned_row))
+                        if skip_clean_row:
+                            # clean_row를 스킵하고 직접 모델 생성
+                            data_list.append(model(**row))
+                        else:
+                            cleaned_row = self.clean_row(model, row)
+                            data_list.append(model(**cleaned_row))
                     except Exception as e:
                         error_message = msg.ROW_ERROR.format(
                             table=table_name, error=str(e)
@@ -94,11 +106,21 @@ class BaseDataLoader(BaseCommand):
                         detailed_message = f"{error_message} | ROW #{i + 1} DATA: {row}"
                         self.stdout.write(self.style.ERROR(detailed_message))
 
+                    # 배치 크기에 도달하면 bulk_create
+                    if len(data_list) >= batch_size:
+                        model.objects.bulk_create(data_list)
+                        total_count += len(data_list)
+                        data_list = []
+
+            # 남은 데이터 bulk_create
             if data_list:
-                model.objects.bulk_create(data_list, batch_size=1000)
+                model.objects.bulk_create(data_list)
+                total_count += len(data_list)
+
+            if total_count > 0:
                 self.stdout.write(
                     self.style.SUCCESS(
-                        msg.DONE_LOADING.format(table=table_name, count=len(data_list))
+                        msg.DONE_LOADING.format(table=table_name, count=total_count)
                     )
                 )
             else:
