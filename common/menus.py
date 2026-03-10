@@ -42,6 +42,14 @@ class MenuItem:
     CHARTER_COST = "charter_cost"
     VESSEL_CAPACITY = "vessel_capacity"
 
+    # Input Management - Cost
+    CANAL_FEE = "canal_fee"
+    DISTANCE = "distance"
+    TS_COST = "ts_cost"
+    # EXCHANGE_RATE = "exchange_rate"
+    # OWN_VESSEL_COST = "own_vessel_cost"
+    # PORT_CHARGE = "port_charge"
+
     # Input Management - Dashboard & Scenario
     DASHBOARD = "input_home"
     SCENARIO_LIST = "scenario_list"
@@ -139,9 +147,21 @@ MENU_STRUCTURE = {
         },
     ],
     MenuGroup.COST: [
-        {"name": "Canal Fee", "key": "canal_fee"},
-        {"name": "Distance", "key": "distance"},
-        {"name": "TS Cost", "key": "ts_cost"},
+        {
+            "name": "Canal Fee",
+            "key": MenuItem.CANAL_FEE,
+            "url_name": "input_data:canal_fee_list",
+        },
+        {
+            "name": "Distance",
+            "key": MenuItem.DISTANCE,
+            "url_name": "input_data:distance_list",
+        },
+        {
+            "name": "TS Cost",
+            "key": MenuItem.TS_COST,
+            "url_name": "input_data:ts_cost_list",
+        },
         # {"name": "Exchange Rate", "key": "exchange_rate"},
         # {"name": "Own Vessel Cost", "key": "own_vessel_cost"},
         # {"name": "Port Charge", "key": "port_charge"},

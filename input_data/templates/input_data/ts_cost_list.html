@@ -1,0 +1,210 @@
+{% extends "base.html" %}
+
+{% block title %}TS Cost - Cascading Opt{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small">
+                    <li class="breadcrumb-item"><a href="{% url 'input_data:input_home' %}" class="text-decoration-none">Home</a></li>
+                    <li class="breadcrumb-item text-muted">Cost</li>
+                    <li class="breadcrumb-item active" aria-current="page">TS Cost</li>
+                </ol>
+            </nav>
+            <h1 class="h3">TS Cost</h1>
+        </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light fw-bold">Search Filter</div>
+        <div class="card-body">
+            <form method="get" action="{% url 'input_data:ts_cost_list' %}" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small text-muted">Scenario</label>
+                    <select class="form-select form-select-sm" name="scenario_id" onchange="this.form.submit()">
+                        <option value="">All Scenarios</option>
+                        {% for scenario in scenarios %}
+                        <option value="{{ scenario.id }}"
+                            {% if search_params.scenario_id|stringformat:"s" == scenario.id|stringformat:"s" %}selected{% endif %}>
+                            {{ scenario.code }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small text-muted">Base Year Month</label>
+                    <input type="text" class="form-control form-control-sm" name="base_year_month" value="{{ base_year_month }}" placeholder="YYYYMM" maxlength="6">
+                </div>
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small text-muted">Search (Lane / Port Code)</label>
+                    <input type="text" class="form-control form-control-sm" name="search" value="{{ search }}" placeholder="Lane or Port code...">
+                </div>
+                <div class="col-md-2">
+                    <button type="submit" class="btn btn-sm btn-secondary w-100">
+                        <i class="bi bi-search"></i> Search
+                    </button>
+                </div>
+                <div class="col-md-1">
+                    <a href="{% url 'input_data:ts_cost_list' %}" class="btn btn-sm btn-outline-secondary w-100" title="Reset">
+                        <i class="bi bi-arrow-clockwise"></i>
+                    </a>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <div class="card shadow-sm">
+        <div class="card-header bg-light d-flex justify-content-between align-items-center">
+            <div>
+                <span class="fw-bold">TS Cost List</span>
+                <span class="badge bg-primary ms-2">{{ items|length }} records</span>
+            </div>
+            <div class="btn-group btn-group-sm">
+                <button type="button" class="btn btn-success" id="btnAddRow">
+                    <i class="bi bi-plus-lg"></i> Add Row
+                </button>
+                <button type="button" class="btn btn-danger" id="btnDeleteRow">
+                    <i class="bi bi-trash"></i> Delete Row
+                </button>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <form method="post" id="deleteForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="delete">
+                <input type="hidden" name="scenario_id" value="{{ search_params.scenario_id }}">
+                <div class="table-responsive" style="max-height: 600px;">
+                    <table class="table table-hover table-striped align-middle mb-0 table-sm" id="masterTable">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th class="text-center" style="width: 40px;">
+                                    <input type="checkbox" id="checkAll" class="form-check-input">
+                                </th>
+                                <th class="text-center" style="width: 50px;">No</th>
+                                <th>Base Year Month</th>
+                                <th>Lane Code</th>
+                                <th>Port Code</th>
+                                <th class="text-end">TS Cost (USD)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for item in items %}
+                            <tr>
+                                <td class="text-center">
+                                    <input type="checkbox" name="selected_pks" value="{{ item.pk }}" class="form-check-input row-check">
+                                </td>
+                                <td class="text-center">{{ forloop.counter }}</td>
+                                <td><span class="badge bg-info text-dark">{{ item.base_year_month }}</span></td>
+                                <td><span class="badge bg-secondary">{{ item.lane_id }}</span></td>
+                                <td><span class="badge bg-secondary">{{ item.port_id }}</span></td>
+                                <td class="text-end">{{ item.ts_cost|floatformat:0 }}</td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted">
+                                    <i class="bi bi-exclamation-circle fs-3 d-block mb-2"></i>
+                                    No TS cost data found. Please select a scenario.
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Add TS Cost Modal -->
+<div class="modal fade" id="addModal" tabindex="-1" aria-labelledby="addModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <form method="post" id="addForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save">
+                <input type="hidden" name="scenario_id" value="{{ search_params.scenario_id }}">
+                <div class="modal-header bg-success text-white">
+                    <h5 class="modal-title" id="addModalLabel">
+                        <i class="bi bi-plus-circle"></i> Add TS Cost
+                    </h5>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label for="modalBaseYearMonth" class="form-label fw-bold">Base Year Month <span class="text-danger">*</span></label>
+                        <input type="text" class="form-control" id="modalBaseYearMonth" name="new_base_year_month_0" maxlength="6" placeholder="YYYYMM (e.g. 202601)" pattern="\d{6}" required>
+                        <div class="form-text">6자리 숫자 (YYYYMM 형식)</div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modalLaneCode" class="form-label fw-bold">Lane Code <span class="text-danger">*</span></label>
+                        <select class="form-select" id="modalLaneCode" name="new_lane_code_0" required>
+                            <option value="">-- Select Lane --</option>
+                            {% for lane in lanes %}
+                            <option value="{{ lane.lane_code }}">{{ lane.lane_code }} - {{ lane.lane_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modalPortCode" class="form-label fw-bold">Port Code <span class="text-danger">*</span></label>
+                        <select class="form-select" id="modalPortCode" name="new_port_code_0" required>
+                            <option value="">-- Select Port --</option>
+                            {% for port in ports %}
+                            <option value="{{ port.port_code }}">{{ port.port_code }} - {{ port.port_name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="modalTsCost" class="form-label fw-bold">TS Cost (USD) <span class="text-danger">*</span></label>
+                        <input type="number" class="form-control" id="modalTsCost" name="new_ts_cost_0" min="0" placeholder="0" required>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="modalSaveBtn">
+                        <i class="bi bi-check-lg"></i> Save
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const deleteForm = document.getElementById('deleteForm');
+    const checkAll = document.getElementById('checkAll');
+    const modal = new bootstrap.Modal(document.getElementById('addModal'));
+
+    // Add Row → 모달
+    document.getElementById('btnAddRow').addEventListener('click', function() {
+        const scenarioId = deleteForm.querySelector('input[name="scenario_id"]').value;
+        if (!scenarioId) { alert('Please select a scenario first.'); return; }
+
+        // 초기화
+        document.getElementById('modalBaseYearMonth').value = '';
+        document.getElementById('modalLaneCode').value = '';
+        document.getElementById('modalPortCode').value = '';
+        document.getElementById('modalTsCost').value = '';
+
+        modal.show();
+    });
+
+    // CheckAll
+    checkAll.addEventListener('change', function() {
+        document.querySelectorAll('.row-check').forEach(cb => cb.checked = this.checked);
+    });
+
+    // Delete
+    document.getElementById('btnDeleteRow').addEventListener('click', function() {
+        const checked = document.querySelectorAll('.row-check:checked');
+        if (checked.length === 0) { alert('Please select rows to delete.'); return; }
+        if (confirm('Are you sure you want to delete selected rows?')) {
+            deleteForm.submit();
+        }
+    });
+});
+</script>
+{% endblock %}
+

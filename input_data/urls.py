@@ -79,6 +79,10 @@ urlpatterns = [
     path("vessel/info/", views.vessel_info_list, name="vessel_info_list"),
     path("vessel/charter-cost/", views.charter_cost_list, name="charter_cost_list"),
     path("vessel/capacity/", views.vessel_capacity_list, name="vessel_capacity_list"),
+    # Cost 테이블 조회
+    path("cost/canal-fee/", views.canal_fee_list, name="canal_fee_list"),
+    path("cost/distance/", views.distance_list, name="distance_list"),
+    path("cost/ts-cost/", views.ts_cost_list, name="ts_cost_list"),
     # AJAX용
     # Input List (Common)
     # 동적 데이터 조회: /input/schedule/proforma/ 등 형태
