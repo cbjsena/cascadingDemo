@@ -26,7 +26,7 @@
                 <div class="col-md-3">
                     <label class="form-label fw-bold small text-muted">Scenario</label>
                     <select class="form-select form-select-sm" name="scenario_id" onchange="this.form.submit()">
-                        <option value="">Select Scenarios</option>
+                        <option value="">Select Scenario</option>
                         {% for scenario in scenarios %}
                         <option value="{{ scenario.id }}"
                             {% if search_params.scenario_id|stringformat:"s" == scenario.id|stringformat:"s" %}selected{% endif %}>
@@ -37,15 +37,26 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label fw-bold small text-muted">Base Year Month</label>
-                    <select class="form-select form-select-sm" name="base_year_month" onchange="this.form.submit()">
+                    <select class="form-select form-select-sm dt-filter" name="base_year_month">
                         <option value="">All Periods</option>
-                        {% for ym in base_year_month_choices %}
-                        <option value="{{ ym }}"
-                            {% if search_params.base_year_month == ym %}selected{% endif %}>
-                            {{ ym }}
+                        {% for choice in base_year_month_choices %}
+                        <option value="{{ choice }}"
+                            {% if search_params.base_year_month == choice %}selected{% endif %}>
+                            {{ choice }}
                         </option>
                         {% endfor %}
                     </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small text-muted">Vessel Capacity</label>
+                    <input type="number" class="form-control form-control-sm" name="vessel_capacity" id="searchCapacity" value="{{ search_params.vessel_capacity|default:'' }}" placeholder="e.g. 5000">
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small text-muted">Sea Speed</label>
+                    <input type="number" step="0.1" class="form-control form-control-sm" name="sea_speed" id="searchSpeed" value="{{ search_params.sea_speed|default:'' }}" placeholder="e.g. 15.5">
+                </div>
+                <div class="col-md-1">
+                    <button type="button" class="btn btn-sm btn-secondary w-100" id="btnCustomSearch">Search</button>
                 </div>
             </form>
         </div>
@@ -60,13 +71,13 @@
             <div class="card-header bg-white d-flex justify-content-between align-items-center">
                 <span class="fw-bold text-muted">Data List</span>
                 <div class="btn-group">
-                    <button type="button" class="btn btn-sm btn-outline-danger" id="btnDeleteRow"
-                            {% if not search_params.scenario_id %}disabled{% endif %}>
-                        <i class="bi bi-trash"></i> Delete Selected
-                    </button>
                     <button type="button" class="btn btn-sm btn-primary" id="btnAddRow"
                             {% if not search_params.scenario_id %}disabled{% endif %}>
                         <i class="bi bi-plus-lg"></i> Add Row
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" id="btnDeleteRow"
+                            {% if not search_params.scenario_id %}disabled{% endif %}>
+                        <i class="bi bi-trash"></i> Delete Selected
                     </button>
                 </div>
             </div>
@@ -164,6 +175,8 @@ $(document).ready(function() {
             data: function (d) {
                 d.scenario_id = scenarioId;
                 d.base_year_month = document.querySelector('select[name="base_year_month"]').value;
+                d.vessel_capacity = document.querySelector('input[name="vessel_capacity"]').value;
+                d.sea_speed = document.querySelector('input[name="sea_speed"]').value;
             }
         },
         columns: [
@@ -204,6 +217,17 @@ $(document).ready(function() {
         language: {
             emptyTable: '<div class="py-4 text-muted"><i class="bi bi-exclamation-circle fs-3 d-block mb-2"></i> No bunker consumption sea data found.</div>',
             search: "Quick Search (Capacity/Speed):"
+        }
+    });
+
+    $('#btnCustomSearch').on('click', function() {
+        table.draw(); // AJAX 데이터 재요청
+    });
+
+    $('#searchCapacity, #searchSpeed').on('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // 폼 제출(새로고침) 방지
+            table.draw();       // AJAX 데이터 재요청
         }
     });
 

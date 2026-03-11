@@ -5,6 +5,9 @@ Bunker Consumption Sea / Port / Bunker Price 모두 공통 팩토리 사용.
 
 from decimal import Decimal
 
+from django.db.models import CharField, Q
+from django.db.models.functions import Cast
+
 from common.constants import SEA_SPEED_MAX, SEA_SPEED_MIN, SEA_SPEED_STEP
 from common.csv_configs import (
     BUNKER_CONSUMPTION_PORT_CSV_MAP,
@@ -57,12 +60,23 @@ bunker_consumption_sea_list = scenario_crud_view(
             else BunkerConsumptionSea.objects.none()
         ).order_by("base_year_month", "vessel_capacity", "sea_speed"),
         "search_filter_fn": lambda qs, s: (
-            qs.filter(vessel_capacity__icontains=s) | qs.filter(sea_speed__icontains=s)
+            qs.annotate(
+                vc_str=Cast("vessel_capacity", output_field=CharField()),
+                ss_str=Cast("sea_speed", output_field=CharField()),
+            ).filter(Q(vc_str__icontains=s) | Q(ss_str__icontains=s))
         ),
         "extra_search_fields": [
             {
                 "param": "base_year_month",
                 "filter_kwarg": "base_year_month",
+            },
+            {
+                "param": "vessel_capacity",
+                "filter_kwarg": "vessel_capacity",
+            },
+            {
+                "param": "sea_speed",
+                "filter_kwarg": "sea_speed",
             },
         ],
         "extra_context": {
@@ -117,11 +131,19 @@ bunker_consumption_port_list = scenario_crud_view(
             if scenario_id
             else BunkerConsumptionPort.objects.none()
         ).order_by("base_year_month", "vessel_capacity"),
-        "search_filter_fn": lambda qs, s: (qs.filter(vessel_capacity__icontains=s)),
+        "search_filter_fn": lambda qs, s: (
+            qs.annotate(
+                vc_str=Cast("vessel_capacity", output_field=CharField()),
+            ).filter(Q(vc_str__icontains=s))
+        ),
         "extra_search_fields": [
             {
                 "param": "base_year_month",
                 "filter_kwarg": "base_year_month",
+            },
+            {
+                "param": "vessel_capacity",
+                "filter_kwarg": "vessel_capacity",
             },
         ],
         "extra_context": {
@@ -145,6 +167,35 @@ bunker_consumption_port_list = scenario_crud_view(
         ],
         "unique_fields": ["base_year_month", "vessel_capacity"],
         "csv_map": BUNKER_CONSUMPTION_PORT_CSV_MAP,
+        "dt_columns": [
+            "",  # 0. Checkbox (정렬 제외)
+            "",  # 1. No (순번, 정렬 제외)
+            "base_year_month",  # 2. Base Year Month
+            "vessel_capacity",  # 3. Vessel Capacity
+            "port_stay_bunker_consumption",  # 4. Port Stay
+            "idling_bunker_consumption",  # 5. Idling
+            "pilot_inout_bunker_consumption",  # 6. Pilot In/Out
+        ],
+        "serialize_fn": lambda obj: {
+            "id": obj.id,
+            "base_year_month": obj.base_year_month,
+            "vessel_capacity": obj.vessel_capacity,
+            "port_stay_bunker_consumption": (
+                float(obj.port_stay_bunker_consumption)
+                if obj.port_stay_bunker_consumption
+                else 0
+            ),
+            "idling_bunker_consumption": (
+                float(obj.idling_bunker_consumption)
+                if obj.idling_bunker_consumption
+                else 0
+            ),
+            "pilot_inout_bunker_consumption": (
+                float(obj.pilot_inout_bunker_consumption)
+                if obj.pilot_inout_bunker_consumption
+                else 0
+            ),
+        },
     }
 )
 
@@ -185,10 +236,10 @@ bunker_price_list = scenario_crud_view(
             | qs.filter(bunker_type__icontains=s)
         ),
         "extra_search_fields": [
-            {
-                "param": "base_year_month",
-                "filter_kwarg": "base_year_month",
-            },
+            {"param": "base_year_month", "filter_kwarg": "base_year_month"},
+            {"param": "trade", "filter_kwarg": "trade__trade_code"},
+            {"param": "lane", "filter_kwarg": "lane__lane_code"},
+            {"param": "bunker_type", "filter_kwarg": "bunker_type"},
         ],
         "extra_context": {
             "base_year_month_choices": get_scenario_base_year_month_choices,
@@ -204,5 +255,22 @@ bunker_price_list = scenario_crud_view(
         ],
         "unique_fields": ["base_year_month", "trade_id", "lane_id", "bunker_type"],
         "csv_map": BUNKER_PRICE_CSV_MAP,
+        "dt_columns": [
+            "",  # 0. Checkbox
+            "",  # 1. No
+            "base_year_month",  # 2. Base Year Month
+            "trade__trade_code",  # 3. Trade (FK 참조)
+            "lane__lane_code",  # 4. Lane (FK 참조)
+            "bunker_type",  # 5. Bunker Type
+            "bunker_price",  # 6. Bunker Price
+        ],
+        "serialize_fn": lambda obj: {
+            "id": obj.id,
+            "base_year_month": obj.base_year_month,
+            "trade": obj.trade.trade_code if obj.trade else (obj.trade_id or ""),
+            "lane": obj.lane.lane_code if obj.lane else (obj.lane_id or ""),
+            "bunker_type": obj.bunker_type,
+            "bunker_price": float(obj.bunker_price) if obj.bunker_price else 0,
+        },
     }
 )

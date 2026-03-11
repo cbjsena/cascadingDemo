@@ -26,7 +26,7 @@
                 <div class="col-md-3">
                     <label class="form-label fw-bold small text-muted">Scenario</label>
                     <select class="form-select form-select-sm" name="scenario_id" onchange="this.form.submit()">
-                        <option value="">All Scenarios</option>
+                        <option value="">Select Scenario</option>
                         {% for scenario in scenarios %}
                         <option value="{{ scenario.id }}"
                             {% if search_params.scenario_id|stringformat:"s" == scenario.id|stringformat:"s" %}selected{% endif %}>
@@ -37,56 +37,50 @@
                 </div>
                 <div class="col-md-2">
                     <label class="form-label fw-bold small text-muted">Base Year Month</label>
-                    <select class="form-select form-select-sm" name="base_year_month">
-                        <option value="">All</option>
-                        {% for ym in base_year_month_choices %}
-                        <option value="{{ ym }}"
-                            {% if base_year_month == ym %}selected{% endif %}>
-                            {{ ym }}
+                    <select class="form-select form-select-sm dt-filter" name="base_year_month">
+                        <option value="">All Periods</option>
+                        {% for choice in base_year_month_choices %}
+                        <option value="{{ choice }}"
+                            {% if search_params.base_year_month == choice %}selected{% endif %}>
+                            {{ choice }}
                         </option>
                         {% endfor %}
                     </select>
                 </div>
-                <div class="col-md-3">
-                    <label class="form-label fw-bold small text-muted">Search (Vessel Capacity)</label>
-                    <input type="text" class="form-control form-control-sm" name="search" value="{{ search }}" placeholder="Vessel Capacity...">
-                </div>
                 <div class="col-md-2">
-                    <button type="submit" class="btn btn-sm btn-secondary w-100">
-                        <i class="bi bi-search"></i> Search
-                    </button>
+                    <label class="form-label fw-bold small text-muted">Vessel Capacity</label>
+                    <input type="number" class="form-control form-control-sm" name="vessel_capacity" id="searchCapacity" value="{{ search_params.vessel_capacity|default:'' }}" placeholder="e.g. 5000">
                 </div>
                 <div class="col-md-1">
-                    <a href="{% url 'input_data:bunker_consumption_port_list' %}" class="btn btn-sm btn-outline-secondary w-100" title="Reset">
-                        <i class="bi bi-arrow-clockwise"></i>
-                    </a>
+                    <button type="button" class="btn btn-sm btn-secondary w-100" id="btnCustomSearch">Search</button>
                 </div>
             </form>
         </div>
     </div>
 
-    <div class="card shadow-sm">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-            <div>
-                <span class="fw-bold">Bunker Consumption Port List</span>
-                <span class="badge bg-primary ms-2">{{ items|length }} records</span>
+    <form id="deleteForm" method="post" action="{% url 'input_data:bunker_consumption_port_list' %}">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="delete">
+        <input type="hidden" name="scenario_id" value="{{ search_params.scenario_id }}">
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <span class="fw-bold text-muted">Data List</span>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-primary" id="btnAddRow"
+                            {% if not search_params.scenario_id %}disabled{% endif %}>
+                        <i class="bi bi-plus-lg"></i> Add Row
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" id="btnDeleteRow"
+                            {% if not search_params.scenario_id %}disabled{% endif %}>
+                        <i class="bi bi-trash"></i> Delete Selected
+                    </button>
+                </div>
             </div>
-            <div class="btn-group btn-group-sm">
-                <button type="button" class="btn btn-success" id="btnAddRow">
-                    <i class="bi bi-plus-lg"></i> Add Row
-                </button>
-                <button type="button" class="btn btn-danger" id="btnDeleteRow">
-                    <i class="bi bi-trash"></i> Delete Row
-                </button>
-            </div>
-        </div>
-        <div class="card-body p-0">
-            <form method="post" id="deleteForm">
-                {% csrf_token %}
-                <input type="hidden" name="action" value="delete">
-                <input type="hidden" name="scenario_id" value="{{ search_params.scenario_id }}">
-                <div class="table-responsive" style="max-height: 600px;">
-                    <table class="table table-hover table-striped align-middle mb-0 table-sm" id="masterTable">
+
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped align-middle mb-0 table-sm" id="masterTable" style="width:100%;">
                         <thead class="table-light sticky-top">
                             <tr>
                                 <th class="text-center" style="width: 40px;">
@@ -95,79 +89,56 @@
                                 <th class="text-center" style="width: 50px;">No</th>
                                 <th>Base Year Month</th>
                                 <th class="text-end">Vessel Capacity (TEU)</th>
-                                <th class="text-end">Port Stay Bunker (Ton/Hour)</th>
-                                <th class="text-end">Idling Bunker (Ton/Hour)</th>
-                                <th class="text-end">Pilot In/Out Bunker (Ton/Hour)</th>
+                                <th class="text-end">Port Stay (Ton/Hour)</th>
+                                <th class="text-end">Idling (Ton/Hour)</th>
+                                <th class="text-end">Pilot In/Out (Ton/Hour)</th>
                             </tr>
                         </thead>
-                        <tbody>
-                            {% for item in items %}
-                            <tr>
-                                <td class="text-center">
-                                    <input type="checkbox" name="selected_pks" value="{{ item.pk }}" class="form-check-input row-check">
-                                </td>
-                                <td class="text-center">{{ forloop.counter }}</td>
-                                <td><span class="badge bg-info text-dark">{{ item.base_year_month }}</span></td>
-                                <td class="text-end">{{ item.vessel_capacity }}</td>
-                                <td class="text-end">{{ item.port_stay_bunker_consumption }}</td>
-                                <td class="text-end">{{ item.idling_bunker_consumption }}</td>
-                                <td class="text-end">{{ item.pilot_inout_bunker_consumption }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr>
-                                <td colspan="7" class="text-center py-5 text-muted">
-                                    <i class="bi bi-exclamation-circle fs-3 d-block mb-2"></i>
-                                    No bunker consumption port data found. Please select a scenario.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
+                        <tbody></tbody>
                     </table>
                 </div>
-            </form>
+            </div>
         </div>
-    </div>
+    </form>
 </div>
 
-<!-- Add Bunker Consumption Port Modal -->
-<div class="modal fade" id="addModal" tabindex="-1" aria-labelledby="addModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<div class="modal fade" id="addModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
-            <form method="post" id="addForm">
+            <form method="post" action="{% url 'input_data:bunker_consumption_port_list' %}">
                 {% csrf_token %}
                 <input type="hidden" name="action" value="save">
                 <input type="hidden" name="scenario_id" value="{{ search_params.scenario_id }}">
-                <div class="modal-header bg-success text-white">
-                    <h5 class="modal-title" id="addModalLabel">
-                        <i class="bi bi-plus-circle"></i> Add Bunker Consumption Port
-                    </h5>
-                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+
+                <div class="modal-header">
+                    <h5 class="modal-title">Add Bunker Consumption Port</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
                     <div class="mb-3">
-                        <label for="modalBaseYearMonth" class="form-label fw-bold">Base Year Month <span class="text-danger">*</span></label>
+                        <label class="form-label small fw-bold">Base Year Month</label>
                         <select class="form-select" id="modalBaseYearMonth" name="new_base_year_month_0" required>
-                            <option value="">-- Select Base Year Month --</option>
-                            {% for ym in base_year_month_choices %}
-                            <option value="{{ ym }}">{{ ym }}</option>
+                            <option value="">Select Period</option>
+                            {% for choice in base_year_month_choices %}
+                            <option value="{{ choice }}">{{ choice }}</option>
                             {% endfor %}
                         </select>
                     </div>
                     <div class="mb-3">
-                        <label for="modalVesselCapacity" class="form-label fw-bold">Vessel Capacity (TEU) <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="modalVesselCapacity" name="new_vessel_capacity_0" min="0" placeholder="e.g. 1851" required>
+                        <label class="form-label small fw-bold">Vessel Capacity (TEU)</label>
+                        <input type="number" class="form-control" id="modalVesselCapacity" name="new_vessel_capacity_0" min="0" placeholder="e.g. 5000" required>
                     </div>
                     <div class="mb-3">
-                        <label for="modalPortStay" class="form-label fw-bold">Port Stay Bunker Consumption (Ton/Hour) <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="modalPortStay" name="new_port_stay_bunker_consumption_0" min="0" step="0.001" placeholder="e.g. 2.500" required>
+                        <label class="form-label small fw-bold">Port Stay (Ton/Hour)</label>
+                        <input type="number" class="form-control" id="modalPortStay" name="new_port_stay_bunker_consumption_0" min="0" step="0.0000000000001" placeholder="e.g. 2.15" required>
                     </div>
                     <div class="mb-3">
-                        <label for="modalIdling" class="form-label fw-bold">Idling Bunker Consumption (Ton/Hour) <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="modalIdling" name="new_idling_bunker_consumption_0" min="0" step="0.001" placeholder="e.g. 1.200" required>
+                        <label class="form-label small fw-bold">Idling (Ton/Hour)</label>
+                        <input type="number" class="form-control" id="modalIdling" name="new_idling_bunker_consumption_0" min="0" step="0.0000000000001" placeholder="e.g. 1.05" required>
                     </div>
                     <div class="mb-3">
-                        <label for="modalPilotInOut" class="form-label fw-bold">Pilot In/Out Bunker Consumption (Ton/Hour) <span class="text-danger">*</span></label>
-                        <input type="number" class="form-control" id="modalPilotInOut" name="new_pilot_inout_bunker_consumption_0" min="0" step="0.001" placeholder="e.g. 4.800" required>
+                        <label class="form-label small fw-bold">Pilot In/Out (Ton/Hour)</label>
+                        <input type="number" class="form-control" id="modalPilotInOut" name="new_pilot_inout_bunker_consumption_0" min="0" step="0.0000000000001" placeholder="e.g. 1.5" required>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -181,33 +152,106 @@
     </div>
 </div>
 
+<link href="https://cdn.datatables.net/v/bs5/jq-3.6.0/dt-2.0.0/datatables.min.css" rel="stylesheet">
+<script src="https://cdn.datatables.net/v/bs5/jq-3.6.0/dt-2.0.0/datatables.min.js"></script>
+
 <script>
 document.addEventListener('DOMContentLoaded', function() {
     const deleteForm = document.getElementById('deleteForm');
-    const checkAll = document.getElementById('checkAll');
+    const scenarioId = deleteForm.querySelector('input[name="scenario_id"]').value;
     const modal = new bootstrap.Modal(document.getElementById('addModal'));
 
-    // Add Row → 모달
-    document.getElementById('btnAddRow').addEventListener('click', function() {
-        const scenarioId = deleteForm.querySelector('input[name="scenario_id"]').value;
-        if (!scenarioId) { alert('Please select a scenario first.'); return; }
+    // 1. DataTables 초기화
+    const table = $('#masterTable').DataTable({
+        serverSide: true,
+        processing: true,
+        ajax: {
+            url: "{% url 'input_data:bunker_consumption_port_list' %}",
+            type: "GET",
+            data: function (d) {
+                d.scenario_id = scenarioId;
+                d.base_year_month = document.querySelector('select[name="base_year_month"]').value;
+                d.vessel_capacity = document.querySelector('input[name="vessel_capacity"]').value;
+            }
+        },
+        columns: [
+            {
+                data: "id",
+                orderable: false,
+                className: "text-center",
+                render: function(data) {
+                    return `<input type="checkbox" name="selected_pks" value="${data}" class="form-check-input row-check">`;
+                }
+            },
+            {
+                data: null,
+                orderable: false,
+                className: "text-center text-muted",
+                render: function (data, type, row, meta) {
+                    return meta.row + meta.settings._iDisplayStart + 1;
+                }
+            },
+            {
+                data: "base_year_month",
+                render: function(data) { return `<span class="badge bg-info text-dark">${data}</span>`; }
+            },
+            { data: "vessel_capacity", className: "text-end fw-bold" },
+            {
+                data: "port_stay_bunker_consumption",
+                className: "text-end",
+                render: function(data) { return parseFloat(data).toFixed(6); }
+            },
+            {
+                data: "idling_bunker_consumption",
+                className: "text-end",
+                render: function(data) { return parseFloat(data).toFixed(6); }
+            },
+            {
+                data: "pilot_inout_bunker_consumption",
+                className: "text-end",
+                render: function(data) { return parseFloat(data).toFixed(6); }
+            }
+        ],
+        order: [[2, 'asc']],
+        pageLength: 50,
+        lengthMenu: [ [10, 50, 100, 500], [10, 50, 100, 500] ],
+        dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+             "<'row'<'col-sm-12'tr>>" +
+             "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+        language: {
+            emptyTable: '<div class="py-4 text-muted"><i class="bi bi-exclamation-circle fs-3 d-block mb-2"></i> No bunker consumption port data found.</div>',
+            search: "Quick Search:"
+        }
+    });
 
-        // 초기화
+    $('#btnCustomSearch').on('click', function() {
+        table.draw(); // AJAX 데이터 재요청
+    });
+
+    $('#searchCapacity, #searchSpeed').on('keydown', function(e) {
+        if (e.key === 'Enter') {
+            e.preventDefault(); // 폼 제출(새로고침) 방지
+            table.draw();       // AJAX 데이터 재요청
+        }
+    });
+
+    // 2. Add Row
+    document.getElementById('btnAddRow').addEventListener('click', function() {
+        if (!scenarioId) { alert('Please select a scenario first.'); return; }
         document.getElementById('modalBaseYearMonth').selectedIndex = 0;
         document.getElementById('modalVesselCapacity').value = '';
         document.getElementById('modalPortStay').value = '';
         document.getElementById('modalIdling').value = '';
         document.getElementById('modalPilotInOut').value = '';
-
         modal.show();
     });
 
-    // CheckAll
-    checkAll.addEventListener('change', function() {
-        document.querySelectorAll('.row-check').forEach(cb => cb.checked = this.checked);
+    // 3. CheckAll
+    $('#checkAll').on('change', function() {
+        $('.row-check').prop('checked', this.checked);
     });
 
-    // Delete
+    // 4. Delete
     document.getElementById('btnDeleteRow').addEventListener('click', function() {
         const checked = document.querySelectorAll('.row-check:checked');
         if (checked.length === 0) { alert('Please select rows to delete.'); return; }

@@ -30,6 +30,9 @@
        │    ├─ unique_fields 설정 시: exists() 중복 체크 → create() (중복 skip)
        │    └─ lookup_fields 설정 시: update_or_create() (upsert)
        │
+       └─ GET (AJAX / draw 파라미터 포함)
+       │    → _handle_datatables_ajax(): DataTables용 페이징, 정렬, 검색된 JSON 반환
+       │
        └─ GET
             → _handle_get(): 시나리오/검색 필터 → queryset → render
 
