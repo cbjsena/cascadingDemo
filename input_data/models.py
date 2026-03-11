@@ -1326,6 +1326,16 @@ class BunkerConsumptionSea(AbsBunkerConsumptionSea, ScenarioBaseModel):
                 name="uq_bunkerconsumptionsea",
             ),
         ]
+        indexes = [
+            models.Index(
+                fields=["scenario", "base_year_month"],
+                name="idx_sce_bcs_scenario_month",
+            ),
+            models.Index(
+                fields=["scenario", "base_year_month", "vessel_capacity", "sea_speed"],
+                name="idx_sce_bcs_composite",
+            ),
+        ]
 
 
 # 2. Bunker Consumption Port
@@ -1384,6 +1394,16 @@ class BunkerConsumptionPort(AbsBunkerConsumptionPort, ScenarioBaseModel):
             models.UniqueConstraint(
                 fields=["scenario", "base_year_month", "vessel_capacity"],
                 name="uq_bunkerconsumptionport",
+            ),
+        ]
+        indexes = [
+            models.Index(
+                fields=["scenario", "base_year_month"],
+                name="idx_sce_bcp_scenario_month",
+            ),
+            models.Index(
+                fields=["scenario", "base_year_month", "vessel_capacity"],
+                name="idx_sce_bcp_composite",
             ),
         ]
 

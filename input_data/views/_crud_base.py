@@ -44,11 +44,12 @@
 """
 
 import csv
+import inspect
 import io
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
@@ -343,6 +344,68 @@ def _handle_csv_upload(request, *, config, scenario_id):
     return _redirect_with_scenario(config["url_name"], scenario_id)
 
 
+def _handle_datatables_ajax(request, config, scenario_id):
+    """DataTables의 서버사이드 요청(페이징, 정렬, 검색)을 처리하고 JSON을 반환합니다."""
+
+    # 1. Base QuerySet 로드
+    sig = inspect.signature(config["queryset_fn"])
+    if "scenario_id" in sig.parameters:
+        qs = config["queryset_fn"](scenario_id=scenario_id)
+    else:
+        qs = config["queryset_fn"]()
+
+    # 2. 커스텀 필터 적용 (ex: base_year_month Select Box)
+    for field in config.get("extra_search_fields", []):
+        val = request.GET.get(field["param"])
+        if val:
+            qs = qs.filter(**{field["filter_kwarg"]: val})
+
+    records_total = qs.count()
+
+    # 3. DataTables 검색어(Search) 적용
+    search_value = request.GET.get("search[value]", "").strip()
+    if search_value and "search_filter_fn" in config:
+        qs = config["search_filter_fn"](qs, search_value)
+
+    records_filtered = qs.count()
+
+    # 4. DataTables 정렬(Sorting) 적용
+    dt_columns = config.get("dt_columns", [])
+    order_col_idx = request.GET.get("order[0][column]")
+    order_dir = request.GET.get("order[0][dir]", "asc")
+
+    if order_col_idx and order_col_idx.isdigit() and dt_columns:
+        idx = int(order_col_idx)
+        if 0 <= idx < len(dt_columns):
+            col_name = dt_columns[idx]
+            if col_name:  # 빈 문자열("")이면 정렬 안 함
+                if order_dir == "desc":
+                    col_name = "-" + col_name
+                qs = qs.order_by(col_name)
+
+    # 5. DataTables 페이징(Pagination) 적용
+    start = int(request.GET.get("start", 0))
+    length = int(request.GET.get("length", 10))
+    if length > 0:
+        qs = qs[start : start + length]
+
+    # 6. JSON 직렬화
+    serialize_fn = config.get("serialize_fn")
+    if serialize_fn:
+        data = [serialize_fn(obj) for obj in qs]
+    else:
+        data = [{"id": obj.id} for obj in qs]
+
+    return JsonResponse(
+        {
+            "draw": int(request.GET.get("draw", 1)),
+            "recordsTotal": records_total,
+            "recordsFiltered": records_filtered,
+            "data": data,
+        }
+    )
+
+
 # =========================================================
 # 3. GET 처리 (공통)
 # =========================================================
@@ -352,26 +415,31 @@ def _handle_get(request, *, config):
 
     흐름:
       1. URL 파라미터에서 scenario_id, search 추출
-      2. config["queryset_fn"]()으로 기본 QuerySet 생성
-      3. scenario_id 필터 적용
-      4. extra_search_fields 필터 적용 (base_year_month 등)
-      5. search_filter_fn으로 텍스트 검색 필터 적용
-      6. extra_context로 모달 드롭다운용 추가 데이터 로드 (ports, lanes 등)
-      7. context 구성 → render
+      2. config["queryset_fn"](scenario_id)으로 기본 QuerySet 생성 (scenario_id 초기 필터링)
+      3. extra_search_fields 필터 적용 (base_year_month 등)
+      4. search_filter_fn으로 텍스트 검색 필터 적용
+      5. extra_context로 모달 드롭다운용 추가 데이터 로드 (ports, lanes 등)
+      6. context 구성 → render
     """
     # ---- Step 1: 검색 파라미터 추출 ----
     scenario_id = request.GET.get("scenario_id", "")
     search = request.GET.get("search", "").strip()
     scenarios = ScenarioInfo.objects.all().order_by("-created_at")
 
-    # ---- Step 2: 기본 QuerySet ----
-    queryset = config["queryset_fn"]()
+    # ---- Step 2: 기본 QuerySet (scenario_id 초기 필터링) ----
+    import inspect
 
-    # ---- Step 3: 시나리오 필터 ----
-    if scenario_id:
-        queryset = queryset.filter(scenario_id=scenario_id)
+    sig = inspect.signature(config["queryset_fn"])
+    if "scenario_id" in sig.parameters:
+        # queryset_fn이 scenario_id 파라미터를 받는 경우
+        queryset = config["queryset_fn"](scenario_id=scenario_id)
+    else:
+        # 기존 호환성: scenario_id 파라미터 없는 경우
+        queryset = config["queryset_fn"]()
+        if scenario_id:
+            queryset = queryset.filter(scenario_id=scenario_id)
 
-    # ---- Step 4: 추가 검색 필드 필터 (예: base_year_month) ----
+    # ---- Step 3: 추가 검색 필드 필터 (예: base_year_month) ----
     search_params = {"scenario_id": scenario_id, "search": search}
     extra_context = {}
 
@@ -382,16 +450,26 @@ def _handle_get(request, *, config):
         search_params[ef["param"]] = val
         extra_context[ef["param"]] = val
 
-    # ---- Step 5: 텍스트 검색 필터 ----
+    # ---- Step 4: 텍스트 검색 필터 ----
     if search and "search_filter_fn" in config:
         queryset = config["search_filter_fn"](queryset, search)
 
-    # ---- Step 6: 추가 context (모달 드롭다운용 데이터) ----
+    # ---- Step 4.5: 대용량 테이블 최적화 ----
+    # BunkerConsumptionSea 같은 대용량 테이블의 경우, 필터/검색이 없으면 처음 1000개만 로드
+    model_table = config.get("model")._meta.db_table
+    if model_table == "sce_bunker_consumption_sea":
+        # 추가 필터나 검색이 없으면 처음 1000개만 로드
+        has_filter = any(
+            request.GET.get(ef["param"], "").strip()
+            for ef in config.get("extra_search_fields", [])
+        )
+        if not has_filter and not search:
+            queryset = queryset[:1000]
+
+    # ---- Step 5: 추가 context (모달 드롭다운용 데이터) ----
     for key, loader_fn in config.get("extra_context", {}).items():
         try:
             # 함수가 scenario_id 파라미터를 받을 수 있는지 확인
-            import inspect
-
             sig = inspect.signature(loader_fn)
             if "scenario_id" in sig.parameters:
                 extra_context[key] = loader_fn(scenario_id=scenario_id)
@@ -401,7 +479,7 @@ def _handle_get(request, *, config):
             # 에러 발생 시 파라미터 없이 호출
             extra_context[key] = loader_fn()
 
-    # ---- Step 7: 템플릿 렌더링 ----
+    # ---- Step 6: 템플릿 렌더링 ----
     context = {
         "menu_structure": MENU_STRUCTURE,
         "creation_menu_structure": CREATION_MENU_STRUCTURE,
@@ -485,9 +563,12 @@ def scenario_crud_view(config):
 
     @login_required
     def view(request):
+        # 1. 시나리오 ID 추출 (GET / POST 공통)
+        scenario_id = request.GET.get("scenario_id") or request.POST.get("scenario_id")
+
+        # 2. 액션 라우팅
         if request.method == "POST":
             action = request.POST.get("action")
-            scenario_id = request.POST.get("scenario_id", "")
 
             if action == "delete":
                 return _handle_delete(
@@ -510,7 +591,13 @@ def scenario_crud_view(config):
             # fallback: 알 수 없는 action → 목록으로 돌아감
             return _redirect_with_scenario(config["url_name"], scenario_id)
 
-        # GET → 목록 조회
+        # DataTables의 AJAX 요청인 경우 JSON으로 응답
+        if request.GET.get("draw"):
+            return _handle_datatables_ajax(
+                request, config=config, scenario_id=scenario_id
+            )
+
+        # GET → 목록 조회 (화면 렌더링)
         return _handle_get(request, config=config)
 
     # 디버깅 시 스택트레이스에 함수명이 표시되도록 설정

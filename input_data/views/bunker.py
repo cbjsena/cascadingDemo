@@ -49,11 +49,13 @@ bunker_consumption_sea_list = scenario_crud_view(
         "label": "bunker consumption sea",
         "menu_group": MenuGroup.BUNKER,
         "menu_item": MenuItem.BUNKER_CONSUMPTION_SEA,
-        "queryset_fn": lambda: (
-            BunkerConsumptionSea.objects.select_related("scenario")
-            .all()
-            .order_by("scenario", "base_year_month", "vessel_capacity", "sea_speed")
-        ),
+        "queryset_fn": lambda scenario_id="": (
+            BunkerConsumptionSea.objects.select_related("scenario").filter(
+                scenario_id=scenario_id
+            )
+            if scenario_id
+            else BunkerConsumptionSea.objects.none()
+        ).order_by("base_year_month", "vessel_capacity", "sea_speed"),
         "search_filter_fn": lambda qs, s: (
             qs.filter(vessel_capacity__icontains=s) | qs.filter(sea_speed__icontains=s)
         ),
@@ -75,6 +77,23 @@ bunker_consumption_sea_list = scenario_crud_view(
         ],
         "unique_fields": ["base_year_month", "vessel_capacity", "sea_speed"],
         "csv_map": BUNKER_CONSUMPTION_SEA_CSV_MAP,
+        "dt_columns": [
+            "",  # 0. Checkbox (정렬 제외)
+            "",  # 1. No (순번, 정렬 제외)
+            "base_year_month",  # 2. Base Year Month
+            "vessel_capacity",  # 3. Vessel Capacity
+            "sea_speed",  # 4. Sea Speed
+            "bunker_consumption",  # 5. Bunker Consumption
+        ],
+        "serialize_fn": lambda obj: {
+            "id": obj.id,
+            "base_year_month": obj.base_year_month,
+            "vessel_capacity": obj.vessel_capacity,
+            "sea_speed": float(obj.sea_speed) if obj.sea_speed else 0,
+            "bunker_consumption": (
+                float(obj.bunker_consumption) if obj.bunker_consumption else 0
+            ),
+        },
     }
 )
 
@@ -91,11 +110,13 @@ bunker_consumption_port_list = scenario_crud_view(
         "label": "bunker consumption port",
         "menu_group": MenuGroup.BUNKER,
         "menu_item": MenuItem.BUNKER_CONSUMPTION_PORT,
-        "queryset_fn": lambda: (
-            BunkerConsumptionPort.objects.select_related("scenario")
-            .all()
-            .order_by("scenario", "base_year_month", "vessel_capacity")
-        ),
+        "queryset_fn": lambda scenario_id="": (
+            BunkerConsumptionPort.objects.select_related("scenario").filter(
+                scenario_id=scenario_id
+            )
+            if scenario_id
+            else BunkerConsumptionPort.objects.none()
+        ).order_by("base_year_month", "vessel_capacity"),
         "search_filter_fn": lambda qs, s: (qs.filter(vessel_capacity__icontains=s)),
         "extra_search_fields": [
             {
@@ -151,11 +172,13 @@ bunker_price_list = scenario_crud_view(
         "label": "bunker price",
         "menu_group": MenuGroup.BUNKER,
         "menu_item": MenuItem.BUNKER_PRICE,
-        "queryset_fn": lambda: (
-            BunkerPrice.objects.select_related("scenario", "trade", "lane")
-            .all()
-            .order_by("scenario", "base_year_month", "trade", "lane", "bunker_type")
-        ),
+        "queryset_fn": lambda scenario_id="": (
+            BunkerPrice.objects.select_related("scenario", "trade", "lane").filter(
+                scenario_id=scenario_id
+            )
+            if scenario_id
+            else BunkerPrice.objects.none()
+        ).order_by("base_year_month", "trade_id", "lane_id", "bunker_type"),
         "search_filter_fn": lambda qs, s: (
             qs.filter(trade__trade_code__icontains=s)
             | qs.filter(lane__lane_code__icontains=s)
