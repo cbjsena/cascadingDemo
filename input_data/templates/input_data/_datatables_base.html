@@ -34,6 +34,7 @@
                         {% endfor %}
                     </select>
                 </div>
+                {% block common_filter_bym %}
                 <div class="col-md-2">
                     <label class="form-label fw-bold small text-muted">Base Year Month</label>
                     <select class="form-select form-select-sm dt-filter" id="filterBaseYearMonth" name="base_year_month">
@@ -45,6 +46,7 @@
                         {% endfor %}
                     </select>
                 </div>
+                {% endblock %}
                 {% block extra_filters %}{% endblock %}
             </form>
         </div>
@@ -101,6 +103,7 @@
                     <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
+                    {% block common_modal_bym %}
                     <div class="mb-3">
                         <label class="form-label small fw-bold">Base Year Month</label>
                         <select class="form-select" id="modalBaseYearMonth" name="new_base_year_month_0" required>
@@ -110,6 +113,7 @@
                             {% endfor %}
                         </select>
                     </div>
+                    {% endblock %}
                     {% block modal_inputs %}{% endblock %}
                 </div>
                 <div class="modal-footer">
@@ -146,7 +150,10 @@ document.addEventListener('DOMContentLoaded', function() {
             type: "GET",
             data: function (d) {
                 d.scenario_id = scenarioId;
-                d.base_year_month = document.getElementById('filterBaseYearMonth').value;
+                const filterBym = document.getElementById('filterBaseYearMonth');
+                if (filterBym) {
+                    d.base_year_month = filterBym.value;
+                }
                 // 자식 템플릿에서 추가 필터가 정의되어 있다면 자동 호출
                 if (typeof window.appendDtParams === 'function') {
                     window.appendDtParams(d);
@@ -190,7 +197,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // 공통 버튼 이벤트
     document.getElementById('btnAddRow').addEventListener('click', function() {
         if (!scenarioId) { alert('Please select a scenario first.'); return; }
-        document.getElementById('modalBaseYearMonth').selectedIndex = 0;
+        const modalBym = document.getElementById('modalBaseYearMonth');
+        if (modalBym) {
+            modalBym.selectedIndex = 0;
+        }
         
         if (typeof window.resetModalForm === 'function') {
             window.resetModalForm(); // 자식 폼 필드 초기화
