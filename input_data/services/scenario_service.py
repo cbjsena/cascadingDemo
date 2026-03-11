@@ -1,3 +1,6 @@
+from datetime import datetime, timedelta
+
+from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
@@ -43,6 +46,8 @@ def create_scenario_from_base(
     - description: 시나리오 설명
     - user: 이 작업을 수행한 사용자 (created_by에 저장)
     - base_year_week: 기준 주차 (YYYY-WXX 형식)
+
+    DEBUG=True인 경우 BunkerConsumptionSea/BunkerConsumptionPort는 시나리오 시작 월만 복사
     """
 
     now = timezone.now()
@@ -55,6 +60,22 @@ def create_scenario_from_base(
         base_year_week = constants.DEFAULT_BASE_YEAR_WEEK
         # iso = now.date().isocalendar()
         # base_year_week = f"{iso[0]}{iso[1]:02d}"
+
+    # base_year_week에서 시나리오의 시작 월(YYYYMM) 계산
+    # base_year_week 형식: "YYYYWXX" (예: "202601" = 2026년 1주차)
+    # 주차의 첫 번째 날짜를 구해서 월을 추출
+    scenario_start_month = None
+    scenario_end_month = None
+    try:
+        year = int(base_year_week[:4])
+        week = int(base_year_week[4:6])
+        # ISO 주차의 첫 번째 날 (월요일) 구하기
+        jan_4 = datetime(year, 1, 4)
+        week_one_monday = jan_4 - timedelta(days=jan_4.weekday())
+        target_date = week_one_monday + timedelta(weeks=week - 1)
+        scenario_start_month = target_date.strftime("%Y%m")
+    except (ValueError, IndexError):
+        scenario_start_month = None
 
     # 시나리오 마스터(ScenarioInfo) 생성 (code는 save()에서 자동 생성)
     scenario = ScenarioInfo(
@@ -69,6 +90,16 @@ def create_scenario_from_base(
         scenario.updated_by = user
 
     scenario.save()
+
+    # scenario의 종료 월 계산 (시작 월 + planning_horizon_months)
+    if scenario_start_month:
+        start_year = int(scenario_start_month[:4])
+        start_month = int(scenario_start_month[4:6])
+        # 계획 기간을 고려한 종료 월 계산
+        end_month_num = start_month + scenario.planning_horizon_months - 1
+        end_year = start_year + (end_month_num - 1) // 12
+        end_month = ((end_month_num - 1) % 12) + 1
+        scenario_end_month = f"{end_year:04d}{end_month:02d}"
 
     result_summary = {}
 
@@ -106,6 +137,18 @@ def create_scenario_from_base(
         else:
             # 조건이 없으면 전체 데이터 가져오기
             qs = base_model.objects.all()
+
+        # BunkerConsumptionSea/BunkerConsumptionPort: 시나리오 기간에 해당하는 데이터만 필터링
+        if table_name in ["sce_bunker_consumption_sea", "sce_bunker_consumption_port"]:
+            if scenario_start_month and scenario_end_month:
+                # 시나리오의 기간(시작 월~종료 월) 범위 내 데이터만 필터링
+                qs = qs.filter(
+                    base_year_month__gte=scenario_start_month,
+                    base_year_month__lte=scenario_end_month,
+                )
+                # DEBUG 모드: 시작 월만 복사
+                if settings.DEBUG:
+                    qs = qs.filter(base_year_month=scenario_start_month)
 
         # FK lazy loading 방지: select_related 적용
         fk_fields = [

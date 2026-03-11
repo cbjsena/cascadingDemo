@@ -29,7 +29,7 @@ class Command(BaseCommand):
         )
 
         try:
-            # 서비스 호출 (새로운 시그니처 사용)
+            # 서비스 호출
             scenario, summary = create_scenario_from_base(
                 description=description, base_year_week=base_year_week
             )
