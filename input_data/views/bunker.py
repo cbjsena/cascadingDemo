@@ -213,6 +213,47 @@ def _get_lane_choices():
     return MasterLane.objects.all().order_by("lane_code")
 
 
+def _get_bunker_price_trades(scenario_id):
+    """BunkerPrice에서 존재하는 Trade만 선택 목록 반환"""
+    if not scenario_id:
+        return []
+    # 선택된 시나리오의 BunkerPrice 데이터 중 null이 아닌 trade_id만 중복 없이 추출하여 오름차순 정렬
+    return list(
+        BunkerPrice.objects.filter(scenario_id=scenario_id)
+        .exclude(trade_id__isnull=True)
+        .values_list("trade_id", flat=True)
+        .distinct()
+        .order_by("trade_id")
+        .order_by("trade_id")
+    )
+
+
+def _get_bunker_price_lanes(scenario_id):
+    if not scenario_id:
+        return []
+    # 선택된 시나리오의 BunkerPrice 데이터 중 null이 아닌 lane_id만 중복 없이 추출하여 오름차순 정렬
+    return list(
+        BunkerPrice.objects.filter(scenario_id=scenario_id)
+        .exclude(lane_id__isnull=True)
+        .values_list("lane_id", flat=True)
+        .distinct()
+        .order_by("lane_id")
+    )
+
+
+def _get_bunker_price_types(scenario_id):
+    if not scenario_id:
+        return []
+    # 선택된 시나리오의 BunkerPrice 데이터 중 null이 아닌 bunker_type만 중복 없이 추출하여 오름차순 정렬
+    return list(
+        BunkerPrice.objects.filter(scenario_id=scenario_id)
+        .exclude(bunker_type__isnull=True)
+        .values_list("bunker_type", flat=True)
+        .distinct()
+        .order_by("bunker_type")
+    )
+
+
 bunker_price_list = scenario_crud_view(
     {
         "model": BunkerPrice,
@@ -243,6 +284,9 @@ bunker_price_list = scenario_crud_view(
         ],
         "extra_context": {
             "base_year_month_choices": get_scenario_base_year_month_choices,
+            "filter_trades": _get_bunker_price_trades,
+            "filter_lanes": _get_bunker_price_lanes,
+            "filter_bunker_types": _get_bunker_price_types,
             "trade_choices": _get_trade_choices,
             "lane_choices": _get_lane_choices,
         },

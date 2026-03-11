@@ -1,0 +1,220 @@
+{% extends "base.html" %}
+
+{% block title %}{% block page_title %}{% endblock %} - Cascading Opt{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <div>
+            <nav aria-label="breadcrumb">
+                <ol class="breadcrumb mb-1 small">
+                    <li class="breadcrumb-item"><a href="{% url 'input_data:input_home' %}" class="text-decoration-none">Home</a></li>
+                    <li class="breadcrumb-item text-muted">{% block breadcrumb_menu %}Menu{% endblock %}</li>
+                    <li class="breadcrumb-item active" aria-current="page">{% block page_title_inner %}{{ page_title }}{% endblock %}</li>
+                </ol>
+            </nav>
+            <h1 class="h3">{% block page_heading %}{{ page_title }}{% endblock %}</h1>
+        </div>
+    </div>
+
+    {% include "components/csv_buttons.html" %}
+
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light fw-bold">Search Filter</div>
+        <div class="card-body">
+            <form method="get" id="searchFilterForm" class="row g-3 align-items-end">
+                <div class="col-md-3">
+                    <label class="form-label fw-bold small text-muted">Scenario</label>
+                    <select class="form-select form-select-sm" name="scenario_id" onchange="this.form.submit()">
+                        <option value="">Select Scenario</option>
+                        {% for scenario in scenarios %}
+                        <option value="{{ scenario.id }}" {% if search_params.scenario_id == scenario.id %}selected{% endif %}>
+                            {{ scenario.code }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-2">
+                    <label class="form-label fw-bold small text-muted">Base Year Month</label>
+                    <select class="form-select form-select-sm dt-filter" id="filterBaseYearMonth" name="base_year_month">
+                        <option value="">All Periods</option>
+                        {% for choice in base_year_month_choices %}
+                        <option value="{{ choice }}" {% if search_params.base_year_month == choice %}selected{% endif %}>
+                            {{ choice }}
+                        </option>
+                        {% endfor %}
+                    </select>
+                </div>
+                {% block extra_filters %}{% endblock %}
+            </form>
+        </div>
+    </div>
+
+    <form id="deleteForm" method="post" action="">
+        {% csrf_token %}
+        <input type="hidden" name="action" value="delete">
+        <input type="hidden" name="scenario_id" value="{{ search_params.scenario_id }}">
+
+        <div class="card shadow-sm">
+            <div class="card-header bg-white d-flex justify-content-between align-items-center">
+                <span class="fw-bold text-muted">Data List</span>
+                <div class="btn-group">
+                    <button type="button" class="btn btn-sm btn-primary" id="btnAddRow" {% if not search_params.scenario_id %}disabled{% endif %}>
+                        <i class="bi bi-plus-lg"></i> Add Row
+                    </button>
+                    <button type="button" class="btn btn-sm btn-outline-danger" id="btnDeleteRow" {% if not search_params.scenario_id %}disabled{% endif %}>
+                        <i class="bi bi-trash"></i> Delete Selected
+                    </button>
+                </div>
+            </div>
+            
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover table-striped align-middle mb-0 table-sm" id="masterTable" style="width:100%;">
+                        <thead class="table-light sticky-top">
+                            <tr>
+                                <th class="text-center" style="width: 40px;">
+                                    <input type="checkbox" id="checkAll" class="form-check-input">
+                                </th>
+                                <th class="text-center" style="width: 50px;">No</th>
+                                {% block table_headers %}{% endblock %}
+                            </tr>
+                        </thead>
+                        <tbody></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </form>
+</div>
+
+<div class="modal fade" id="addModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <form method="post" action="" id="addForm">
+                {% csrf_token %}
+                <input type="hidden" name="action" value="save">
+                <input type="hidden" name="scenario_id" value="{{ search_params.scenario_id }}">
+                
+                <div class="modal-header">
+                    <h5 class="modal-title">{% block modal_title %}Add Record{% endblock %}</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small fw-bold">Base Year Month</label>
+                        <select class="form-select" id="modalBaseYearMonth" name="new_base_year_month_0" required>
+                            <option value="">Select Period</option>
+                            {% for choice in base_year_month_choices %}
+                            <option value="{{ choice }}">{{ choice }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    {% block modal_inputs %}{% endblock %}
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success" id="modalSaveBtn">
+                        <i class="bi bi-check-lg"></i> Save
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<link href="https://cdn.datatables.net/v/bs5/jq-3.6.0/dt-2.0.0/datatables.min.css" rel="stylesheet">
+<script src="https://cdn.datatables.net/v/bs5/jq-3.6.0/dt-2.0.0/datatables.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const deleteForm = document.getElementById('deleteForm');
+    const scenarioId = deleteForm.querySelector('input[name="scenario_id"]').value;
+    const modal = new bootstrap.Modal(document.getElementById('addModal'));
+
+    // 하위 템플릿(자식)에서 주입받을 DataTables 설정
+    const dtColumns = [{% block dt_columns %}{% endblock %}];
+    const dtOrder = [{% block dt_order %}[2, 'asc']{% endblock %}];
+    const dtSearchText = "{% block dt_search_text %}Quick Search:{% endblock %}";
+    const dtEmptyMsg = "{% block dt_empty_msg %}No data found.{% endblock %}";
+
+    const table = $('#masterTable').DataTable({
+        serverSide: true,
+        processing: true,
+        ajax: {
+            url: window.location.pathname, // 현재 주소로 자동 통신
+            type: "GET",
+            data: function (d) {
+                d.scenario_id = scenarioId;
+                d.base_year_month = document.getElementById('filterBaseYearMonth').value;
+                // 자식 템플릿에서 추가 필터가 정의되어 있다면 자동 호출
+                if (typeof window.appendDtParams === 'function') {
+                    window.appendDtParams(d);
+                }
+            }
+        },
+        columns: [
+            { 
+                data: "id", orderable: false, className: "text-center", 
+                render: function(data) {
+                    return `<input type="checkbox" name="selected_pks" value="${data}" class="form-check-input row-check">`;
+                } 
+            },
+            { 
+                data: null, orderable: false, className: "text-center text-muted",
+                render: function (data, type, row, meta) {
+                    return meta.row + meta.settings._iDisplayStart + 1; 
+                }
+            },
+            ...dtColumns // 자식에서 정의한 컬럼을 합침
+        ],
+        order: dtOrder,
+        pageLength: 50,
+        lengthMenu: [ [10, 50, 100, 500], [10, 50, 100, 500] ],
+        dom: "<'row'<'col-sm-12 col-md-6'l><'col-sm-12 col-md-6'f>>" +
+             "<'row'<'col-sm-12'tr>>" +
+             "<'row'<'col-sm-12 col-md-5'i><'col-sm-12 col-md-7'p>>",
+        language: {
+            emptyTable: `<div class="py-4 text-muted"><i class="bi bi-exclamation-circle fs-3 d-block mb-2"></i> ${dtEmptyMsg}</div>`,
+            search: dtSearchText
+        }
+    });
+
+    // 글로벌 노출
+    window.dtTable = table;
+
+    // 공통 이벤트 처리 (검색)
+    $('#btnCustomSearch').on('click', function() { table.draw(); });
+    $('.dt-filter').on('change', function() { table.draw(); }); // 드롭다운 변경 시 즉각 갱신
+
+    // 공통 버튼 이벤트
+    document.getElementById('btnAddRow').addEventListener('click', function() {
+        if (!scenarioId) { alert('Please select a scenario first.'); return; }
+        document.getElementById('modalBaseYearMonth').selectedIndex = 0;
+        
+        if (typeof window.resetModalForm === 'function') {
+            window.resetModalForm(); // 자식 폼 필드 초기화
+        }
+        modal.show();
+    });
+
+    $('#checkAll').on('change', function() {
+        $('.row-check').prop('checked', this.checked);
+    });
+
+    document.getElementById('btnDeleteRow').addEventListener('click', function() {
+        const checked = document.querySelectorAll('.row-check:checked');
+        if (checked.length === 0) { alert('Please select rows to delete.'); return; }
+        if (confirm('Are you sure you want to delete selected rows?')) {
+            deleteForm.submit();
+        }
+    });
+
+    // 자식에서 추가 이벤트 바인딩이 필요하면 호출
+    if (typeof window.bindExtraEvents === 'function') {
+        window.bindExtraEvents(table);
+    }
+});
+</script>
+{% block extra_js %}{% endblock %}
+{% endblock %}
