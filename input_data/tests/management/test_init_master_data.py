@@ -3,10 +3,10 @@ init_master_data 커맨드 테스트
 Test Scenarios: CMD_INIT_MASTER_001~004
 """
 
-import pytest
-
 from django.core.management import call_command
 from django.test import override_settings
+
+import pytest
 
 from input_data.models import (
     BaseVesselInfo,

@@ -1,7 +1,7 @@
-import pytest
-
 from django.http.request import QueryDict
 from django.utils import timezone
+
+import pytest
 
 from input_data.models import (
     LongRangeSchedule,

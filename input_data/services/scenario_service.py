@@ -1,11 +1,10 @@
-from datetime import datetime, timedelta
-
 from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
 
 from common import constants
+from common.utils.date_utils import get_scenario_month_range
 from input_data.configs import MODEL_MAPPING, SCENARIO_CREATION_FILTERS
 from input_data.models import (
     BaseProformaSchedule,
@@ -58,24 +57,6 @@ def create_scenario_from_base(
     # base_year_week 기본값 설정 (현재 주차, YYYYWK 형식)
     if not base_year_week:
         base_year_week = constants.DEFAULT_BASE_YEAR_WEEK
-        # iso = now.date().isocalendar()
-        # base_year_week = f"{iso[0]}{iso[1]:02d}"
-
-    # base_year_week에서 시나리오의 시작 월(YYYYMM) 계산
-    # base_year_week 형식: "YYYYWXX" (예: "202601" = 2026년 1주차)
-    # 주차의 첫 번째 날짜를 구해서 월을 추출
-    scenario_start_month = None
-    scenario_end_month = None
-    try:
-        year = int(base_year_week[:4])
-        week = int(base_year_week[4:6])
-        # ISO 주차의 첫 번째 날 (월요일) 구하기
-        jan_4 = datetime(year, 1, 4)
-        week_one_monday = jan_4 - timedelta(days=jan_4.weekday())
-        target_date = week_one_monday + timedelta(weeks=week - 1)
-        scenario_start_month = target_date.strftime("%Y%m")
-    except (ValueError, IndexError):
-        scenario_start_month = None
 
     # 시나리오 마스터(ScenarioInfo) 생성 (code는 save()에서 자동 생성)
     scenario = ScenarioInfo(
@@ -92,14 +73,9 @@ def create_scenario_from_base(
     scenario.save()
 
     # scenario의 종료 월 계산 (시작 월 + planning_horizon_months)
-    if scenario_start_month:
-        start_year = int(scenario_start_month[:4])
-        start_month = int(scenario_start_month[4:6])
-        # 계획 기간을 고려한 종료 월 계산
-        end_month_num = start_month + scenario.planning_horizon_months - 1
-        end_year = start_year + (end_month_num - 1) // 12
-        end_month = ((end_month_num - 1) % 12) + 1
-        scenario_end_month = f"{end_year:04d}{end_month:02d}"
+    scenario_start_month, scenario_end_month = get_scenario_month_range(
+        scenario.base_year_week, scenario.planning_horizon_months
+    )
 
     result_summary = {}
 

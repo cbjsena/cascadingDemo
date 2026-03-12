@@ -153,7 +153,7 @@ def generate_table_definition(sender, **kwargs):
 
         # 4. 기존 파일과 비교
         if os.path.exists(output_file):
-            with open(output_file, "r", encoding="utf-8-sig") as f:
+            with open(output_file, encoding="utf-8-sig") as f:
                 old_content = f.read()
 
             if _remove_generated_line(old_content) == _remove_generated_line(

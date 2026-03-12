@@ -116,7 +116,9 @@ class CascadingService:
         # 2. 새 Position 데이터 생성
         positions_to_create = []
         position_num = 0
-        for i, (v_code, v_date) in enumerate(zip(vessel_codes, vessel_start_dates)):
+        for v_code, v_date in enumerate(
+            zip(vessel_codes, vessel_start_dates, strict=True)
+        ):
             if v_code.strip() and v_date.strip():
                 position_num += 1
                 positions_to_create.append(

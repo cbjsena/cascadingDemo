@@ -4,9 +4,9 @@ Test Scenarios: MASTER_TRADE_001~005, MASTER_PORT_001~003, MASTER_LANE_001~003,
                 MASTER_MENU_001~002
 """
 
-import pytest
-
 from django.urls import reverse
+
+import pytest
 
 from input_data.models import MasterLane, MasterPort, MasterTrade
 

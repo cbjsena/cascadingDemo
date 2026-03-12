@@ -56,8 +56,8 @@
         <label class="form-label small fw-bold">Port Code</label>
         <select class="form-select" id="modalPortCode" name="new_port_code_0" required>
             <option value="">Select Port</option>
-            {% for p in ports %}
-            <option value="{{ p.port_code }}">{{ p.port_code }}</option>
+            {% for p in filter_ports %}
+            <option value="{{ p }}">{{ p }}</option>
             {% endfor %}
         </select>
     </div>

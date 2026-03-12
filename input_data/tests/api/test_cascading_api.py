@@ -3,9 +3,9 @@ Cascading API Tests
 CASCADING_VIEW_002, CASCADING_EXISTING_001, CASCADING_API_001 시나리오 테스트
 """
 
-import pytest
-
 from django.urls import reverse
+
+import pytest
 
 from input_data.models import VesselCapacity
 

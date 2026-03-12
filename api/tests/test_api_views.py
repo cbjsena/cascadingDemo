@@ -1,7 +1,7 @@
-import pytest
-
 from django.urls import reverse
 from django.utils import timezone
+
+import pytest
 
 from common import messages as msg
 from input_data.models import (
@@ -158,7 +158,7 @@ class TestApiViews:
         data = resp.json()
         assert data["status"] == "success"
         assert data["distance"] == 500
-        assert data["eac_distance"] == 100
+        assert data["eca_distance"] == 100
 
     def test_api_dist_002_not_found(self):
         """[API_DIST_002] 거리 조회 (없음) -> 0 반환"""
@@ -175,7 +175,7 @@ class TestApiViews:
         assert resp.status_code == 200
         data = resp.json()
         assert data["distance"] == 0
-        assert data["eac_distance"] == 0
+        assert data["eca_distance"] == 0
 
     # =========================================================
     # 2. Proforma Related Tests (Cascade Select)

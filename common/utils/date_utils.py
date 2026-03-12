@@ -31,6 +31,105 @@ def get_base_year_month_choices():
     return sorted({f"{year}{month:02d}" for year, month in pairs})
 
 
+def get_scenario_month_range(base_year_week, horizon_months=12):
+    """
+    base_year_week(YYYYWK)와 horizon_months로 시작 월과 종료 월(YYYYMM) 반환
+    Return: (start_month_str, end_month_str) e.g., ("202601", "202612")
+    """
+    if not base_year_week or len(base_year_week) != 6:
+        return None, None
+
+    try:
+        year = int(base_year_week[:4])
+        week = int(base_year_week[4:6])
+
+        start_period = BaseWeekPeriod.objects.filter(
+            base_year=year, base_week=week
+        ).first()
+        if not start_period:
+            return None, None
+
+        start_year = start_period.base_year
+        start_month = start_period.base_month
+        start_month_str = f"{start_year:04d}{start_month:02d}"
+
+        total_months = start_month + int(horizon_months) - 1
+        end_year = start_year + (total_months - 1) // 12
+        end_month = ((total_months - 1) % 12) + 1
+        end_month_str = f"{end_year:04d}{end_month:02d}"
+
+        return start_month_str, end_month_str
+    except (ValueError, TypeError):
+        return None, None
+
+
+def get_scenario_date_range(base_year_week, horizon_months=12):
+    """
+    base_year_week와 horizon_months로 실제 시작일과 종료일(Date 객체) 반환
+    Return: (start_date, end_date)
+    """
+    if not base_year_week or len(base_year_week) != 6:
+        return None, None
+
+    try:
+        year = int(base_year_week[:4])
+        week = int(base_year_week[4:6])
+
+        start_period = BaseWeekPeriod.objects.filter(
+            base_year=year, base_week=week
+        ).first()
+        if not start_period:
+            return None, None
+
+        start_date = start_period.week_start_date
+        start_month = start_period.base_month
+
+        total_months = start_month + int(horizon_months) - 1
+        end_year = start_period.base_year + (total_months - 1) // 12
+        end_month = ((total_months - 1) % 12) + 1
+
+        end_period = (
+            BaseWeekPeriod.objects.filter(base_year=end_year, base_month=end_month)
+            .order_by("-base_week")
+            .first()
+        )
+
+        if not end_period:
+            return None, None
+
+        return start_date, end_period.week_end_date
+    except (ValueError, TypeError):
+        return None, None
+
+
+def get_timeline_weeks(base_year_week, horizon_months=12):
+    """
+    UI 렌더링(Gantt 차트 등)용 타임라인 주차 목록 반환
+    Return: List of Dicts [{"label": "01", "start_date": Date, ...}]
+    """
+    weeks = []
+    start_date, end_date = get_scenario_date_range(base_year_week, horizon_months)
+
+    if not (start_date and end_date):
+        return weeks
+
+    qs = BaseWeekPeriod.objects.filter(
+        week_start_date__gte=start_date, week_end_date__lte=end_date
+    ).order_by("week_start_date")
+
+    for i, period in enumerate(qs):
+        weeks.append(
+            {
+                "label": f"{period.base_week:02d}",
+                "year": period.base_year,
+                "week_num": period.base_week,
+                "start_date": period.week_start_date,
+                "index": i,
+            }
+        )
+    return weeks
+
+
 def get_scenario_base_year_month_choices(scenario_id=None):
     """시나리오별 Base Year Month 선택 목록을 반환한다.
 

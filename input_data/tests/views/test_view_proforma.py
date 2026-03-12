@@ -1,11 +1,11 @@
 import io
 
-import openpyxl
-import pytest
-
 from django.contrib.messages import get_messages
 from django.urls import reverse
 from django.utils import timezone
+
+import openpyxl
+import pytest
 
 from common import messages as msg
 from common.menus import MenuGroup, MenuItem, MenuSection

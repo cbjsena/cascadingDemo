@@ -3,9 +3,9 @@ Bunker 화면 테스트
 Test Scenarios: BUNKER_SEA_001~007
 """
 
-import pytest
-
 from django.urls import reverse
+
+import pytest
 
 from input_data.models import (
     BaseWeekPeriod,
@@ -97,11 +97,12 @@ class TestBunkerConsumptionSeaView:
 
     def test_bunker_sea_list(self, auth_client, sea_data):
         """[BUNKER_SEA_001] 목록 조회 — 전체 데이터 표시"""
+        s1 = sea_data["s1"]
         url = reverse("input_data:bunker_consumption_sea_list")
-        response = auth_client.get(url)
+        response = auth_client.get(url, {"scenario_id": s1.id})
         assert response.status_code == 200
         assert b"Bunker Consumption Sea" in response.content
-        assert len(response.context["items"]) == 3
+        assert len(response.context["items"]) == 2
 
     def test_bunker_sea_scenario_filter(self, auth_client, sea_data):
         """[BUNKER_SEA_002] 시나리오 필터 적용"""
@@ -229,8 +230,9 @@ class TestBunkerConsumptionPortView:
 
     def test_bunker_port_list(self, auth_client, port_data):
         """[BUNKER_PORT_001] 목록 조회 — 전체 데이터 표시"""
+        s1 = port_data["s1"]
         url = reverse("input_data:bunker_consumption_port_list")
-        response = auth_client.get(url)
+        response = auth_client.get(url, {"scenario_id": s1.id})
         assert response.status_code == 200
         assert b"Bunker Consumption Port" in response.content
         assert len(response.context["items"]) == 2
@@ -318,8 +320,9 @@ class TestBunkerPriceView:
 
     def test_bunker_price_list(self, auth_client, price_data):
         """[BUNKER_PRICE_001] 목록 조회 — 전체 데이터 표시"""
+        s1 = price_data["s1"]
         url = reverse("input_data:bunker_price_list")
-        response = auth_client.get(url)
+        response = auth_client.get(url, {"scenario_id": s1.id})
         assert response.status_code == 200
         assert b"Bunker Price" in response.content
         assert len(response.context["items"]) == 2

@@ -5,9 +5,9 @@ CASCADING_SVC_* 시나리오에 대한 서비스 로직 테스트
 
 from datetime import date
 
-import pytest
-
 from django.utils import timezone
+
+import pytest
 
 from input_data.models import (
     CascadingVesselPosition,

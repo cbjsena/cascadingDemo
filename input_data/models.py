@@ -242,11 +242,11 @@ class ScenarioInfo(CommonModel):
                         super().save(*args, **kwargs)
                     break  # 성공적으로 저장되면 루프 탈출
 
-                except IntegrityError:
+                except IntegrityError as e:
                     if attempt == max_retries - 1:
                         raise Exception(
                             "동시 접속이 너무 많아 시나리오 코드를 생성할 수 없습니다. 다시 시도해주세요."
-                        )
+                        ) from e
                     continue  # 충돌 시 다음 번호로 다시 시도
         else:
             super().save(*args, **kwargs)

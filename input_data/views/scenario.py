@@ -365,7 +365,7 @@ def _clone_relation_data(
     master_model.objects.bulk_create(new_masters, batch_size=1000)
 
     # 원본 ID -> 신규 객체 매핑 맵 생성
-    id_map = {old_id: new_obj for old_id, new_obj in zip(old_ids, new_masters)}
+    id_map = dict(zip(old_ids, new_masters, strict=True))
 
     # 3. 모든 연관된 Detail 모델들 순회 및 복제
     for rel in detail_rels:

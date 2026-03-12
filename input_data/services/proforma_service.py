@@ -296,8 +296,10 @@ class ProformaService:
 
         try:
             scenario_obj = ScenarioInfo.objects.get(id=scenario_id_val)
-        except ScenarioInfo.DoesNotExist:
-            raise ValueError(msg.SCENARIO_NOT_FOUND.format(scenario_id=scenario_id_val))
+        except ScenarioInfo.DoesNotExist as e:
+            raise ValueError(
+                msg.SCENARIO_NOT_FOUND.format(scenario_id=scenario_id_val)
+            ) from e
 
         # Effective Date를 Timezone Aware 객체로 변환
         eff_from_date_str = header.get("effective_from_date", "")

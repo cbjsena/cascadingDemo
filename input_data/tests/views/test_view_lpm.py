@@ -3,9 +3,9 @@ Lane Proforma Mapping View Tests (신규)
 Test Scenarios: LPM_VIEW_001~004, LPM_ACT_001~003, LPM_LIST_001~002
 """
 
-import pytest
-
 from django.urls import reverse
+
+import pytest
 
 from input_data.models import (
     LaneProformaMapping,

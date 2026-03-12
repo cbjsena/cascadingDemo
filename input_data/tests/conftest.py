@@ -1,9 +1,10 @@
+import os
 from datetime import date, timedelta
-
-import pytest
 
 from django.contrib.auth.models import User
 from django.utils import timezone
+
+import pytest
 
 from common import constants
 from input_data.models import (
@@ -21,6 +22,11 @@ from input_data.models import (
 from input_data.services.cascading_service import CascadingService
 from input_data.services.long_range_service import LongRangeService
 from input_data.services.proforma_service import ProformaService
+
+
+def pytest_configure(config):
+    if os.getenv("APP_ENV") == "local":
+        config.option.nomigrations = True
 
 
 # =========================================================

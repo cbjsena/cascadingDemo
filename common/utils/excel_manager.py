@@ -92,7 +92,7 @@ class ExcelManager:
             self._apply_body_style(cell_no)
 
             # 나머지 컬럼 채우기
-            for idx, (_, key, col_idx) in enumerate(config["grid_headers"]):
+            for _, key, col_idx in enumerate(config["grid_headers"]):
                 if col_idx == 1:
                     continue  # No 컬럼 스킵
 
@@ -145,7 +145,7 @@ class ExcelManager:
             wb = openpyxl.load_workbook(file_obj, data_only=True)
             ws = wb.active
         except Exception as e:
-            raise ValueError(msg.INVALID_EXCEL_FILE.format(str(e)))
+            raise ValueError(msg.INVALID_EXCEL_FILE.format(error=str(e))) from e
 
         # 1. Header Parsing
         header_data = {}
@@ -164,18 +164,24 @@ class ExcelManager:
         # 2. Grid Parsing
         rows = []
         start_row = config.get("start_row_data", 7)
+        empty_count = 0  # 연속 빈 행 카운터
 
         for row_idx in range(start_row, start_row + 100):
             # Key Column (2번째 컬럼, Port Code) 체크
             check_val = ws.cell(row=row_idx, column=2).value
 
-            # 종료 조건
-            if (
-                not check_val
-                or str(check_val).strip() == ""
-                or str(check_val) == "Summary"
-            ):
+            # 명시적 종료 조건 (Summary 도달)
+            if str(check_val).strip() == "Summary":
                 break
+
+            # 빈 행 처리: 3번 연속 비어있으면 데이터 끝으로 간주
+            if not check_val or str(check_val).strip() == "":
+                empty_count += 1
+                if empty_count >= 3:
+                    break
+                continue  # 1~2번 빈 행은 그냥 건너뜀
+
+            empty_count = 0  # 데이터가 있으면 카운터 초기화
 
             row_data = {}
             for _, key, col_idx in config["grid_headers"]:

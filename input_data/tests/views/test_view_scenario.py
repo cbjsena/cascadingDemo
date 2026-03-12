@@ -1,7 +1,7 @@
-import pytest
-
 from django.contrib.messages import get_messages
 from django.urls import reverse
+
+import pytest
 
 from common import constants, messages as msg
 from input_data.models import ProformaSchedule, ProformaScheduleDetail, ScenarioInfo

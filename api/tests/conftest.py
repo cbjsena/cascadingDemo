@@ -1,6 +1,6 @@
-import pytest
-
 from django.contrib.auth.models import User
+
+import pytest
 
 from input_data.models import MasterLane, MasterPort, MasterTrade, ScenarioInfo
 

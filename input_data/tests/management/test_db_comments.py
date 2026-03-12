@@ -1,8 +1,8 @@
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from django.core.management import call_command
+
+import pytest
 
 from common import messages as msg
 

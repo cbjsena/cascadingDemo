@@ -7,15 +7,15 @@ init_base_data / init_master_data 커맨드가 이 클래스를 상속한다.
 
 import csv
 import os
-from datetime import datetime
 from decimal import Decimal
-
-from tqdm import tqdm  # 진행 표시용
 
 from django.conf import settings
 from django.core.management.base import BaseCommand
 from django.db import transaction
 from django.utils import timezone
+
+from dateutil import parser as date_parser
+from tqdm import tqdm  # 진행 표시용
 
 from common import messages as msg
 
@@ -31,13 +31,24 @@ class BaseDataLoader(BaseCommand):
         self._fk_cache = {}
 
     def _get_fk_object(self, related_model, pk_val):
-        """FK 참조 객체를 캐시에서 조회하거나, 없으면 전체 로드 후 캐시"""
+        """FK 참조 객체를 캐시에서 조회하거나, 없으면 단건 로드 후 캐시 (Lazy Loading)"""
         cache_key = related_model._meta.label
+        pk_str = str(pk_val)
+
+        # 1. 모델용 캐시 딕셔너리가 없으면 초기화
         if cache_key not in self._fk_cache:
-            self._fk_cache[cache_key] = {
-                str(obj.pk): obj for obj in related_model.objects.all()
-            }
-        return self._fk_cache[cache_key].get(str(pk_val))
+            self._fk_cache[cache_key] = {}
+
+        # 2. 캐시에 해당 PK가 없으면 DB에서 조회 후 캐싱
+        if pk_str not in self._fk_cache[cache_key]:
+            try:
+                obj = related_model.objects.get(pk=pk_val)
+                self._fk_cache[cache_key][pk_str] = obj
+            except related_model.DoesNotExist:
+                # DB에도 없으면 None을 캐싱하여 다음번 중복 조회 방지
+                self._fk_cache[cache_key][pk_str] = None
+
+        return self._fk_cache[cache_key][pk_str]
 
     def get_base_data_dir(self):
         """CSV 파일 기본 디렉토리 반환"""
@@ -88,7 +99,7 @@ class BaseDataLoader(BaseCommand):
         skip_clean_row = table_name == "base_bunker_consumption_sea"
 
         try:
-            with open(file_path, mode="r", encoding="utf-8-sig") as csvfile:
+            with open(file_path, encoding="utf-8-sig") as csvfile:
                 reader = csv.DictReader(csvfile)
                 rows = list(reader)  # 전체 행을 리스트로 변환하여 tqdm에 사용
                 for i, row in enumerate(tqdm(rows, desc=table_name, unit="row")):
@@ -197,18 +208,26 @@ class BaseDataLoader(BaseCommand):
 
                     elif internal_type in ["DateTimeField", "DateField"]:
                         try:
-                            dt = datetime.strptime(val, "%Y/%m/%d %H:%M:%S")
-                        except ValueError:
-                            dt = datetime.strptime(val, "%Y/%m/%d")
+                            dt = date_parser.parse(val)
+                            # DateField라도 Timezone Aware 처리를 해주거나 로직에 맞게 분기
+                            cleaned[key] = (
+                                timezone.make_aware(dt) if timezone.is_naive(dt) else dt
+                            )
+                        except (ValueError, TypeError) as e:
+                            raise ValueError(
+                                msg.INVALID_DATE_FORMAT.format(column=key, value=val)
+                            ) from e
                         cleaned[key] = timezone.make_aware(dt)
 
                     else:
                         cleaned[key] = val
 
-                except ValueError:
+                except ValueError as e:
                     raise ValueError(
-                        f"Column '{key}' expects {internal_type}, but got '{val}'"
-                    )
+                        msg.INVALID_DATA_FORMAT.format(
+                            column=key, internal_type=internal_type, value=val
+                        )
+                    ) from e
 
         return cleaned
 

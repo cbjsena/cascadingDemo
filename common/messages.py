@@ -66,13 +66,25 @@ PROFORMA_DETAIL_NOT_FOUND = "Proforma Schedule Details not found."
 PROFORMA_INVALID_DURATION = "Invalid Proforma Duration (0 or None)."
 
 # ==========================================
-# 4. 엑셀 업로드 (Web UI)
+# 4. 엑셀, csv 업로드 (Web UI)
 # ==========================================
 UPLOAD_FILE_REQUIRED = "Please select a file to upload."
 UPLOAD_SUCCESS = "Excel file uploaded and parsed successfully."
 UPLOAD_FAIL = "Failed to upload excel: {error}"
 TEMPLATE_MISMATCH = "The uploaded file format does not match the template."
 INVALID_EXCEL_FILE = "Invalid Excel file: {error}"
+INVALID_DATA_FORMAT = "Column '{column}' expects {internal_type}, but got '{value}'"
+INVALID_DATE_FORMAT = "Column '{column}' expects Date/Time, but got '{value}'."
+CSV_IMPORT_NOT_CONFIGURED = "CSV import is not configured for this data."
+CSV_EXPORT_NOT_CONFIGURED = "CSV export is not configured for this data."
+FILE_NOT_SELECTED = "Please select a file to upload."
+INVALID_FILE_EXT = "Please upload a valid .{ext} file."
+SCENARIO_NOT_SELECTED = "Please select a scenario before proceeding."
+CSV_FILE_EMPTY = "The uploaded CSV file is empty."
+CSV_IMPORT_RESULT = (
+    "{created} {label}(s) imported successfully. {skipped} row(s) skipped."
+)
+
 
 # ==========================================
 # 5. 데이터 초기화 및 로그 (CLI / Data Init)

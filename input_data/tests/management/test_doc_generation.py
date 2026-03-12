@@ -1,9 +1,9 @@
 import csv
 from unittest.mock import MagicMock, patch
 
-import pytest
-
 from django.apps import apps
+
+import pytest
 
 from input_data.apps import generate_table_definition
 
@@ -46,7 +46,7 @@ class TestDocGeneration:
                     assert expected_file.exists(), "CSV file was not created"
 
                     # 5. 파일 내용 검증 (utf-8-sig 인코딩 확인)
-                    with open(expected_file, "r", encoding="utf-8-sig") as f:
+                    with open(expected_file, encoding="utf-8-sig") as f:
                         reader = csv.reader(f)
                         rows = list(reader)
 

@@ -1,7 +1,7 @@
-import pytest
-
 from django.core.management import call_command
 from django.test import override_settings
+
+import pytest
 
 from input_data.models import BaseVesselInfo
 

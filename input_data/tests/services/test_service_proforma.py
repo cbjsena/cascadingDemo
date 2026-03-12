@@ -1,9 +1,9 @@
 import csv
 import os
 
-import pytest
-
 from django.conf import settings
+
+import pytest
 
 from input_data.models import Distance, MasterPort, ProformaScheduleDetail
 from input_data.services.proforma_service import ProformaService
@@ -209,7 +209,7 @@ class TestProformaFileCalculation:
             settings.BASE_DIR, "input_data", "tests", "services", "data", filename
         )
         data = []
-        with open(file_path, mode="r", encoding="utf-8-sig") as f:
+        with open(file_path, encoding="utf-8-sig") as f:
             reader = csv.DictReader(f)
             for row in reader:
                 data.append(dict(row))

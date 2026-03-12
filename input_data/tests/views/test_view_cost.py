@@ -6,9 +6,9 @@ Test Scenarios: CANAL_FEE_001~005, DISTANCE_001~005, TS_COST_001~007,
 
 import io
 
-import pytest
-
 from django.urls import reverse
+
+import pytest
 
 from input_data.models import (
     BaseVesselInfo,

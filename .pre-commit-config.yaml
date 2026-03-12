@@ -7,7 +7,7 @@ repos:
   # Ruff (린팅 + 정렬) - isort, flake8 대체
   - repo: https://github.com/astral-sh/ruff-pre-commit
     # Ruff 버전은 설치된 버전과 맞추는 것이 좋습니다.
-    rev: v0.14.9
+    rev: v0.14.14
     hooks:
       - id: ruff
         args: [ --fix ]  # 자동 수정 기능 활성화

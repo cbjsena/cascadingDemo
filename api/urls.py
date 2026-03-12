@@ -1,6 +1,6 @@
-from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
-
 from django.urls import path
+
+from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 from . import views
 
@@ -22,4 +22,5 @@ urlpatterns = [
     path("vessel/base/", views.base_vessel_list, name="base_vessel_list"),
     path("vessel/options/", views.vessel_options, name="vessel_options"),
     path("vessel/lane/check/", views.vessel_lane_check, name="vessel_lane_check"),
+    path("week-info/", views.week_period_info, name="week_period_info"),
 ]

@@ -56,6 +56,7 @@ from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
+from common import messages as msg
 from common.menus import (
     CREATION_MENU_STRUCTURE,
     MENU_STRUCTURE,
@@ -213,7 +214,7 @@ def _handle_csv_download(request, *, config, scenario_id):
     # 데이터
     for obj in queryset:
         row = []
-        for db_col, model_field, _required in csv_map:
+        for model_field, _required in csv_map:
             if model_field == "scenario_code":
                 val = obj.scenario.code
             else:
@@ -248,20 +249,20 @@ def _handle_csv_upload(request, *, config, scenario_id):
     """
     csv_map = config.get("csv_map", [])
     if not csv_map:
-        messages.warning(request, "CSV import is not configured.")
+        messages.warning(request, msg.CSV_IMPORT_NOT_CONFIGURED)
         return _redirect_with_scenario(config["url_name"], scenario_id)
 
     csv_file = request.FILES.get("csv_file")
     if not csv_file:
-        messages.error(request, "No file selected.")
+        messages.error(request, msg.FILE_NOT_SELECTED)
         return _redirect_with_scenario(config["url_name"], scenario_id)
 
     if not csv_file.name.endswith(".csv"):
-        messages.error(request, "Please upload a .csv file.")
+        messages.error(request, msg.INVALID_FILE_EXT.format(ext="csv"))
         return _redirect_with_scenario(config["url_name"], scenario_id)
 
     if not scenario_id:
-        messages.error(request, "Please select a scenario before uploading.")
+        messages.error(request, msg.SCENARIO_NOT_SELECTED)
         return _redirect_with_scenario(config["url_name"], scenario_id)
 
     model = config["model"]
@@ -273,22 +274,20 @@ def _handle_csv_upload(request, *, config, scenario_id):
         reader = csv.reader(io.StringIO(content))
         header_row = next(reader, None)  # 첫 행 (헤더) 건너뜀
         if not header_row:
-            messages.error(request, "CSV file is empty.")
+            messages.error(request, msg.CSV_FILE_EMPTY)
             return _redirect_with_scenario(config["url_name"], scenario_id)
 
         # csv_map에서 첫 번째(scenario_code)를 제외한 컬럼 매핑
         # csv_map[0]은 항상 ("scenario_code", "scenario_code", False) → 업로드 시 무시
         data_columns = csv_map[1:]  # [(db_col, model_field, required), ...]
 
-        created = 0
-        duplicated = 0
+        objects_to_create = []
         skipped = 0
 
-        for row_num, row in enumerate(reader, start=2):
+        for row in reader:
             if not row or all(cell.strip() == "" for cell in row):
-                continue  # 빈 행 건너뜀
+                continue
 
-            # 첫 번째 컬럼(scenario_code) 무시, 나머지 컬럼 → model_field 매핑
             if len(row) < len(csv_map):
                 skipped += 1
                 continue
@@ -296,12 +295,10 @@ def _handle_csv_upload(request, *, config, scenario_id):
             obj_data = {}
             all_required_ok = True
 
-            for i, (db_col, model_field, required) in enumerate(data_columns):
+            for i, (model_field, required) in enumerate(data_columns):
                 val = row[i + 1].strip() if (i + 1) < len(row) else ""
-                if not val:
-                    obj_data[model_field] = None
-                else:
-                    obj_data[model_field] = val
+                obj_data[model_field] = val if val else None
+
                 if required and not val:
                     all_required_ok = False
                     break
@@ -310,39 +307,31 @@ def _handle_csv_upload(request, *, config, scenario_id):
                 skipped += 1
                 continue
 
-            # DB 저장 (save 로직과 동일)
-            unique_fields = config.get("unique_fields")
-            if unique_fields:
-                lookup = {"scenario_id": scenario_id}
-                for uf in unique_fields:
-                    lookup[uf] = obj_data.get(uf)
-                if model.objects.filter(**lookup).exists():
-                    duplicated += 1
-                    continue
-                model.objects.create(scenario_id=scenario_id, **obj_data)
-                created += 1
-            else:
-                lookup_fields = config.get("lookup_fields", [])
-                defaults_fields = config.get("defaults_fields", [])
-                lookup = {"scenario_id": scenario_id}
-                for lf in lookup_fields:
-                    lookup[lf] = obj_data.get(lf)
-                defaults = {df: obj_data.get(df) for df in defaults_fields}
-                model.objects.update_or_create(**lookup, defaults=defaults)
-                created += 1
+            # ★ 개별 create() 대신 메모리 리스트에 적재
+            obj_data["scenario_id"] = scenario_id
+            objects_to_create.append(model(**obj_data))
 
-        if created:
-            messages.success(request, f"{created} {label}(s) imported from CSV.")
-        if duplicated:
-            messages.warning(
-                request,
-                f"{duplicated} {label}(s) skipped (already exists).",
+        # ★ Bulk Insert: Postgres 특화 ignore_conflicts=True로 중복 에러 무시
+        created_count = 0
+        if objects_to_create:
+            # unique_fields 제약조건에 걸리는 데이터는 무시되고, 정상 데이터만 Insert 됨
+            model.objects.bulk_create(
+                objects_to_create, batch_size=1000, ignore_conflicts=True
             )
-        if skipped:
-            messages.warning(request, f"{skipped} row(s) skipped (invalid data).")
+            # ignore_conflicts 사용 시 실제 insert된 개수를 정확히 알긴 어려우므로 전체 시도 개수 사용
+            created_count = len(objects_to_create)
+
+            # (lookup_fields를 통한 update_or_create/upsert 로직이 필요한 경우, Django 4.1+ 의 update_conflicts=True 활용 가능)
+
+        messages.success(
+            request,
+            msg.CSV_IMPORT_RESULT.format(
+                created=created_count, label=label, skipped=skipped
+            ),
+        )
 
     except Exception as e:
-        messages.error(request, f"CSV import failed: {e}")
+        messages.error(request, msg.LOAD_ERROR.format(error=str(e)))
 
     return _redirect_with_scenario(config["url_name"], scenario_id)
 
@@ -352,6 +341,8 @@ def _handle_datatables_ajax(request, config, scenario_id):
 
     # 1. Base QuerySet 로드
     sig = inspect.signature(config["queryset_fn"])
+    is_filtered = False
+
     if "scenario_id" in sig.parameters:
         qs = config["queryset_fn"](scenario_id=scenario_id)
     else:
@@ -364,13 +355,16 @@ def _handle_datatables_ajax(request, config, scenario_id):
             qs = qs.filter(**{field["filter_kwarg"]: val})
 
     records_total = qs.count()
+    records_filtered = records_total
 
     # 3. DataTables 검색어(Search) 적용
     search_value = request.GET.get("search[value]", "").strip()
     if search_value and "search_filter_fn" in config:
         qs = config["search_filter_fn"](qs, search_value)
+        is_filtered = True
 
-    records_filtered = qs.count()
+    if is_filtered:
+        records_filtered = qs.count()
 
     # 4. DataTables 정렬(Sorting) 적용
     dt_columns = config.get("dt_columns", [])

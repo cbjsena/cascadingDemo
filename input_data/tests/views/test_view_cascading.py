@@ -3,9 +3,9 @@ Cascading View Tests
 CASCADING_VIEW_*, CASCADING_ACT_*, CASCADING_VESSEL_INFO_*, CASCADING_DETAIL_* 시나리오 테스트
 """
 
-import pytest
-
 from django.urls import reverse
+
+import pytest
 
 from input_data.models import CascadingVesselPosition, LaneProformaMapping
 

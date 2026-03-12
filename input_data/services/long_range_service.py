@@ -1,10 +1,15 @@
-from datetime import date, timedelta
+from datetime import timedelta
 
 from django.db import transaction
 from django.utils import timezone
 
 from common import messages as msg
-from input_data.models import LongRangeSchedule, ProformaSchedule, ScenarioInfo
+from common.utils.date_utils import get_scenario_date_range
+from input_data.models import (
+    LongRangeSchedule,
+    ProformaSchedule,
+    ScenarioInfo,
+)
 
 
 class LongRangeService:
@@ -32,8 +37,8 @@ class LongRangeService:
 
         try:
             scenario = ScenarioInfo.objects.get(id=scenario_id)
-        except ScenarioInfo.DoesNotExist:
-            raise ValueError(msg.SCENARIO_NOT_FOUND)
+        except ScenarioInfo.DoesNotExist as e:
+            raise ValueError(msg.SCENARIO_NOT_FOUND) from e
 
         # 시나리오의 base_year_week / to_year_week에서 LRS 기간 자동 계산
         lrs_start_date, lrs_end_date = self._get_scenario_date_range(scenario)
@@ -225,13 +230,7 @@ class LongRangeService:
 
         # 6. Bulk Create
         if new_lrs_list:
-            print(f"new_lrs_list length: {len(new_lrs_list)}")
-            for i, lrs in enumerate(new_lrs_list):
-                print(
-                    f"[{i}] Vessel: {lrs.vessel_code}{lrs.voyage_number}{lrs.direction} Port: {lrs.port_id}"
-                )
-
-            LongRangeSchedule.objects.bulk_create(new_lrs_list)
+            LongRangeSchedule.objects.bulk_create(new_lrs_list, batch_size=1000)
 
     def _get_expanded_sequence(self, rows):
         """
@@ -289,22 +288,13 @@ class LongRangeService:
         return {"E": "W", "W": "E", "S": "N", "N": "S"}.get(direction, direction)
 
     def _get_scenario_date_range(self, scenario):
-        """
-        시나리오의 base_year_week와 planning_horizon_months에서
-        LRS 기간(start_date, end_date)을 계산하여 반환
-        """
-        if not scenario.base_year_week:
-            raise ValueError("Scenario base_year_week is not set.")
+        start_date, end_date = get_scenario_date_range(
+            scenario.base_year_week, scenario.planning_horizon_months
+        )
 
-        try:
-            year = int(scenario.base_year_week[:4])
-            week = int(scenario.base_year_week[4:])
-            start_date = date.fromisocalendar(year, week, 1)  # ISO 주차 월요일
+        if not start_date or not end_date:
+            raise ValueError(
+                msg.DATA_NOT_FOUND + f" (BaseWeekPeriod: {scenario.base_year_week})"
+            )
 
-            horizon_months = scenario.planning_horizon_months or 12
-            total_weeks = int(horizon_months * 4.33)
-            end_date = start_date + timedelta(weeks=total_weeks)
-
-            return start_date, end_date
-        except (ValueError, TypeError) as e:
-            raise ValueError(f"Invalid scenario date configuration: {e}")
+        return start_date, end_date

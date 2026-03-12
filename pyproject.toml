@@ -1,9 +1,16 @@
 [tool.pytest.ini_options]
 DJANGO_SETTINGS_MODULE = "config.settings"
-python_files = ["tests.py", "test_*.py", "*_tests.py"]
+python_files = ["test_*.py"]
 python_functions = ["test_*"]
 python_classes = ["Test*", "*Test"]
-addopts = "--reuse-db -v"
+addopts = ""
+
+testpaths = [
+    "tests",
+    "common",
+    "input_data",
+    "api"
+]
 #addopts = "--reuse-db -v --cov=default --cov-report=term-missing --cov-report=html"
 #    --cov=default
 #    --cov-report=term-missing
@@ -24,7 +31,7 @@ addopts = "--reuse-db -v"
 
 [tool.black]
 line-length = 88
-target-version = ["py310", "py311"]
+target-version = ["py311"]
 skip-string-normalization = false
 include = '\.pyi?$'
 extend-exclude = '''
@@ -55,25 +62,43 @@ exclude = [
 ]
 
 [tool.ruff.lint]
-# 사용할 규칙: E, W (Pycodestyle/Flake8), F (Pyflakes), I (isort)
-select = ["E", "W", "F", "I"]
+select = [
+    "E",  # pycodestyle error
+    "W",  # pycodestyle warning
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "UP", # pyupgrade
+    "C4", # flake8-comprehensions
+]
 # 무시할 규칙 (기존 .flake8의 extend-ignore 반영 + Black 호환)
-ignore = ["E203", "E501", "W391"]
-
+ignore = [
+    "E203", # black compatibility
+    "E501", # line length
+    "W391"
+]
 
 [tool.ruff.lint.isort]
-# isort 설정 통합 (기존 .isort.cfg 대체)
+# isort 설정 통합
 combine-as-imports = true
-known-first-party = ["config", "default", "result", "run"]
-section-order = ["future", "standard-library", "third-party", "django", "first-party", "local-folder"]
+known-first-party = ["config", "common", "input_data", "api"]
+
+section-order = [
+    "future",
+    "standard-library",
+    "django",
+    "third-party",
+    "first-party",
+    "local-folder"
+]
 
 [tool.ruff.lint.isort.sections]
-# Django 섹션 구분
+# django 패키지와 그 하위 모듈들을 정확히 'django' 섹션으로만 강제 할당
 "django" = ["django"]
-
 
 [tool.coverage.run]
 branch = true
+source = ["common", "input_data", "api", "config"]
 omit = [
     "*/migrations/*",
     "*/tests/*",
@@ -92,6 +117,7 @@ exclude_lines =[
     "raise NotImplementedError"
 ]
 ignore_errors = true
+show_missing = true
 
 [tool.coverage.html]
-directory = "coverage_html_report"
+directory = "htmlcov"

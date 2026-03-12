@@ -3,7 +3,6 @@ Cost 관련 뷰 (Config 기반 공통 CRUD).
 Canal Fee, Distance, TS Cost 모두 공통 팩토리 사용.
 """
 
-
 from common.menus import MenuGroup, MenuItem
 from common.utils.date_utils import get_scenario_base_year_month_choices
 from input_data.models import (
@@ -55,7 +54,7 @@ def _get_distance_ports(scenario_id):
         .exclude(to_port__isnull=True)
         .values_list("to_port__port_code", flat=True)
     )
-    return sorted(list(from_ports | to_ports))
+    return sorted(from_ports | to_ports)
 
 
 def _get_ts_cost_lanes(scenario_id):
@@ -113,7 +112,6 @@ canal_fee_list = scenario_crud_view(
         "extra_context": {
             "filter_vessels": _get_canal_fee_vessels,
             "filter_ports": _get_canal_fee_ports,
-            "ports": _get_canal_fee_ports,
         },
         "fields": [
             {"post_key": "new_vessel_code", "model_field": "vessel_code"},
@@ -122,6 +120,7 @@ canal_fee_list = scenario_crud_view(
             {"post_key": "new_canal_fee", "model_field": "canal_fee"},
         ],
         "lookup_fields": ["vessel_code", "direction", "port_id"],
+        "defaults_fields": ["canal_fee"],
         "dt_columns": [
             "",
             "",

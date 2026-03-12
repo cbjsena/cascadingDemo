@@ -1,9 +1,9 @@
 from datetime import datetime
 
-import pytest
-
 from django.db.utils import IntegrityError
 from django.utils import timezone
+
+import pytest
 
 from input_data.models import (
     CascadingVesselPosition,

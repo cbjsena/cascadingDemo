@@ -4,10 +4,10 @@ Test Scenarios: VESSEL_INFO_001~006, CHARTER_COST_001~003,
                 VESSEL_CAP_001~003, VESSEL_ONCHANGE_001
 """
 
-import pytest
-
 from django.urls import reverse
 from django.utils import timezone
+
+import pytest
 
 from input_data.models import (
     BaseVesselInfo,

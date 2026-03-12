@@ -42,7 +42,7 @@ ALLOWED_HOSTS = os.environ.get("ALLOWED_HOSTS", "localhost,127.0.0.1").split(","
 MEDIA_URL = "/media/"
 MEDIA_ROOT = BASE_DIR / "media"
 # HTML 템플릿에서 {% static 'css/style.css' %}를 쓰면 /static/css/style.css로 변환해주는 역할
-STATIC_URL = "static/"
+STATIC_URL = "/static/"
 # 개발 중에 프로젝트 최상위 static 폴더를 정적 파일 검색 대상에 추가
 STATICFILES_DIRS = [
     BASE_DIR / "static",  # 여기에 프로젝트 루트의 static/ 폴더 경로
@@ -60,7 +60,6 @@ INSTALLED_APPS = [
     "django.contrib.sessions",
     "django.contrib.messages",
     "django.contrib.staticfiles",
-    "debug_toolbar",  # debug
     "rest_framework",  # api 구축용
     "drf_spectacular",  # API 문서 자동 생성 도구
     "simple_history",  # audit logging
@@ -69,6 +68,8 @@ INSTALLED_APPS = [
     "input_data.apps.InputDataConfig",
     "api",
 ]
+if DEBUG:
+    INSTALLED_APPS += ["debug_toolbar"]
 REST_FRAMEWORK = {
     "DEFAULT_SCHEMA_CLASS": "drf_spectacular.openapi.AutoSchema",
 }
@@ -83,8 +84,9 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     # AuthenticationMiddleware 이후에 와야 request.user에 접근 가능
     "simple_history.middleware.HistoryRequestMiddleware",
-    "debug_toolbar.middleware.DebugToolbarMiddleware",
 ]
+if DEBUG:
+    MIDDLEWARE += ["debug_toolbar.middleware.DebugToolbarMiddleware"]
 
 INTERNAL_IPS = [
     "127.0.0.1",
@@ -102,7 +104,7 @@ TEMPLATES = [
                 "django.template.context_processors.request",
                 "django.contrib.auth.context_processors.auth",
                 "django.contrib.messages.context_processors.messages",
-                "common.context_processors.master_menu",
+                "common.context_processors.global_menus",
             ],
         },
     },
@@ -178,12 +180,12 @@ LOGOUT_REDIRECT_URL = "/accounts/login/"  # 로그아웃 후 로그인 페이지
 # Default to 'DB' if not set. .upper() ensures 'db' and 'DB' work the same.
 DATA_SOURCE_TYPE = os.environ.get("DATA_SOURCE_TYPE", "DB").upper()
 
-EXTERNAL_API_URL = os.environ.get("EXTERNAL_API_URL", "")
-EXTERNAL_API_KEY = os.environ.get("EXTERNAL_API_KEY", "")
+API_URL = os.environ.get("API_URL", "")
+API_KEY = os.environ.get("API_KEY", "")
 
 # Simple validation warning
-if DATA_SOURCE_TYPE == "API" and not EXTERNAL_API_URL:
-    print("WARNING: DATA_SOURCE_TYPE is set to 'API', but EXTERNAL_API_URL is missing.")
+if DATA_SOURCE_TYPE == "API" and not API_URL:
+    print("WARNING: DATA_SOURCE_TYPE is set to 'API', but API_URL is missing.")
 
 # ==============================================================================
 # Celery Configuration

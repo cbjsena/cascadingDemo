@@ -11,6 +11,7 @@ from common.menus import (
     MenuItem,
     MenuSection,
 )
+from common.utils.date_utils import get_timeline_weeks
 from input_data.models import (
     BaseVesselCapacity,
     BaseVesselInfo,
@@ -158,7 +159,7 @@ def cascading_vessel_create(request):
             lane_lists = data.getlist("lane_code_list[]")
 
             for i, (v_code, v_date, v_cap, l_list) in enumerate(
-                zip(vessel_codes, vessel_dates, vessel_caps, lane_lists)
+                zip(vessel_codes, vessel_dates, vessel_caps, lane_lists, strict=True)
             ):
                 error_restored.append(
                     {
@@ -596,7 +597,9 @@ def _build_mapping_data(scenario_id):
         return scenario_obj, mapping_data, timeline_weeks
 
     if scenario_obj and scenario_obj.base_year_week:
-        timeline_weeks = _build_timeline_weeks(scenario_obj)
+        timeline_weeks = get_timeline_weeks(
+            scenario_obj.base_year_week, scenario_obj.planning_horizon_months
+        )
 
     proformas = ProformaSchedule.objects.filter(scenario_id=scenario_id).order_by(
         "lane_id", "effective_from_date", "proforma_name"
@@ -715,35 +718,3 @@ def _build_mapping_data(scenario_id):
         )
 
     return scenario_obj, mapping_data, timeline_weeks
-
-
-def _build_timeline_weeks(scenario):
-    """시나리오의 base_year_week ~ to_year_week까지 주차 목록 생성"""
-    from datetime import date, timedelta
-
-    weeks = []
-    try:
-        year = int(scenario.base_year_week[:4])
-        week = int(scenario.base_year_week[4:])
-        # ISO 주차 -> 날짜 변환 (월요일 기준)
-        start_date = date.fromisocalendar(year, week, 1)
-
-        horizon_months = scenario.planning_horizon_months or 12
-        total_weeks = int(horizon_months * 4.33)
-
-        for i in range(total_weeks):
-            wk_date = start_date + timedelta(weeks=i)
-            iso = wk_date.isocalendar()
-            weeks.append(
-                {
-                    "label": f"{iso[1]:02d}",
-                    "year": iso[0],
-                    "week_num": iso[1],
-                    "start_date": wk_date,
-                    "index": i,
-                }
-            )
-    except (ValueError, TypeError):
-        pass
-
-    return weeks

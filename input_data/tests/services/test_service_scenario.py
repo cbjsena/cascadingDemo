@@ -1,7 +1,7 @@
-import pytest
-
 from django.contrib.auth import get_user_model
 from django.utils import timezone
+
+import pytest
 
 from input_data.models import (
     BaseCascadingSchedule,
