@@ -239,7 +239,7 @@ class TestApiViews:
         assert resp.status_code == 200
         data = resp.json()
         assert data["status"] == "error"
-        assert msg.PROFORMA_NOT_FOUND in data["message"]
+        assert msg.ITEM_NOT_FOUND.format(item="api:proforma_detail") in data["message"]
 
     # =========================================================
     # 3. Vessel Related Tests (List, Check, Options)

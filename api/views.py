@@ -164,7 +164,7 @@ def proforma_detail(request):
             else:
                 data["existing_cascading"] = {"exists": False}
         else:
-            data = {"status": "error", "message": msg.PROFORMA_NOT_FOUND}
+            data = {"status": "error", "message": msg.ITEM_NOT_FOUND.format(item="api:proforma_detail")}
 
     except Exception as e:
         data = {"status": "error", "message": str(e)}

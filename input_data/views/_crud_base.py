@@ -199,9 +199,13 @@ def _handle_csv_download(request, *, config, scenario_id):
         return _redirect_with_scenario(config["url_name"], scenario_id)
 
     # 쿼리셋 구성 (화면과 동일한 필터)
-    queryset = config["queryset_fn"]()
-    if scenario_id:
-        queryset = queryset.filter(scenario_id=scenario_id)
+    sig = inspect.signature(config["queryset_fn"])
+    if "scenario_id" in sig.parameters:
+        queryset = config["queryset_fn"](scenario_id=scenario_id)
+    else:
+        queryset = config["queryset_fn"]()
+        if scenario_id:
+            queryset = queryset.filter(scenario_id=scenario_id)
 
     # CSV 생성
     output = io.StringIO()
@@ -214,7 +218,7 @@ def _handle_csv_download(request, *, config, scenario_id):
     # 데이터
     for obj in queryset:
         row = []
-        for model_field, _required in csv_map:
+        for db_column, model_field, _required in csv_map:
             if model_field == "scenario_code":
                 val = obj.scenario.code
             else:
@@ -295,7 +299,7 @@ def _handle_csv_upload(request, *, config, scenario_id):
             obj_data = {}
             all_required_ok = True
 
-            for i, (model_field, required) in enumerate(data_columns):
+            for i, (db_column, model_field, required) in enumerate(data_columns):
                 val = row[i + 1].strip() if (i + 1) < len(row) else ""
                 obj_data[model_field] = val if val else None
 

@@ -3,11 +3,7 @@ DJANGO_SETTINGS_MODULE = "config.settings"
 python_files = ["test_*.py"]
 python_functions = ["test_*"]
 python_classes = ["Test*", "*Test"]
-addopts = """
---reuse-db
---no-migrations
--v
-"""
+addopts = "--reuse-db --nomigrations --ff -n 4 -v"
 
 testpaths = [
     "tests",

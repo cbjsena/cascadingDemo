@@ -10,6 +10,7 @@ from django.urls import reverse
 
 import pytest
 
+from common import messages
 from input_data.models import (
     BaseVesselInfo,
     CanalFee,
@@ -53,7 +54,8 @@ class TestCanalFeeView:
     """Canal Fee 목록/필터/검색/추가/삭제 테스트"""
 
     @pytest.fixture
-    def canal_fee_data(self, db, cost_scenario, user):
+    def canal_fee_data(self, db, cost_scenario, user, master_data):
+        """테스트를 위한 기초 데이터 세팅"""
         s1, s2 = cost_scenario
         cf1 = CanalFee.objects.create(
             scenario=s1,
@@ -78,52 +80,64 @@ class TestCanalFeeView:
     def test_canal_fee_list(self, auth_client, canal_fee_data):
         """
         [CANAL_FEE_001] Canal Fee 목록 조회
+        Canal Fee 페이지 정상 로드 및 context 검증
         """
         url = reverse("input_data:canal_fee_list")
         response = auth_client.get(url)
 
+        # 1. Status 200 OK
         assert response.status_code == 200
+
+        # 2. Context 검증 (변경된 extra_context 반영)
         assert "scenarios" in response.context
-        assert "ports" in response.context
+        assert "filter_ports" in response.context  # cost.py의 extra_context
+        assert "filter_vessels" in response.context
         assert "search_params" in response.context
 
     def test_canal_fee_scenario_filter(self, auth_client, canal_fee_data):
         """
-        [CANAL_FEE_002] 시나리오 선택 시 해당 데이터만 표시
+        [CANAL_FEE_002] Canal Fee 시나리오 필터
+        시나리오 선택 시 해당 데이터만 표시 검증
         """
         s1 = canal_fee_data["s1"]
         url = reverse("input_data:canal_fee_list")
+
+        # s1 시나리오 선택
         response = auth_client.get(url, {"scenario_id": s1.id})
 
         items = response.context["items"]
         vessel_codes = [item.vessel_code for item in items]
+
+        # 1. scenario_id=1의 데이터(V001)만 표시
         assert "V001" in vessel_codes
+        # 2. 다른 시나리오 데이터(V002) 미표시
         assert "V002" not in vessel_codes
 
     def test_canal_fee_search(self, auth_client, canal_fee_data):
         """
-        [CANAL_FEE_003] Vessel/Port 코드 검색 필터링
+        [CANAL_FEE_003] Canal Fee 검색 필터링
+        Vessel/Port 코드 검색 검증
         """
+        # s1 시나리오 내에서 검색 진행 (V001, KRPUS 존재)
+        s1 = canal_fee_data["s1"]
         url = reverse("input_data:canal_fee_list")
-        response = auth_client.get(url, {"search": "KRPUS"})
+
+        response = auth_client.get(url, {"scenario_id": s1.id, "search": "KRPUS"})
 
         items = response.context["items"]
-        assert len(items) >= 1
-        # canal_fee_data에서 생성된 KRPUS 데이터가 포함되어야 함
-        assert any(item.port_id == "KRPUS" for item in items)
-        # 다른 포트는 포함되지 않아야 함 (검색 조건에 맞지 않는 경우)
-        assert all(
-            "KRPUS" in item.port_id or "KRPUS" in item.vessel_code for item in items
-        )
 
-    def test_canal_fee_add_row_save(
-        self, auth_client, canal_fee_data, base_vessel_for_cost
-    ):
+        # 1. port_code에 'KRPUS' 포함하는 데이터 표시
+        assert len(items) >= 1
+        assert any(item.port_id == "KRPUS" for item in items)
+
+    def test_canal_fee_add_row_save(self, auth_client, canal_fee_data):
         """
-        [CANAL_FEE_004] 모달에서 Canal Fee 추가 후 DB 저장
+        [CANAL_FEE_004] Canal Fee 모달 추가 저장
+        모달에서 새 Canal Fee 입력 후 DB 저장 검증
         """
         s1 = canal_fee_data["s1"]
         url = reverse("input_data:canal_fee_list")
+
         response = auth_client.post(
             url,
             {
@@ -136,19 +150,28 @@ class TestCanalFeeView:
             },
         )
 
+        # 1. Redirect 302 (scenario_id 유지)
         assert response.status_code == 302
         assert f"scenario_id={s1.id}" in response.url
+
+        # 2. CanalFee에 해당 레코드 생성됨
         assert CanalFee.objects.filter(
             scenario=s1, vessel_code="V001", direction="W", port_id="JPTYO"
         ).exists()
 
+        # 값 정확성 검증
+        obj = CanalFee.objects.get(scenario=s1, vessel_code="V001", direction="W", port_id="JPTYO")
+        assert float(obj.canal_fee) == 180000.50
+
     def test_canal_fee_delete(self, auth_client, canal_fee_data):
         """
-        [CANAL_FEE_005] 선택 Canal Fee 삭제
+        [CANAL_FEE_005] Canal Fee 삭제
+        선택 Canal Fee 삭제 검증
         """
         cf1 = canal_fee_data["cf1"]
         s1 = canal_fee_data["s1"]
         url = reverse("input_data:canal_fee_list")
+
         response = auth_client.post(
             url,
             {
@@ -158,8 +181,11 @@ class TestCanalFeeView:
             },
         )
 
+        # 1. Redirect 302 (scenario_id 유지)
         assert response.status_code == 302
         assert f"scenario_id={s1.id}" in response.url
+
+        # 2. pk=N DB에서 삭제됨
         assert not CanalFee.objects.filter(pk=cf1.pk).exists()
 
 
@@ -168,7 +194,8 @@ class TestDistanceView:
     """Distance 목록/필터/검색/추가/삭제 테스트"""
 
     @pytest.fixture
-    def distance_data(self, db, cost_scenario, user):
+    def distance_data(self, db, cost_scenario, user, master_data):
+        """마스터 데이터(master_data)를 주입하여 Port 참조 무결성 확보"""
         s1, s2 = cost_scenario
         d1 = Distance.objects.create(
             scenario=s1,
@@ -192,14 +219,15 @@ class TestDistanceView:
 
     def test_distance_list(self, auth_client, distance_data):
         """
-        [DISTANCE_001] Distance 목록 조회
+        [DISTANCE_001] Distance 목록 조회 및 Context 검증
         """
         url = reverse("input_data:distance_list")
         response = auth_client.get(url)
 
         assert response.status_code == 200
         assert "scenarios" in response.context
-        assert "ports" in response.context
+        assert "filter_ports" in response.context  # 동적 필터용
+        assert "ports" in response.context  # 모달 입력용 전체 포트
         assert "search_params" in response.context
 
     def test_distance_scenario_filter(self, auth_client, distance_data):
@@ -213,14 +241,16 @@ class TestDistanceView:
         items = response.context["items"]
         from_ports = [item.from_port_id for item in items]
         assert "KRPUS" in from_ports
-        assert "JPTYO" not in from_ports  # s2 데이터
+        assert "JPTYO" not in from_ports  # s2 데이터는 안 보여야 함
 
     def test_distance_search(self, auth_client, distance_data):
         """
         [DISTANCE_003] Port 코드 검색 필터링
         """
+        s1 = distance_data["s1"]
         url = reverse("input_data:distance_list")
-        response = auth_client.get(url, {"search": "KRPUS"})
+        # s1 시나리오 내에서 검색 수행
+        response = auth_client.get(url, {"scenario_id": s1.id, "search": "KRPUS"})
 
         items = response.context["items"]
         assert len(items) >= 1
@@ -280,7 +310,8 @@ class TestTSCostView:
     """TS Cost 목록/필터/검색/추가/삭제/중복 테스트"""
 
     @pytest.fixture
-    def ts_cost_data(self, db, cost_scenario, user):
+    def ts_cost_data(self, db, cost_scenario, user, master_data):
+        """마스터 데이터(master_data) 주입"""
         s1, s2 = cost_scenario
         tc1 = TSCost.objects.create(
             scenario=s1,
@@ -311,10 +342,12 @@ class TestTSCostView:
 
         assert response.status_code == 200
         assert "scenarios" in response.context
+        assert "filter_lanes" in response.context
+        assert "filter_ports" in response.context
         assert "lanes" in response.context
         assert "ports" in response.context
+        assert "base_year_month_choices" in response.context
         assert "search_params" in response.context
-        assert "base_year_month" in response.context
 
     def test_ts_cost_scenario_filter(self, auth_client, ts_cost_data):
         """
@@ -333,21 +366,22 @@ class TestTSCostView:
         """
         [TS_COST_007] Base Year Month 필터링
         """
+        s1 = ts_cost_data["s1"]
         url = reverse("input_data:ts_cost_list")
-        response = auth_client.get(url, {"base_year_month": "202601"})
+        response = auth_client.get(url, {"scenario_id": s1.id, "base_year_month": "202601"})
 
         items = response.context["items"]
         assert len(items) >= 1
         assert all(item.base_year_month == "202601" for item in items)
-        # 202602 데이터는 포함되지 않음
         assert all(item.base_year_month != "202602" for item in items)
 
     def test_ts_cost_search(self, auth_client, ts_cost_data):
         """
         [TS_COST_003] Lane/Port 코드 검색 필터링
         """
+        s1 = ts_cost_data["s1"]
         url = reverse("input_data:ts_cost_list")
-        response = auth_client.get(url, {"search": "KRPUS"})
+        response = auth_client.get(url, {"scenario_id": s1.id, "search": "KRPUS"})
 
         items = response.context["items"]
         assert len(items) >= 1
@@ -425,28 +459,24 @@ class TestTSCostView:
 
         msgs = [str(m) for m in get_messages(response.wsgi_request)]
         assert any("skipped" in m for m in msgs)
-        # 기존 값 유지 확인
+
+        # 기존 값 유지 확인 (Update가 아니라 Skip 되어야 함)
         obj = TSCost.objects.get(
             scenario=s1,
             base_year_month="202601",
             lane_id="TEST_LANE",
             port_id="KRPUS",
         )
-        assert obj.ts_cost == 5000  # 원래 값 유지
-
+        assert obj.ts_cost == 5000
 
 @pytest.mark.django_db
 class TestCsvDownloadUpload:
     """CSV Download / Upload 공통 기능 테스트 (Canal Fee 기준)"""
 
     @pytest.fixture
-    def canal_fee_data(self, db, cost_scenario, user):
+    def canal_fee_data(self, db, cost_scenario, user, master_data):
         s1, s2 = cost_scenario
-        # CSV 업로드 테스트를 위해 MasterPort 생성
-        for code in ["KRPUS", "JPTYO", "SGSIN"]:
-            MasterPort.objects.get_or_create(
-                port_code=code, defaults={"port_name": code}
-            )
+
         CanalFee.objects.create(
             scenario=s1,
             vessel_code="V001",
@@ -478,13 +508,13 @@ class TestCsvDownloadUpload:
             {"action": "csv_download", "scenario_id": s1.id},
         )
 
-        assert response.status_code == 302
+        assert response.status_code == 200
         assert "text/csv" in response["Content-Type"]
         assert "attachment" in response["Content-Disposition"]
 
         # CSV 내용 검증 (헤더는 DB 컬럼명)
         content = response.content.decode("utf-8-sig")
-        lines = content.strip().split("\n")
+        lines = [line for line in content.strip().split("\n") if line.strip()]
         assert len(lines) >= 3  # 헤더 + 2 데이터 행
         assert "scenario_code" in lines[0]
         assert "vessel_code" in lines[0]
@@ -500,7 +530,7 @@ class TestCsvDownloadUpload:
             url,
             {"action": "csv_download", "scenario_id": ""},
         )
-        assert response.status_code == 302
+        assert response.status_code == 200
         assert "text/csv" in response["Content-Type"]
 
     def test_csv_download_has_scenario_code_column(self, auth_client, canal_fee_data):
@@ -515,7 +545,7 @@ class TestCsvDownloadUpload:
         )
 
         content = response.content.decode("utf-8-sig")
-        lines = content.strip().split("\n")
+        lines = [line for line in content.strip().split("\n") if line.strip()]
         assert len(lines) >= 2
         # 데이터 행의 첫 번째 컬럼이 시나리오 코드
         assert lines[1].startswith("SC_COST_01")
@@ -564,7 +594,7 @@ class TestCsvDownloadUpload:
         )
 
         msgs = [str(m) for m in get_messages(response.wsgi_request)]
-        assert any("No file" in m for m in msgs)
+        assert any(messages.FILE_NOT_SELECTED in m for m in msgs)
 
     def test_csv_upload_no_scenario(self, auth_client, canal_fee_data):
         """

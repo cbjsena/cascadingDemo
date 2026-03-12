@@ -178,17 +178,17 @@ class TestLaneProformaMappingView:
         # 기존 매핑 생성
         LaneProformaMapping.objects.create(
             scenario=scenario,
-            lane_code="LANE_A",
+            lane_id="LANE_A",
             proforma=pf_a1,
         )
         LaneProformaMapping.objects.create(
             scenario=scenario,
-            lane_code="LANE_A",
+            lane_id="LANE_A",
             proforma=pf_a2,
         )
         LaneProformaMapping.objects.create(
             scenario=scenario,
-            lane_code="LANE_B",
+            lane_id="LANE_B",
             proforma=pf_b1,
         )
 
@@ -276,9 +276,8 @@ class TestLaneProformaMappingAction:
         response = auth_client.post(
             url,
             {
-                "action": "save",
                 "scenario_id": scenario.id,
-                "checked_pf_ids": [pf1.id, pf2.id],
+                "selected_proformas": [str(pf1.id), str(pf2.id)],
             },
         )
 
@@ -306,7 +305,7 @@ class TestLaneProformaMappingAction:
         for pf in [pf1, pf2, pf3]:
             LaneProformaMapping.objects.create(
                 scenario=scenario,
-                lane_code=pf.lane_id,
+                lane_id=pf.lane_id,
                 proforma=pf,
             )
 
@@ -317,9 +316,8 @@ class TestLaneProformaMappingAction:
         response = auth_client.post(
             url,
             {
-                "action": "save",
                 "scenario_id": scenario.id,
-                "checked_pf_ids": [pf1.id],
+                "selected_proformas": [str(pf1.id)],
             },
         )
 
@@ -342,7 +340,7 @@ class TestLaneProformaMappingAction:
         for pf in [pf1, pf2, pf3]:
             LaneProformaMapping.objects.create(
                 scenario=scenario,
-                lane_code=pf.lane_id,
+                lane_id=pf.lane_id,
                 proforma=pf,
             )
 
@@ -353,9 +351,8 @@ class TestLaneProformaMappingAction:
         response = auth_client.post(
             url,
             {
-                "action": "save",
                 "scenario_id": scenario.id,
-                "checked_pf_ids": [],  # 빈 배열
+                "selected_proformas": [],  # 빈 배열
             },
         )
 

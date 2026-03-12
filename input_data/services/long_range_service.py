@@ -38,7 +38,7 @@ class LongRangeService:
         try:
             scenario = ScenarioInfo.objects.get(id=scenario_id)
         except ScenarioInfo.DoesNotExist as e:
-            raise ValueError(msg.SCENARIO_NOT_FOUND) from e
+            raise ValueError(msg.ITEM_NOT_FOUND.format(item=scenario_id)) from e
 
         # 시나리오의 base_year_week / to_year_week에서 LRS 기간 자동 계산
         lrs_start_date, lrs_end_date = get_scenario_date_range(
@@ -59,7 +59,7 @@ class LongRangeService:
         ).first()
 
         if not master:
-            raise ValueError(msg.PROFORMA_MASTER_NOT_FOUND)
+            raise ValueError(msg.ITEM_NOT_FOUND.format(item="proforma"))
 
         # 헤더 정보 (Duration = Round Trip Time)
         round_trip_days = float(master.duration or 0)
@@ -71,7 +71,7 @@ class LongRangeService:
         proforma_rows = list(master.details.all().order_by("calling_port_seq"))
 
         if not proforma_rows:
-            raise ValueError(msg.PROFORMA_DETAIL_NOT_FOUND)
+            raise ValueError(msg.ITEM_NOT_FOUND.format(item="proforma details"))
 
         # 3. Virtual Port Logic 적용 -> 확장된 시퀀스 생성
         expanded_sequence = self._get_expanded_sequence(proforma_rows)

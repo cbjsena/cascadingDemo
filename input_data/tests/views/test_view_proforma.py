@@ -466,15 +466,15 @@ class TestProformaLinkValidation:
         assert f"lane_code={sample_schedule.lane_id}" in html_content
 
         # Detail 링크로 실제 접근 가능한지 확인
-        detail_url = reverse(
-            "input_data:proforma_detail",
-            kwargs={
+        detail_url = reverse("input_data:proforma_detail")
+        detail_response = auth_client.get(
+            detail_url,
+            {
                 "scenario_id": sample_schedule.scenario.id,
                 "lane_code": sample_schedule.lane_id,
                 "proforma_name": sample_schedule.proforma_name,
             },
         )
-        detail_response = auth_client.get(detail_url)
         assert detail_response.status_code == 200
 
     def test_pf_detail_invalid_001_missing_lane_code(

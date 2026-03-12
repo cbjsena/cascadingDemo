@@ -106,7 +106,7 @@ class CascadingService:
         ).first()
 
         if not master_proforma:
-            raise ValueError(msg.PROFORMA_NOT_FOUND)
+            raise ValueError(msg.ITEM_NOT_FOUND.format(item="proforma"))
 
         # 1. 기존 데이터 삭제
         CascadingVesselPosition.objects.filter(
@@ -116,9 +116,7 @@ class CascadingService:
         # 2. 새 Position 데이터 생성
         positions_to_create = []
         position_num = 0
-        for v_code, v_date in enumerate(
-            zip(vessel_codes, vessel_start_dates, strict=True)
-        ):
+        for v_code, v_date in zip(vessel_codes, vessel_start_dates, strict=True):
             if v_code.strip() and v_date.strip():
                 position_num += 1
                 positions_to_create.append(

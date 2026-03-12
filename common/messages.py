@@ -20,23 +20,29 @@ Django 표준:
 PERMISSION_DENIED = "You do not have permission to perform this action."
 LOGIN_REQUIRED = "Please login to access this page."
 FUNC_NOT_IMPLEMENTED = "{func_name} function not implemented yet."
-SAVE_ERROR = "Failed to save: {error}"
-LOAD_ERROR = "Failed to load: {error}"  # Fixed: was "Failed to save"
+INVALID_PARAMETERS = "Invalid parameters."
+
+# 통합된 공통 에러 메시지 (target에 도메인 이름 주입)
+SAVE_ERROR = "Failed to save {target}: {error}"
+LOAD_ERROR = "Failed to load {target}: {error}"
+PROCESS_ERROR = "Failed to process {target}: {error}"
+
+# 통합된 공통 Not Found 메시지
 DATA_NOT_FOUND = "Data not found."
+ITEM_NOT_FOUND = "{item} not found."
+
+# 통합된 필수값 누락 메시지
 MISSING_REQUIRED_FIELDS = "Missing required fields."
 MISSING_REQUIRED_FIELDS_FOR = "Missing required fields for {target}."
 
 # ==========================================
 # 2. 시나리오 관리 (Scenario)
 # ==========================================
-# Success
 SCENARIO_CREATE_SUCCESS = "Scenario '{scenario_id}' has been created successfully."
 SCENARIO_CLONE_SUCCESS = "Scenario '{scenario_id}' created (Cloned from '{source_id}')."
 SCENARIO_DELETE_SUCCESS = "Scenario '{scenario_id}' has been deleted successfully."
 
-# Error
 SCENARIO_ID_DUPLICATE = "Scenario ID '{scenario_id}' already exists."
-SCENARIO_NOT_FOUND = "Scenario '{scenario_id}' not found."
 SCENARIO_DELETE_ERROR = "Error deleting scenario: {error}"
 SCENARIO_CLONE_ERROR = "Failed to clone data: {error}"
 
@@ -46,35 +52,18 @@ SCENARIO_CLONE_ERROR = "Failed to clone data: {error}"
 SCHEDULE_NEW_STARTED = "New schedule started."
 SCHEDULE_CALCULATED = "Schedule calculated."
 SCHEDULE_SAVE_SUCCESS = "Schedule saved successfully."
-SCHEDULE_LOAD_ERROR = "Failed to load schedule: {error}"
-INVALID_PARAMETERS = "Invalid parameters."
 
-# ==========================================
-# 3-1. Cascading Schedule
-# ==========================================
 CASCADING_SAVE_SUCCESS = "Cascading Schedule saved successfully."
 CASCADING_LRS_CREATE_SUCCESS = "Cascading & Long Range Schedule created successfully."
-CASCADING_NOT_FOUND = "Cascading Schedule not found."
-CASCADING_PROCESS_ERROR = "Failed to process: {error}"
-
-# ==========================================
-# 3-2. Proforma Schedule
-# ==========================================
-PROFORMA_NOT_FOUND = "Proforma Schedule not found."
-PROFORMA_MASTER_NOT_FOUND = "Proforma Schedule (Master) not found."
-PROFORMA_DETAIL_NOT_FOUND = "Proforma Schedule Details not found."
 PROFORMA_INVALID_DURATION = "Invalid Proforma Duration (0 or None)."
 
 # ==========================================
 # 4. 엑셀, csv 업로드 (Web UI)
 # ==========================================
-UPLOAD_FILE_REQUIRED = "Please select a file to upload."
 UPLOAD_SUCCESS = "Excel file uploaded and parsed successfully."
-UPLOAD_FAIL = "Failed to upload excel: {error}"
 TEMPLATE_MISMATCH = "The uploaded file format does not match the template."
 INVALID_EXCEL_FILE = "Invalid Excel file: {error}"
 INVALID_DATA_FORMAT = "Column '{column}' expects {internal_type}, but got '{value}'"
-INVALID_DATE_FORMAT = "Column '{column}' expects Date/Time, but got '{value}'."
 CSV_IMPORT_NOT_CONFIGURED = "CSV import is not configured for this data."
 CSV_EXPORT_NOT_CONFIGURED = "CSV export is not configured for this data."
 FILE_NOT_SELECTED = "Please select a file to upload."
@@ -89,7 +78,6 @@ CSV_IMPORT_RESULT = (
 # ==========================================
 # 5. 데이터 초기화 및 로그 (CLI / Data Init)
 # ==========================================
-# 포맷: [TAG] Message
 DIR_NOT_FOUND = "Directory not found: {path}"
 FILE_NOT_FOUND = "[SKIP] {table}: File not found ({file})"
 START_LOADING = "[START] Loading {table}..."

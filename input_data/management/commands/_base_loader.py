@@ -199,33 +199,30 @@ class BaseDataLoader(BaseCommand):
             else:
                 try:
                     if internal_type in ["IntegerField", "BigIntegerField"]:
-                        cleaned[key] = int(val.replace(",", ""))
+                        # val이 문자열이 아닐 경우를 대비해 str()로 감싸는 것도 좋은 방어 로직입니다.
+                        cleaned[key] = int(str(val).replace(",", ""))
 
                     elif internal_type == "DecimalField":
-                        cleaned[key] = Decimal(val.replace(",", ""))
+                        cleaned[key] = Decimal(str(val).replace(",", ""))
+
                     elif internal_type == "FloatField":
-                        cleaned[key] = float(val.replace(",", ""))
+                        cleaned[key] = float(str(val).replace(",", ""))
 
                     elif internal_type in ["DateTimeField", "DateField"]:
-                        try:
-                            dt = date_parser.parse(val)
-                            # DateField라도 Timezone Aware 처리를 해주거나 로직에 맞게 분기
-                            cleaned[key] = (
-                                timezone.make_aware(dt) if timezone.is_naive(dt) else dt
-                            )
-                        except (ValueError, TypeError) as e:
-                            raise ValueError(
-                                msg.INVALID_DATE_FORMAT.format(column=key, value=val)
-                            ) from e
-                        cleaned[key] = timezone.make_aware(dt)
-
+                        dt = date_parser.parse(str(val))
+                        # DateField라도 Timezone Aware 처리를 해주거나 로직에 맞게 분기
+                        cleaned[key] = (
+                            timezone.make_aware(dt) if timezone.is_naive(dt) else dt
+                        )
                     else:
                         cleaned[key] = val
-
-                except ValueError as e:
+                # ValueError뿐만 아니라 TypeError(NoneType 에러 등)까지 한 번에 캐치
+                except (ValueError, TypeError) as e:
                     raise ValueError(
                         msg.INVALID_DATA_FORMAT.format(
-                            column=key, internal_type=internal_type, value=val
+                            column=key,
+                            internal_type=internal_type,
+                            value=val
                         )
                     ) from e
 

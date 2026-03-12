@@ -2,7 +2,7 @@
 Cost 관련 뷰 (Config 기반 공통 CRUD).
 Canal Fee, Distance, TS Cost 모두 공통 팩토리 사용.
 """
-
+from common.csv_configs import CANAL_FEE_CSV_MAP, DISTANCE_CSV_MAP, TS_COST_CSV_MAP
 from common.menus import MenuGroup, MenuItem
 from common.utils.date_utils import get_scenario_base_year_month_choices
 from input_data.models import (
@@ -121,6 +121,7 @@ canal_fee_list = scenario_crud_view(
         ],
         "lookup_fields": ["vessel_code", "direction", "port_id"],
         "defaults_fields": ["canal_fee"],
+        "csv_map": CANAL_FEE_CSV_MAP,
         "dt_columns": [
             "",
             "",
@@ -184,6 +185,8 @@ distance_list = scenario_crud_view(
             {"post_key": "new_eca_distance", "model_field": "eca_distance"},
         ],
         "lookup_fields": ["from_port_id", "to_port_id"],
+        "defaults_fields": ["distance", "eca_distance"],
+        "csv_map": DISTANCE_CSV_MAP,
         "dt_columns": [
             "",
             "",
@@ -245,6 +248,7 @@ ts_cost_list = scenario_crud_view(
             {"post_key": "new_ts_cost", "model_field": "ts_cost"},
         ],
         "unique_fields": ["base_year_month", "lane_id", "port_id"],
+        "csv_map": TS_COST_CSV_MAP,
         "dt_columns": [
             "",
             "",

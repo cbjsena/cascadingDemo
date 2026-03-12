@@ -92,7 +92,7 @@ class ExcelManager:
             self._apply_body_style(cell_no)
 
             # 나머지 컬럼 채우기
-            for _, key, col_idx in enumerate(config["grid_headers"]):
+            for text, key, col_idx in config["grid_headers"]:
                 if col_idx == 1:
                     continue  # No 컬럼 스킵
 
