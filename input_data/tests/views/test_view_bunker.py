@@ -23,19 +23,19 @@ def bunker_scenario(db, user):
     """Bunker 테스트용 시나리오 2개"""
     # BaseWeekPeriod 데이터 생성 (모달 base_year_month select 용)
     BaseWeekPeriod.objects.get_or_create(
-        base_year=2026,
-        base_week=1,
+        base_year="2026",
+        base_week="01",
         defaults={
-            "base_month": 1,
+            "base_month": "01",
             "week_start_date": "2026-01-01",
             "week_end_date": "2026-01-07",
         },
     )
     BaseWeekPeriod.objects.get_or_create(
-        base_year=2026,
-        base_week=5,
+        base_year="2026",
+        base_week="05",
         defaults={
-            "base_month": 2,
+            "base_month": "02",
             "week_start_date": "2026-01-29",
             "week_end_date": "2026-02-04",
         },

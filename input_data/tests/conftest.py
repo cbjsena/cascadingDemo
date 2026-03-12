@@ -8,6 +8,7 @@ import pytest
 
 from common import constants
 from input_data.models import (
+    BaseWeekPeriod,
     CascadingVesselPosition,
     Distance,
     LaneProformaMapping,
@@ -86,6 +87,32 @@ def master_data(db):
             trade_code=code, defaults={"trade_name": code}
         )
 
+    # BaseWeekPeriod - 2026년 주차 데이터
+    # 2026년 1월부터 12월까지 각 주차별 데이터 생성
+
+    # 기존 2026 데이터 삭제 (중복 방지)
+    BaseWeekPeriod.objects.filter(base_year="2026").delete()
+
+    start_date = date(2026, 1, 6)  # 2026년 1월 6일 (월요일, 1주차 시작)
+
+    week_num = 1
+    current_date = start_date
+
+    while week_num <= 52:  # 1년간 52주
+        week_end = current_date + timedelta(days=6)  # 일요일
+        month = current_date.month
+
+        BaseWeekPeriod.objects.create(
+            base_year="2026",
+            base_week=f"{week_num:02d}",
+            base_month=f"{month:02d}",
+            week_start_date=current_date,
+            week_end_date=week_end,
+        )
+
+        current_date += timedelta(weeks=1)
+        week_num += 1
+
 
 # =========================================================
 # User & Client Fixtures
@@ -125,6 +152,7 @@ def base_scenario(db, user):
         code="SC_TEST_BASE",
         description="Base Test Scenario for testing",
         base_year_week=constants.DEFAULT_BASE_YEAR_WEEK,
+        planning_horizon_months=1,
         scenario_type="BASELINE",
         status="ACTIVE",
         created_by=user,

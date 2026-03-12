@@ -40,23 +40,29 @@ def get_scenario_month_range(base_year_week, horizon_months=12):
         return None, None
 
     try:
-        year = int(base_year_week[:4])
-        week = int(base_year_week[4:6])
+        year_int = int(base_year_week[:4])
+        week_str = base_year_week[4:6]  # "01" 형태의 문자열 그대로 유지
 
+        # 1. DB 조회 시 문자열(week_str) 사용
         start_period = BaseWeekPeriod.objects.filter(
-            base_year=year, base_week=week
+            base_year=year_int, base_week=week_str
         ).first()
         if not start_period:
             return None, None
 
         start_year = start_period.base_year
-        start_month = start_period.base_month
-        start_month_str = f"{start_year:04d}{start_month:02d}"
 
-        total_months = start_month + int(horizon_months) - 1
+        # 2. 산술 연산을 위해 month 문자열("01")을 int(1)로 변환
+        start_month_int = int(start_period.base_month)
+        start_month_str = f"{start_year:04d}{start_month_int:02d}"
+
+        # 3. 종료 연/월 계산
+        total_months = start_month_int + int(horizon_months) - 1
         end_year = start_year + (total_months - 1) // 12
-        end_month = ((total_months - 1) % 12) + 1
-        end_month_str = f"{end_year:04d}{end_month:02d}"
+        end_month_int = ((total_months - 1) % 12) + 1
+
+        # 4. 반환 시 다시 "YYYYMM" 포맷으로 조립
+        end_month_str = f"{end_year:04d}{end_month_int:02d}"
 
         return start_month_str, end_month_str
     except (ValueError, TypeError):
@@ -72,24 +78,32 @@ def get_scenario_date_range(base_year_week, horizon_months=12):
         return None, None
 
     try:
-        year = int(base_year_week[:4])
-        week = int(base_year_week[4:6])
+        year_int = base_year_week[:4]
+        week_str = base_year_week[4:6]  # "01" 유지
 
         start_period = BaseWeekPeriod.objects.filter(
-            base_year=year, base_week=week
+            base_year=year_int, base_week=week_str
         ).first()
         if not start_period:
             return None, None
 
         start_date = start_period.week_start_date
-        start_month = start_period.base_month
+        start_year_int = int(start_period.base_year)
+        start_month_int = int(start_period.base_month)
 
-        total_months = start_month + int(horizon_months) - 1
-        end_year = start_period.base_year + (total_months - 1) // 12
-        end_month = ((total_months - 1) % 12) + 1
+        total_months = start_month_int + int(horizon_months) - 1
+        end_year_int = start_year_int + (total_months - 1) // 12
+        end_month_int = ((total_months - 1) % 12) + 1
 
+        # DB 조회를 위해 계산된 int(1)을 다시 "01" 문자열로 변환
+        end_year_str = f"{end_year_int:04d}"
+        end_month_str = f"{end_month_int:02d}"
+
+        # 문자열 정렬('-base_week')도 "01", "02" 형태이므로 정상적으로 가장 큰 값을 가져옵니다.
         end_period = (
-            BaseWeekPeriod.objects.filter(base_year=end_year, base_month=end_month)
+            BaseWeekPeriod.objects.filter(
+                base_year=end_year_str, base_month=end_month_str
+            )
             .order_by("-base_week")
             .first()
         )
@@ -118,11 +132,14 @@ def get_timeline_weeks(base_year_week, horizon_months=12):
     ).order_by("week_start_date")
 
     for i, period in enumerate(qs):
+        # 모델의 base_week가 "01" 문자열일 수 있으므로 :02d 대신 zfill(2)을 사용하여 에러 방지
+        week_str = str(period.base_week).zfill(2)
+
         weeks.append(
             {
-                "label": f"{period.base_week:02d}",
+                "label": week_str,
                 "year": period.base_year,
-                "week_num": period.base_week,
+                "week_num": period.base_week,  # 원본 데이터 유지
                 "start_date": period.week_start_date,
                 "index": i,
             }
@@ -163,7 +180,7 @@ def get_scenario_base_year_month_choices(scenario_id=None):
 
         # base_year_week 파싱 (예: "202610" -> year=2026, week=10)
         base_year = int(scenario.base_year_week[:4])
-        base_week = int(scenario.base_year_week[4:])
+        base_week = scenario.base_year_week[4:]
 
         # 시작 주차에 해당하는 base_month 조회
         base_month_result = (

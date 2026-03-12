@@ -455,17 +455,17 @@ class TestLaneProformaMappingList:
         # 매핑 생성 (LANE_A: 2개, LANE_B: 1개)
         LaneProformaMapping.objects.create(
             scenario=base_scenario,
-            lane_code="LANE_A",
+            lane_id="LANE_A",
             proforma=pf_a1,
         )
         LaneProformaMapping.objects.create(
             scenario=base_scenario,
-            lane_code="LANE_A",
+            lane_id="LANE_A",
             proforma=pf_a2,
         )
         LaneProformaMapping.objects.create(
             scenario=base_scenario,
-            lane_code="LANE_B",
+            lane_id="LANE_B",
             proforma=pf_b1,
         )
 

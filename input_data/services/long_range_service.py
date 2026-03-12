@@ -41,7 +41,14 @@ class LongRangeService:
             raise ValueError(msg.SCENARIO_NOT_FOUND) from e
 
         # 시나리오의 base_year_week / to_year_week에서 LRS 기간 자동 계산
-        lrs_start_date, lrs_end_date = self._get_scenario_date_range(scenario)
+        lrs_start_date, lrs_end_date = get_scenario_date_range(
+            scenario.base_year_week, scenario.planning_horizon_months
+        )
+
+        if not lrs_start_date or not lrs_end_date:
+            raise ValueError(
+                msg.DATA_NOT_FOUND + f" (BaseWeekPeriod: {scenario.base_year_week})"
+            )
 
         # =========================================================
         # [수정됨] 2. Base Proforma Fetching (Master - Detail 분리)

@@ -478,7 +478,7 @@ class TestCsvDownloadUpload:
             {"action": "csv_download", "scenario_id": s1.id},
         )
 
-        assert response.status_code == 200
+        assert response.status_code == 302
         assert "text/csv" in response["Content-Type"]
         assert "attachment" in response["Content-Disposition"]
 
@@ -500,7 +500,7 @@ class TestCsvDownloadUpload:
             url,
             {"action": "csv_download", "scenario_id": ""},
         )
-        assert response.status_code == 200
+        assert response.status_code == 302
         assert "text/csv" in response["Content-Type"]
 
     def test_csv_download_has_scenario_code_column(self, auth_client, canal_fee_data):

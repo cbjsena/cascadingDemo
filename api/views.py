@@ -102,14 +102,13 @@ def proforma_detail(request):
                 scenario
                 and scenario.base_year_week
                 and len(scenario.base_year_week) == 6
-                and scenario.base_year_week.isdigit()
             ):
 
                 try:
                     from datetime import datetime, timedelta
 
-                    year = int(scenario.base_year_week[:4])
-                    week = int(scenario.base_year_week[4:])
+                    year = scenario.base_year_week[:4]
+                    week = scenario.base_year_week[4:]
                     # ISO week to date: 해당 주의 월요일
                     first_day = datetime.strptime(
                         f"{year}-W{week:02d}-1", "%Y-W%W-%w"

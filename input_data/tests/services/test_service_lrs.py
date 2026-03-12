@@ -19,6 +19,7 @@ class TestLongRangeService:
 
     def test_lrs_svc_001_basic_creation(self, lrs_service, sample_schedule, user):
         """[LRS_SVC_001] 기본 LRS 생성 엔진 테스트 (단일 선박, 가상포트 없음)"""
+
         # Given
         start_date = timezone.now().date()
 

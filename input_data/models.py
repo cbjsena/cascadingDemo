@@ -1669,9 +1669,9 @@ class PortConstraint(AbsPortConstraint, ScenarioBaseModel):
 
 
 class BaseWeekPeriod(models.Model):
-    base_year = models.IntegerField(verbose_name="Base Year / YYYY")
-    base_week = models.IntegerField(verbose_name="Base Week / WK")
-    base_month = models.IntegerField(verbose_name="Base Month / MM")
+    base_year = models.CharField(max_length=4, verbose_name="Base Year / YYYY")
+    base_week = models.CharField(max_length=2, verbose_name="Base Week / WK")
+    base_month = models.CharField(max_length=2, verbose_name="Base Month / MM")
     week_start_date = models.DateField(verbose_name="Week Start")
     week_end_date = models.DateField(verbose_name="Week End")
 
