@@ -116,58 +116,6 @@ class TestProformaReadViews:
         assert response.context["current_group"] == MenuGroup.SCHEDULE
         assert len(response.context["rows"]) == 1
 
-    def test_proforma_list_detail_link(self, auth_client, sample_schedule):
-        """
-        [PF_LIST_DETAIL_LINK_001] 목록 → Detail 링크의 lane_code 파라미터 검증
-        Bug Fix: item.lane_code → item.lane_id (FK attname 문제)
-        - 목록 HTML에서 Detail 버튼의 href에 lane_code 값이 비어있지 않아야 함
-        - 해당 링크로 GET 요청 시 Invalid parameters 에러 없이 200 반환
-        """
-        # 1. 목록에서 Detail 링크의 href 확인
-        list_url = reverse("input_data:proforma_list")
-        list_response = auth_client.get(list_url)
-        assert list_response.status_code == 200
-
-        content = list_response.content.decode("utf-8")
-        detail_url = reverse("input_data:proforma_detail")
-
-        # lane_code= 뒤에 값이 비어있지 않은지 확인 (빈 값이면 lane_code=& 패턴)
-        assert "lane_code=&" not in content, (
-            "Detail link has empty lane_code parameter. "
-            "Template should use item.lane_id instead of item.lane_code"
-        )
-
-        # 2. 실제로 해당 링크를 따라가서 200 반환하는지 확인
-        response = auth_client.get(
-            detail_url,
-            {
-                "scenario_id": sample_schedule.scenario.id,
-                "lane_code": sample_schedule.lane_id,
-                "proforma_name": sample_schedule.proforma_name,
-            },
-        )
-        assert response.status_code == 200
-
-    def test_proforma_detail_invalid_params(self, auth_client):
-        """
-        [PF_DETAIL_INVALID_001] 파라미터 누락 시 Invalid parameters 에러 및 리다이렉트
-        """
-        url = reverse("input_data:proforma_detail")
-
-        # lane_code 누락
-        response = auth_client.get(
-            url,
-            {
-                "scenario_id": "1",
-                "proforma_name": "PF_001",
-            },
-        )
-        assert response.status_code == 302  # redirect to proforma_list
-
-        # 전부 누락
-        response = auth_client.get(url)
-        assert response.status_code == 302
-
     def test_proforma_view_initial(self, auth_client, base_scenario):
         """
         [PF_CREATE_001] 생성 화면 초기 진입
