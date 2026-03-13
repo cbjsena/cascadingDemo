@@ -28,6 +28,7 @@ from .master import (  # noqa: F401
     master_lane_list,
     master_port_list,
     master_trade_list,
+    master_week_period_list,
 )
 from .proforma import (  # noqa: F401
     proforma_create,

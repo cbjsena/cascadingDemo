@@ -1,0 +1,61 @@
+{% extends "input_data/master_list_base.html" %}
+
+{% block page_title %}Week Period{% endblock %}
+{% block page_heading %}Week Period{% endblock %}
+
+{% block table_headers %}
+    <th class="text-center">Year</th>
+    <th class="text-center">Week</th>
+    <th class="text-center">Month</th>
+    <th class="text-center">Week Start</th>
+    <th class="text-center">Week End</th>
+{% endblock %}
+
+{% block modal_title %}Add Week Period{% endblock %}
+
+{% block modal_inputs %}
+    <div class="mb-3">
+        <label class="form-label small fw-bold">Base Year</label>
+        <input type="text" class="form-control" id="modalBaseYear" name="new_base_year_0" placeholder="e.g. 2026" maxlength="4" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label small fw-bold">Base Week</label>
+        <input type="text" class="form-control" id="modalBaseWeek" name="new_base_week_0" placeholder="e.g. 01" maxlength="2" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label small fw-bold">Base Month</label>
+        <input type="text" class="form-control" id="modalBaseMonth" name="new_base_month_0" placeholder="e.g. 01" maxlength="2">
+    </div>
+    <div class="mb-3">
+        <label class="form-label small fw-bold">Week Start Date</label>
+        <input type="date" class="form-control" id="modalWeekStartDate" name="new_week_start_date_0" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label small fw-bold">Week End Date</label>
+        <input type="date" class="form-control" id="modalWeekEndDate" name="new_week_end_date_0" required>
+    </div>
+{% endblock %}
+
+{% block dt_columns %}
+    { data: "base_year", className: "text-center fw-bold" },
+    { data: "base_week", className: "text-center fw-bold" },
+    { data: "base_month", className: "text-center" },
+    { data: "week_start_date", className: "text-center" },
+    { data: "week_end_date", className: "text-center" }
+{% endblock %}
+
+{% block dt_search_text %}Quick Search (Year/Week):{% endblock %}
+{% block dt_empty_msg %}No week period data found.{% endblock %}
+
+{% block extra_js %}
+<script>
+    window.resetModalForm = function() {
+        document.getElementById('modalBaseYear').value = '';
+        document.getElementById('modalBaseWeek').value = '';
+        document.getElementById('modalBaseMonth').value = '';
+        document.getElementById('modalWeekStartDate').value = '';
+        document.getElementById('modalWeekEndDate').value = '';
+    };
+</script>
+{% endblock %}
+

@@ -75,6 +75,11 @@ urlpatterns = [
     path("master/trade/", views.master_trade_list, name="master_trade_list"),
     path("master/port/", views.master_port_list, name="master_port_list"),
     path("master/lane/", views.master_lane_list, name="master_lane_list"),
+    path(
+        "master/week-period/",
+        views.master_week_period_list,
+        name="master_week_period_list",
+    ),
     # Vessel 테이블 조회
     path("vessel/info/", views.vessel_info_list, name="vessel_info_list"),
     path("vessel/charter-cost/", views.charter_cost_list, name="charter_cost_list"),

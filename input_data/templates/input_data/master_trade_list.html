@@ -1,171 +1,55 @@
-{% extends "base.html" %}
+{% extends "input_data/master_list_base.html" %}
 
-{% block title %}Trade Info - Cascading Opt{% endblock %}
+{% block page_title %}Trade Info{% endblock %}
+{% block page_heading %}Trade Info{% endblock %}
 
-{% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <div>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-1 small">
-                    <li class="breadcrumb-item"><a href="{% url 'input_data:input_home' %}" class="text-decoration-none">Home</a></li>
-                    <li class="breadcrumb-item text-muted">Master</li>
-                    <li class="breadcrumb-item active" aria-current="page">Trade Info</li>
-                </ol>
-            </nav>
-            <h1 class="h3">Trade Info</h1>
-        </div>
+{% block table_headers %}
+    <th class="text-center">Trade Code</th>
+    <th>Trade Name</th>
+    <th>From Continent</th>
+    <th>To Continent</th>
+{% endblock %}
+
+{% block modal_title %}Add Trade{% endblock %}
+
+{% block modal_inputs %}
+    <div class="mb-3">
+        <label class="form-label small fw-bold">Trade Code</label>
+        <input type="text" class="form-control text-uppercase" id="modalTradeCode" name="new_trade_code_0" placeholder="e.g. T001" required>
     </div>
-
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-light fw-bold">Search Filter</div>
-        <div class="card-body">
-            <form method="get" action="{% url 'input_data:master_trade_list' %}" class="row g-3 align-items-end">
-                <div class="col-md-4">
-                    <label class="form-label fw-bold small text-muted">Search (Code / Name)</label>
-                    <div class="input-group input-group-sm">
-                        <input type="text" class="form-control" name="search" value="{{ search }}" placeholder="Trade code or name...">
-                        <button class="btn btn-secondary" type="submit">
-                            <i class="bi bi-search"></i> Search
-                        </button>
-                    </div>
-                </div>
-                <div class="col-md-1">
-                    <a href="{% url 'input_data:master_trade_list' %}" class="btn btn-sm btn-outline-secondary w-100" title="Reset">
-                        <i class="bi bi-arrow-clockwise"></i>
-                    </a>
-                </div>
-            </form>
-        </div>
+    <div class="mb-3">
+        <label class="form-label small fw-bold">Trade Name</label>
+        <input type="text" class="form-control" id="modalTradeName" name="new_trade_name_0" placeholder="e.g. Asia-Europe Trade" required>
     </div>
-
-    <div class="card shadow-sm">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-            <div>
-                <span class="fw-bold">Trade List</span>
-                <span class="badge bg-primary ms-2">{{ items|length }} records</span>
-            </div>
-            <div class="btn-group btn-group-sm">
-                <button type="button" class="btn btn-outline-primary" id="btnSave" style="display:none;">
-                    <i class="bi bi-check-lg"></i> Save
-                </button>
-                <button type="button" class="btn btn-success" id="btnAddRow">
-                    <i class="bi bi-plus-lg"></i> Add Row
-                </button>
-                <button type="button" class="btn btn-danger" id="btnDeleteRow">
-                    <i class="bi bi-trash"></i> Delete Row
-                </button>
-            </div>
-        </div>
-        <div class="card-body p-0">
-            <form method="post" id="masterForm">
-                {% csrf_token %}
-                <input type="hidden" name="action" id="formAction" value="">
-                <div class="table-responsive" style="max-height: 600px;">
-                    <table class="table table-hover table-striped align-middle mb-0 table-sm" id="masterTable">
-                        <thead class="table-light sticky-top">
-                            <tr>
-                                <th class="text-center" style="width: 40px;">
-                                    <input type="checkbox" id="checkAll" class="form-check-input">
-                                </th>
-                                <th class="text-center" style="width: 50px;">No</th>
-                                <th>Trade Code</th>
-                                <th>Trade Name</th>
-                                <th>From Continent</th>
-                                <th>To Continent</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in items %}
-                            <tr>
-                                <td class="text-center">
-                                    <input type="checkbox" name="selected_pks" value="{{ item.trade_code }}" class="form-check-input row-check">
-                                </td>
-                                <td class="text-center">{{ forloop.counter }}</td>
-                                <td>
-                                    <span class="badge bg-secondary">{{ item.trade_code }}</span>
-                                </td>
-                                <td class="fw-bold">{{ item.trade_name }}</td>
-                                <td>{{ item.from_continent_code|default:"-" }}</td>
-                                <td>{{ item.to_continent_code|default:"-" }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr id="emptyRow">
-                                <td colspan="6" class="text-center py-5 text-muted">
-                                    <i class="bi bi-exclamation-circle fs-3 d-block mb-2"></i>
-                                    No trade data found.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </form>
-        </div>
+    <div class="mb-3">
+        <label class="form-label small fw-bold">From Continent</label>
+        <input type="text" class="form-control" id="modalFromContinent" name="new_from_continent_0" placeholder="e.g. AS">
     </div>
-</div>
+    <div class="mb-3">
+        <label class="form-label small fw-bold">To Continent</label>
+        <input type="text" class="form-control" id="modalToContinent" name="new_to_continent_0" placeholder="e.g. EU">
+    </div>
+{% endblock %}
 
+{% block dt_columns %}
+    { data: "trade_code", className: "text-center fw-bold text-primary" },
+    { data: "trade_name", className: "fw-bold" },
+    { data: "from_continent_code", className: "text-center" },
+    { data: "to_continent_code", className: "text-center" }
+{% endblock %}
+
+{% block dt_search_text %}Quick Search (Code/Name):{% endblock %}
+{% block dt_empty_msg %}No trade data found.{% endblock %}
+
+{% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('masterForm');
-    const actionInput = document.getElementById('formAction');
-    const tbody = document.querySelector('#masterTable tbody');
-    const checkAll = document.getElementById('checkAll');
-    const btnSave = document.getElementById('btnSave');
-    let newRowAdded = false;
-
-    checkAll.addEventListener('change', function() {
-        document.querySelectorAll('.row-check').forEach(cb => cb.checked = this.checked);
-    });
-
-    document.getElementById('btnAddRow').addEventListener('click', function() {
-        const emptyRow = document.getElementById('emptyRow');
-        if (emptyRow) emptyRow.remove();
-
-        const rowCount = tbody.querySelectorAll('tr').length;
-        const newRow = document.createElement('tr');
-        newRow.classList.add('table-warning');
-        newRow.innerHTML = `
-            <td class="text-center">
-                <input type="checkbox" name="selected_pks" value="" class="form-check-input row-check">
-            </td>
-            <td class="text-center">${rowCount + 1}</td>
-            <td><input type="text" name="new_trade_code_${rowCount}" class="form-control form-control-sm" placeholder="Trade Code" required></td>
-            <td><input type="text" name="new_trade_name_${rowCount}" class="form-control form-control-sm" placeholder="Trade Name" required></td>
-            <td><input type="text" name="new_from_continent_${rowCount}" class="form-control form-control-sm" placeholder="From Continent"></td>
-            <td><input type="text" name="new_to_continent_${rowCount}" class="form-control form-control-sm" placeholder="To Continent"></td>
-        `;
-        tbody.appendChild(newRow);
-        newRowAdded = true;
-        btnSave.style.display = 'inline-block';
-    });
-
-    document.getElementById('btnDeleteRow').addEventListener('click', function() {
-        const checked = document.querySelectorAll('.row-check:checked');
-        if (checked.length === 0) {
-            alert('Please select rows to delete.');
-            return;
-        }
-        let hasExisting = false;
-        checked.forEach(cb => {
-            if (!cb.value) {
-                cb.closest('tr').remove();
-            } else {
-                hasExisting = true;
-            }
-        });
-        if (hasExisting) {
-            if (confirm('Are you sure you want to delete selected rows?')) {
-                actionInput.value = 'delete';
-                form.submit();
-            }
-        }
-    });
-
-    btnSave.addEventListener('click', function() {
-        actionInput.value = 'save';
-        form.submit();
-    });
-});
+    window.resetModalForm = function() {
+        document.getElementById('modalTradeCode').value = '';
+        document.getElementById('modalTradeName').value = '';
+        document.getElementById('modalFromContinent').value = '';
+        document.getElementById('modalToContinent').value = '';
+    };
 </script>
 {% endblock %}
+
+

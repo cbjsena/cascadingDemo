@@ -36,6 +36,7 @@ class MenuItem:
     TRADE_INFO = "trade_info"
     PORT_INFO = "port_info"
     LANE_INFO = "lane_info"
+    WEEK_PERIOD = "week_period"
 
     # Input Management - Vessel
     VESSEL_INFO = "vessel_info"
@@ -102,6 +103,11 @@ MASTER_MENU_STRUCTURE = [
         "name": "Lane Info",
         "key": MenuItem.LANE_INFO,
         "url_name": "input_data:master_lane_list",
+    },
+    {
+        "name": "Week Period",
+        "key": MenuItem.WEEK_PERIOD,
+        "url_name": "input_data:master_week_period_list",
     },
 ]
 

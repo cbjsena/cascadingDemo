@@ -1,175 +1,69 @@
-{% extends "base.html" %}
+{% extends "input_data/master_list_base.html" %}
 
-{% block title %}Lane Info - Cascading Opt{% endblock %}
+{% block page_title %}Lane Info{% endblock %}
+{% block page_heading %}Lane Info{% endblock %}
 
-{% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <div>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-1 small">
-                    <li class="breadcrumb-item"><a href="{% url 'input_data:input_home' %}" class="text-decoration-none">Home</a></li>
-                    <li class="breadcrumb-item text-muted">Master</li>
-                    <li class="breadcrumb-item active" aria-current="page">Lane Info</li>
-                </ol>
-            </nav>
-            <h1 class="h3">Lane Info</h1>
-        </div>
+{% block table_headers %}
+    <th class="text-center">Lane Code</th>
+    <th>Lane Name</th>
+    <th>Service Type</th>
+    <th>Effective From</th>
+    <th>Effective To</th>
+    <th>Feeder Division</th>
+{% endblock %}
+
+{% block modal_title %}Add Lane{% endblock %}
+
+{% block modal_inputs %}
+    <div class="mb-3">
+        <label class="form-label small fw-bold">Lane Code</label>
+        <input type="text" class="form-control text-uppercase" id="modalLaneCode" name="new_lane_code_0" placeholder="e.g. LA001" required>
     </div>
-
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-light fw-bold">Search Filter</div>
-        <div class="card-body">
-            <form method="get" action="{% url 'input_data:master_lane_list' %}" class="row g-3 align-items-end">
-                <div class="col-md-4">
-                    <label class="form-label fw-bold small text-muted">Search (Code / Name)</label>
-                    <div class="input-group input-group-sm">
-                        <input type="text" class="form-control" name="search" value="{{ search }}" placeholder="Lane code or name...">
-                        <button class="btn btn-secondary" type="submit">
-                            <i class="bi bi-search"></i> Search
-                        </button>
-                    </div>
-                </div>
-                <div class="col-md-1">
-                    <a href="{% url 'input_data:master_lane_list' %}" class="btn btn-sm btn-outline-secondary w-100" title="Reset">
-                        <i class="bi bi-arrow-clockwise"></i>
-                    </a>
-                </div>
-            </form>
-        </div>
+    <div class="mb-3">
+        <label class="form-label small fw-bold">Lane Name</label>
+        <input type="text" class="form-control" id="modalLaneName" name="new_lane_name_0" placeholder="e.g. Asia-Europe" required>
     </div>
-
-    <div class="card shadow-sm">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-            <div>
-                <span class="fw-bold">Lane List</span>
-                <span class="badge bg-primary ms-2">{{ items|length }} records</span>
-            </div>
-            <div class="btn-group btn-group-sm">
-                <button type="button" class="btn btn-outline-primary" id="btnSave" style="display:none;">
-                    <i class="bi bi-check-lg"></i> Save
-                </button>
-                <button type="button" class="btn btn-success" id="btnAddRow">
-                    <i class="bi bi-plus-lg"></i> Add Row
-                </button>
-                <button type="button" class="btn btn-danger" id="btnDeleteRow">
-                    <i class="bi bi-trash"></i> Delete Row
-                </button>
-            </div>
-        </div>
-        <div class="card-body p-0">
-            <form method="post" id="masterForm">
-                {% csrf_token %}
-                <input type="hidden" name="action" id="formAction" value="">
-                <div class="table-responsive" style="max-height: 600px;">
-                    <table class="table table-hover table-striped align-middle mb-0 table-sm" id="masterTable">
-                        <thead class="table-light sticky-top">
-                            <tr>
-                                <th class="text-center" style="width: 40px;">
-                                    <input type="checkbox" id="checkAll" class="form-check-input">
-                                </th>
-                                <th class="text-center" style="width: 50px;">No</th>
-                                <th>Lane Code</th>
-                                <th>Lane Name</th>
-                                <th>Service Type</th>
-                                <th>Effective From</th>
-                                <th>Effective To</th>
-                                <th>Feeder Division</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in items %}
-                            <tr>
-                                <td class="text-center">
-                                    <input type="checkbox" name="selected_pks" value="{{ item.lane_code }}" class="form-check-input row-check">
-                                </td>
-                                <td class="text-center">{{ forloop.counter }}</td>
-                                <td>
-                                    <span class="badge bg-secondary">{{ item.lane_code }}</span>
-                                </td>
-                                <td class="fw-bold">{{ item.lane_name }}</td>
-                                <td>{{ item.vessel_service_type_code|default:"-" }}</td>
-                                <td>{{ item.effective_from_date|date:"Y-m-d"|default:"-" }}</td>
-                                <td>{{ item.effective_to_date|date:"Y-m-d"|default:"-" }}</td>
-                                <td>{{ item.feeder_division_code|default:"-" }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr id="emptyRow">
-                                <td colspan="8" class="text-center py-5 text-muted">
-                                    <i class="bi bi-exclamation-circle fs-3 d-block mb-2"></i>
-                                    No lane data found.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </form>
-        </div>
+    <div class="mb-3">
+        <label class="form-label small fw-bold">Service Type</label>
+        <input type="text" class="form-control" id="modalServiceType" name="new_service_type_0" placeholder="e.g. Container">
     </div>
-</div>
+    <div class="mb-3">
+        <label class="form-label small fw-bold">Effective From</label>
+        <input type="date" class="form-control" id="modalEffFrom" name="new_eff_from_0">
+    </div>
+    <div class="mb-3">
+        <label class="form-label small fw-bold">Effective To</label>
+        <input type="date" class="form-control" id="modalEffTo" name="new_eff_to_0">
+    </div>
+    <div class="mb-3">
+        <label class="form-label small fw-bold">Feeder Division</label>
+        <input type="text" class="form-control" id="modalFeederDiv" name="new_feeder_div_0" placeholder="e.g. FD001">
+    </div>
+{% endblock %}
 
+{% block dt_columns %}
+    { data: "lane_code", className: "text-center fw-bold text-primary" },
+    { data: "lane_name", className: "fw-bold" },
+    { data: "vessel_service_type_code", className: "text-center" },
+    { data: "effective_from_date", className: "text-center" },
+    { data: "effective_to_date", className: "text-center" },
+    { data: "feeder_division_code", className: "text-center" }
+{% endblock %}
+
+{% block dt_search_text %}Quick Search (Code/Name):{% endblock %}
+{% block dt_empty_msg %}No lane data found.{% endblock %}
+
+{% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('masterForm');
-    const actionInput = document.getElementById('formAction');
-    const tbody = document.querySelector('#masterTable tbody');
-    const checkAll = document.getElementById('checkAll');
-    const btnSave = document.getElementById('btnSave');
-
-    checkAll.addEventListener('change', function() {
-        document.querySelectorAll('.row-check').forEach(cb => cb.checked = this.checked);
-    });
-
-    document.getElementById('btnAddRow').addEventListener('click', function() {
-        const emptyRow = document.getElementById('emptyRow');
-        if (emptyRow) emptyRow.remove();
-
-        const rowCount = tbody.querySelectorAll('tr').length;
-        const newRow = document.createElement('tr');
-        newRow.classList.add('table-warning');
-        newRow.innerHTML = `
-            <td class="text-center">
-                <input type="checkbox" name="selected_pks" value="" class="form-check-input row-check">
-            </td>
-            <td class="text-center">${rowCount + 1}</td>
-            <td><input type="text" name="new_lane_code_${rowCount}" class="form-control form-control-sm" placeholder="Lane Code" required></td>
-            <td><input type="text" name="new_lane_name_${rowCount}" class="form-control form-control-sm" placeholder="Lane Name" required></td>
-            <td><input type="text" name="new_service_type_${rowCount}" class="form-control form-control-sm" placeholder="Service Type"></td>
-            <td><input type="date" name="new_eff_from_${rowCount}" class="form-control form-control-sm"></td>
-            <td><input type="date" name="new_eff_to_${rowCount}" class="form-control form-control-sm"></td>
-            <td><input type="text" name="new_feeder_div_${rowCount}" class="form-control form-control-sm" placeholder="Feeder Division"></td>
-        `;
-        tbody.appendChild(newRow);
-        btnSave.style.display = 'inline-block';
-    });
-
-    document.getElementById('btnDeleteRow').addEventListener('click', function() {
-        const checked = document.querySelectorAll('.row-check:checked');
-        if (checked.length === 0) {
-            alert('Please select rows to delete.');
-            return;
-        }
-        let hasExisting = false;
-        checked.forEach(cb => {
-            if (!cb.value) {
-                cb.closest('tr').remove();
-            } else {
-                hasExisting = true;
-            }
-        });
-        if (hasExisting) {
-            if (confirm('Are you sure you want to delete selected rows?')) {
-                actionInput.value = 'delete';
-                form.submit();
-            }
-        }
-    });
-
-    btnSave.addEventListener('click', function() {
-        actionInput.value = 'save';
-        form.submit();
-    });
-});
+    window.resetModalForm = function() {
+        document.getElementById('modalLaneCode').value = '';
+        document.getElementById('modalLaneName').value = '';
+        document.getElementById('modalServiceType').value = '';
+        document.getElementById('modalEffFrom').value = '';
+        document.getElementById('modalEffTo').value = '';
+        document.getElementById('modalFeederDiv').value = '';
+    };
 </script>
 {% endblock %}
+
+

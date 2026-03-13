@@ -1,178 +1,70 @@
-{% extends "base.html" %}
+{% extends "input_data/master_list_base.html" %}
 
-{% block title %}Port Info - Cascading Opt{% endblock %}
+{% block page_title %}Port Info{% endblock %}
+{% block page_heading %}Port Info{% endblock %}
 
-{% block content %}
-<div class="container-fluid">
-    <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
-        <div>
-            <nav aria-label="breadcrumb">
-                <ol class="breadcrumb mb-1 small">
-                    <li class="breadcrumb-item"><a href="{% url 'input_data:input_home' %}" class="text-decoration-none">Home</a></li>
-                    <li class="breadcrumb-item text-muted">Master</li>
-                    <li class="breadcrumb-item active" aria-current="page">Port Info</li>
-                </ol>
-            </nav>
-            <h1 class="h3">Port Info</h1>
-        </div>
-    </div>
-
-    <div class="card shadow-sm mb-4">
-        <div class="card-header bg-light fw-bold">Search Filter</div>
-        <div class="card-body">
-            <form method="get" action="{% url 'input_data:master_port_list' %}" class="row g-3 align-items-end">
-                <div class="col-md-3">
-                    <label class="form-label fw-bold small text-muted">Search (Code / Name)</label>
-                    <input type="text" class="form-control form-control-sm" name="search" value="{{ search }}" placeholder="Port code or name...">
-                </div>
-                <div class="col-md-2">
-                    <label class="form-label fw-bold small text-muted">Continent</label>
-                    <select class="form-select form-select-sm" name="continent">
-                        <option value="">All Continents</option>
-                        {% for code in continent_codes %}
-                        <option value="{{ code }}" {% if continent == code %}selected{% endif %}>{{ code }}</option>
-                        {% endfor %}
-                    </select>
-                </div>
-                <div class="col-md-2">
-                    <button type="submit" class="btn btn-sm btn-secondary w-100">
-                        <i class="bi bi-search"></i> Search
-                    </button>
-                </div>
-                <div class="col-md-1">
-                    <a href="{% url 'input_data:master_port_list' %}" class="btn btn-sm btn-outline-secondary w-100" title="Reset">
-                        <i class="bi bi-arrow-clockwise"></i>
-                    </a>
-                </div>
-            </form>
-        </div>
-    </div>
-
-    <div class="card shadow-sm">
-        <div class="card-header bg-light d-flex justify-content-between align-items-center">
-            <div>
-                <span class="fw-bold">Port List</span>
-                <span class="badge bg-primary ms-2">{{ items|length }} records</span>
-            </div>
-            <div class="btn-group btn-group-sm">
-                <button type="button" class="btn btn-outline-primary" id="btnSave" style="display:none;">
-                    <i class="bi bi-check-lg"></i> Save
-                </button>
-                <button type="button" class="btn btn-success" id="btnAddRow">
-                    <i class="bi bi-plus-lg"></i> Add Row
-                </button>
-                <button type="button" class="btn btn-danger" id="btnDeleteRow">
-                    <i class="bi bi-trash"></i> Delete Row
-                </button>
-            </div>
-        </div>
-        <div class="card-body p-0">
-            <form method="post" id="masterForm">
-                {% csrf_token %}
-                <input type="hidden" name="action" id="formAction" value="">
-                <div class="table-responsive" style="max-height: 600px;">
-                    <table class="table table-hover table-striped align-middle mb-0 table-sm" id="masterTable">
-                        <thead class="table-light sticky-top">
-                            <tr>
-                                <th class="text-center" style="width: 40px;">
-                                    <input type="checkbox" id="checkAll" class="form-check-input">
-                                </th>
-                                <th class="text-center" style="width: 50px;">No</th>
-                                <th>Port Code</th>
-                                <th>Port Name</th>
-                                <th>Continent Code</th>
-                                <th>Country Code</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for item in items %}
-                            <tr>
-                                <td class="text-center">
-                                    <input type="checkbox" name="selected_pks" value="{{ item.port_code }}" class="form-check-input row-check">
-                                </td>
-                                <td class="text-center">{{ forloop.counter }}</td>
-                                <td>
-                                    <span class="badge bg-secondary">{{ item.port_code }}</span>
-                                </td>
-                                <td class="fw-bold">{{ item.port_name }}</td>
-                                <td>{{ item.continent_code|default:"-" }}</td>
-                                <td>{{ item.country_code|default:"-" }}</td>
-                            </tr>
-                            {% empty %}
-                            <tr id="emptyRow">
-                                <td colspan="6" class="text-center py-5 text-muted">
-                                    <i class="bi bi-exclamation-circle fs-3 d-block mb-2"></i>
-                                    No port data found.
-                                </td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </form>
-        </div>
-    </div>
+{% block search_filters %}
+<div class="col-md-2">
+    <label class="form-label fw-bold small text-muted">Continent</label>
+    <select class="form-select form-select-sm dt-filter" id="filterContinent" name="continent">
+        <option value="">All Continents</option>
+        {% for code in continent_codes %}
+        <option value="{{ code }}" {% if continent == code %}selected{% endif %}>{{ code }}</option>
+        {% endfor %}
+    </select>
 </div>
+{% endblock %}
 
+{% block table_headers %}
+    <th class="text-center">Port Code</th>
+    <th>Port Name</th>
+    <th>Continent Code</th>
+    <th>Country Code</th>
+{% endblock %}
+
+{% block modal_title %}Add Port{% endblock %}
+
+{% block modal_inputs %}
+    <div class="mb-3">
+        <label class="form-label small fw-bold">Port Code</label>
+        <input type="text" class="form-control text-uppercase" id="modalPortCode" name="new_port_code_0" placeholder="e.g. P001" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label small fw-bold">Port Name</label>
+        <input type="text" class="form-control" id="modalPortName" name="new_port_name_0" placeholder="e.g. Singapore" required>
+    </div>
+    <div class="mb-3">
+        <label class="form-label small fw-bold">Continent Code</label>
+        <input type="text" class="form-control" id="modalContinentCode" name="new_continent_code_0" placeholder="e.g. AS">
+    </div>
+    <div class="mb-3">
+        <label class="form-label small fw-bold">Country Code</label>
+        <input type="text" class="form-control" id="modalCountryCode" name="new_country_code_0" placeholder="e.g. SG">
+    </div>
+{% endblock %}
+
+{% block dt_columns %}
+    { data: "port_code", className: "text-center fw-bold text-primary" },
+    { data: "port_name", className: "fw-bold" },
+    { data: "continent_code", className: "text-center" },
+    { data: "country_code", className: "text-center" }
+{% endblock %}
+
+{% block dt_search_text %}Quick Search (Code/Name):{% endblock %}
+{% block dt_empty_msg %}No port data found.{% endblock %}
+
+{% block extra_js %}
 <script>
-document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('masterForm');
-    const actionInput = document.getElementById('formAction');
-    const tbody = document.querySelector('#masterTable tbody');
-    const checkAll = document.getElementById('checkAll');
-    const btnSave = document.getElementById('btnSave');
-
-    checkAll.addEventListener('change', function() {
-        document.querySelectorAll('.row-check').forEach(cb => cb.checked = this.checked);
-    });
-
-    document.getElementById('btnAddRow').addEventListener('click', function() {
-        const emptyRow = document.getElementById('emptyRow');
-        if (emptyRow) emptyRow.remove();
-
-        const rowCount = tbody.querySelectorAll('tr').length;
-        const newRow = document.createElement('tr');
-        newRow.classList.add('table-warning');
-        newRow.innerHTML = `
-            <td class="text-center">
-                <input type="checkbox" name="selected_pks" value="" class="form-check-input row-check">
-            </td>
-            <td class="text-center">${rowCount + 1}</td>
-            <td><input type="text" name="new_port_code_${rowCount}" class="form-control form-control-sm" placeholder="Port Code" required></td>
-            <td><input type="text" name="new_port_name_${rowCount}" class="form-control form-control-sm" placeholder="Port Name" required></td>
-            <td><input type="text" name="new_continent_code_${rowCount}" class="form-control form-control-sm" placeholder="Continent Code"></td>
-            <td><input type="text" name="new_country_code_${rowCount}" class="form-control form-control-sm" placeholder="Country Code"></td>
-        `;
-        tbody.appendChild(newRow);
-        btnSave.style.display = 'inline-block';
-    });
-
-    document.getElementById('btnDeleteRow').addEventListener('click', function() {
-        const checked = document.querySelectorAll('.row-check:checked');
-        if (checked.length === 0) {
-            alert('Please select rows to delete.');
-            return;
-        }
-        let hasExisting = false;
-        checked.forEach(cb => {
-            if (!cb.value) {
-                cb.closest('tr').remove();
-            } else {
-                hasExisting = true;
-            }
-        });
-        if (hasExisting) {
-            if (confirm('Are you sure you want to delete selected rows?')) {
-                actionInput.value = 'delete';
-                form.submit();
-            }
-        }
-    });
-
-    btnSave.addEventListener('click', function() {
-        actionInput.value = 'save';
-        form.submit();
-    });
-});
+    window.appendDtParams = function(d) {
+        d.continent = document.getElementById('filterContinent').value;
+    };
+    window.resetModalForm = function() {
+        document.getElementById('modalPortCode').value = '';
+        document.getElementById('modalPortName').value = '';
+        document.getElementById('modalContinentCode').value = '';
+        document.getElementById('modalCountryCode').value = '';
+    };
 </script>
 {% endblock %}
+
+
