@@ -237,5 +237,5 @@ CSRF_TRUSTED_ORIGINS = [
 
 # 가장 빠른 비밀번호 해시 알고리즘 사용 (테스트 속도 대폭 향상)
 PASSWORD_HASHERS = [
-    'django.contrib.auth.hashers.MD5PasswordHasher',
+    "django.contrib.auth.hashers.MD5PasswordHasher",
 ]

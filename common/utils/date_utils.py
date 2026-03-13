@@ -3,8 +3,9 @@ Date related utility functions
 이 모듈은 시나리오와 BaseWeekPeriod를 기반으로 한 날짜 관련 유틸리티 함수들을 제공합니다.
 """
 
-from input_data.models import BaseWeekPeriod, ScenarioInfo
 from django.db.models import Q
+
+from input_data.models import BaseWeekPeriod, ScenarioInfo
 
 
 def get_base_year_months():
@@ -137,7 +138,9 @@ def get_scenario_base_year_month_choices(scenario_id=None):
         base_week_str = scenario.base_year_week[4:6]
 
         base_month_result = (
-            BaseWeekPeriod.objects.filter(base_year=base_year_str, base_week=base_week_str)
+            BaseWeekPeriod.objects.filter(
+                base_year=base_year_str, base_week=base_week_str
+            )
             .values_list("base_month", flat=True)
             .first()
         )
@@ -164,8 +167,12 @@ def get_scenario_base_year_month_choices(scenario_id=None):
 
         # CharField는 0이 채워져 있으므로 크기 비교(gte, lte)가 숫자의 대소와 완벽히 일치함
         if end_year_int > base_year_int:
-            start_condition = Q(base_year=base_year_str, base_month__gte=start_month_str)
-            middle_condition = Q(base_year__gt=base_year_str, base_year__lt=end_year_str)
+            start_condition = Q(
+                base_year=base_year_str, base_month__gte=start_month_str
+            )
+            middle_condition = Q(
+                base_year__gt=base_year_str, base_year__lt=end_year_str
+            )
             end_condition = Q(base_year=end_year_str, base_month__lte=end_month_str)
             filter_condition = start_condition | middle_condition | end_condition
         else:

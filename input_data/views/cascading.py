@@ -114,7 +114,9 @@ def cascading_vessel_create(request):
                 context["proforma_options"] = proforma_options
 
             else:
-                messages.error(request, msg.ITEM_NOT_FOUND.format(item="cascading_vessel"))
+                messages.error(
+                    request, msg.ITEM_NOT_FOUND.format(item="cascading_vessel")
+                )
 
         return render(request, "input_data/cascading_vessel_create.html", context)
 
@@ -141,7 +143,10 @@ def cascading_vessel_create(request):
             return redirect("input_data:cascading_vessel_create")
 
         except Exception as e:
-            messages.error(request, msg.PROCESS_ERROR.format(target="cascading_vessel", error=str(e)))
+            messages.error(
+                request,
+                msg.PROCESS_ERROR.format(target="cascading_vessel", error=str(e)),
+            )
 
             # (에러 복구 로직 - 기존과 동일하게 context 갱신)
             data = request.POST

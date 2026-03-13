@@ -220,9 +220,7 @@ class BaseDataLoader(BaseCommand):
                 except (ValueError, TypeError) as e:
                     raise ValueError(
                         msg.INVALID_DATA_FORMAT.format(
-                            column=key,
-                            internal_type=internal_type,
-                            value=val
+                            column=key, internal_type=internal_type, value=val
                         )
                     ) from e
 

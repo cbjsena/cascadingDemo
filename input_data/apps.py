@@ -210,7 +210,16 @@ def run_init_base_data(sender, **kwargs):
     migrate 완료 후 'init_master_data' → 'init_base_data' 순서로 자동 실행.
     base_ 테이블이 master_ 테이블을 FK(PROTECT)로 참조하므로
     master_ 데이터가 먼저 존재해야 한다.
+    단, 이미 마스터 데이터가 존재한다면 두 번째 이후의 migrate에서는 스킵한다.
     """
+    from input_data.models import MasterPort
+
+    # 1. 데이터가 1건이라도 존재하면 이미 초기화된 것이므로 즉시 종료
+    if MasterPort.objects.exists():
+        print("[Init] Master data already exists. Skipping data initialization.")
+        return
+
+    # 2. 데이터가 없을 때만(최초 1회) 아래의 초기화 커맨드 실행
     for command_name in ["init_master_data", "init_base_data"]:
         print(msg.AUTO_SETUP_COMMAND_START.format(command=command_name))
         try:

@@ -57,7 +57,9 @@ def proforma_create(request):
                 context["rows"] = fetched_rows
             except Exception as e:
                 # 조회 실패 시 에러 메시지 후 빈 폼 출력
-                messages.error(request, msg.LOAD_ERROR.format(target="Schedule", error=str(e)))
+                messages.error(
+                    request, msg.LOAD_ERROR.format(target="Schedule", error=str(e))
+                )
 
     # =========================================================
     # [2] POST 요청 처리: 데이터 조작 (Save, Add Row, etc.)
@@ -199,7 +201,9 @@ def proforma_upload(request):
             return render(request, "input_data/proforma_create.html", context)
 
         except Exception as e:
-            messages.error(request, msg.LOAD_ERROR.format(target="excel upload", error=str(e)))
+            messages.error(
+                request, msg.LOAD_ERROR.format(target="excel upload", error=str(e))
+            )
             return redirect("input_data:proforma_create")
 
     return redirect("input_data:proforma_create")

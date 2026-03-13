@@ -15,7 +15,6 @@ from input_data.models import (
     BaseVesselInfo,
     CanalFee,
     Distance,
-    MasterPort,
     ScenarioInfo,
     TSCost,
 )
@@ -160,7 +159,9 @@ class TestCanalFeeView:
         ).exists()
 
         # 값 정확성 검증
-        obj = CanalFee.objects.get(scenario=s1, vessel_code="V001", direction="W", port_id="JPTYO")
+        obj = CanalFee.objects.get(
+            scenario=s1, vessel_code="V001", direction="W", port_id="JPTYO"
+        )
         assert float(obj.canal_fee) == 180000.50
 
     def test_canal_fee_delete(self, auth_client, canal_fee_data):
@@ -368,7 +369,9 @@ class TestTSCostView:
         """
         s1 = ts_cost_data["s1"]
         url = reverse("input_data:ts_cost_list")
-        response = auth_client.get(url, {"scenario_id": s1.id, "base_year_month": "202601"})
+        response = auth_client.get(
+            url, {"scenario_id": s1.id, "base_year_month": "202601"}
+        )
 
         items = response.context["items"]
         assert len(items) >= 1
@@ -468,6 +471,7 @@ class TestTSCostView:
             port_id="KRPUS",
         )
         assert obj.ts_cost == 5000
+
 
 @pytest.mark.django_db
 class TestCsvDownloadUpload:

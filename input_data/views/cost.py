@@ -2,6 +2,7 @@
 Cost 관련 뷰 (Config 기반 공통 CRUD).
 Canal Fee, Distance, TS Cost 모두 공통 팩토리 사용.
 """
+
 from common.csv_configs import CANAL_FEE_CSV_MAP, DISTANCE_CSV_MAP, TS_COST_CSV_MAP
 from common.menus import MenuGroup, MenuItem
 from common.utils.date_utils import get_scenario_base_year_month_choices

@@ -1,10 +1,3 @@
-"""
-Cascading Schedule View Tests (신규)
-Test Scenarios: CS_CREATE_001, CS_CREATE_002, CS_CREATE_003, CS_LIST_001
-
-참고: CascadingSchedule는 시나리오 내 모든 Proforma의 슬롯을 관리하는 통합 테이블입니다.
-"""
-
 from django.urls import reverse
 
 import pytest

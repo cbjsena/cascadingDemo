@@ -1,529 +1,238 @@
 """
-Lane Proforma Mapping View Tests (신규)
+Lane Proforma Mapping View Tests
 Test Scenarios: LPM_VIEW_001~004, LPM_ACT_001~003, LPM_LIST_001~002
+
+※ conftest.py의 lane_proforma_scenario / lane_proforma_with_mapping fixture 사용
 """
 
 from django.urls import reverse
 
 import pytest
 
-from input_data.models import (
-    LaneProformaMapping,
-    ProformaSchedule,
-    ProformaScheduleDetail,
-)
+from input_data.models import LaneProformaMapping
 
 
+# ==========================================================================
+# 1. View (화면 진입) — LPM_VIEW_001 ~ 004
+# ==========================================================================
 @pytest.mark.django_db
 class TestLaneProformaMappingView:
     """
     Lane Proforma Mapping 편집 화면 테스트
     """
 
-    @pytest.fixture
-    def lpm_view_data(self, db, user, base_scenario):
-        """
-        Lane Proforma Mapping 뷰 테스트용 데이터
-        2개 Lane × 여러 Proforma
-        """
-        # Lane A: PF_01, PF_02 (2개)
-        pf_a1 = ProformaSchedule.objects.create(
-            scenario=base_scenario,
-            lane_id="LANE_A",
-            proforma_name="PF_01",
-            effective_from_date="2026-01-01",
-            declared_count=2,
-            duration=7.0,
-            created_by=user,
-            updated_by=user,
-        )
-
-        ProformaScheduleDetail.objects.create(
-            proforma=pf_a1,
-            calling_port_seq=1,
-            calling_port_indicator="1",
-            direction="E",
-            port_id="PORT_A",
-            terminal_code="PORT_A01",
-            etb_day_code="MON",
-            etb_day_time="0800",
-            etb_day_number=0,
-            created_by=user,
-            updated_by=user,
-        )
-
-        pf_a2 = ProformaSchedule.objects.create(
-            scenario=base_scenario,
-            lane_id="LANE_A",
-            proforma_name="PF_02",
-            effective_from_date="2026-01-15",
-            declared_count=3,
-            duration=10.0,
-            created_by=user,
-            updated_by=user,
-        )
-
-        ProformaScheduleDetail.objects.create(
-            proforma=pf_a2,
-            calling_port_seq=1,
-            calling_port_indicator="1",
-            direction="E",
-            port_id="PORT_B",
-            terminal_code="PORT_B01",
-            etb_day_code="TUE",
-            etb_day_time="0900",
-            etb_day_number=0,
-            created_by=user,
-            updated_by=user,
-        )
-
-        # Lane B: PF_03 (1개)
-        pf_b1 = ProformaSchedule.objects.create(
-            scenario=base_scenario,
-            lane_id="LANE_B",
-            proforma_name="PF_03",
-            effective_from_date="2026-02-01",
-            declared_count=2,
-            duration=8.0,
-            created_by=user,
-            updated_by=user,
-        )
-
-        ProformaScheduleDetail.objects.create(
-            proforma=pf_b1,
-            calling_port_seq=1,
-            calling_port_indicator="1",
-            direction="W",
-            port_id="PORT_C",
-            terminal_code="PORT_C01",
-            etb_day_code="WED",
-            etb_day_time="1000",
-            etb_day_number=0,
-            created_by=user,
-            updated_by=user,
-        )
-
-        return {
-            "scenario": base_scenario,
-            "pf_a1": pf_a1,
-            "pf_a2": pf_a2,
-            "pf_b1": pf_b1,
-        }
-
     def test_lpm_view_001_init(self, auth_client):
         """
         [LPM_VIEW_001] Lane Proforma Mapping 편집 화면 초기 진입
-        시나리오 미선택 시 빈 화면 정상 로드
+        시나리오 미선택 시 빈 화면 정상 로드 확인
         """
         url = reverse("input_data:lane_proforma_mapping")
         response = auth_client.get(url)
 
         assert response.status_code == 200
-        # Context 변수 확인 (구현된 경우)
-        if "is_readonly" in response.context:
-            assert response.context["is_readonly"] is False
-        if "mapping_data" in response.context:
-            # 초기에는 빈 배열
-            assert response.context["mapping_data"] == [] or isinstance(
-                response.context["mapping_data"], list
-            )
+        assert "input_data/lane_proforma_mapping.html" in [
+            t.name for t in response.templates
+        ]
+        assert response.context["mapping_data"] == []
+        assert response.context["is_readonly"] is False
 
-    def test_lpm_view_002_scenario_select(self, auth_client, lpm_view_data):
+    def test_lpm_view_002_scenario_select(self, auth_client, lane_proforma_scenario):
         """
-        [LPM_VIEW_002] Lane Proforma Mapping 시나리오 선택
-        같은 Lane에 2개 Proforma, 다른 Lane에 1개 Proforma 정확히 표시
+        [LPM_VIEW_002] 시나리오 선택 시 Lane별 Proforma 목록 표시
+        같은 Lane에 2개 Proforma, 다른 Lane에 1개 Proforma가 정확히 표시되는지 확인
         """
-        scenario = lpm_view_data["scenario"]
-
+        data = lane_proforma_scenario
         url = reverse("input_data:lane_proforma_mapping")
-        response = auth_client.get(url, {"scenario_id": scenario.id})
+        response = auth_client.get(url, {"scenario_id": data["scenario"].id})
 
         assert response.status_code == 200
+        mapping_data = response.context["mapping_data"]
 
-        # Context에서 mapping_data 확인
-        if "mapping_data" in response.context:
-            mapping_data = response.context["mapping_data"]
+        # 2개 Lane (FE1, TEST_LANE)
+        assert len(mapping_data) == 2
 
-            # Lane 개수 확인 (LANE_A, LANE_B)
-            if isinstance(mapping_data, list):
-                lane_codes = [item.get("lane_code") for item in mapping_data]
-                assert "LANE_A" in lane_codes
-                assert "LANE_B" in lane_codes
+        # Lane별 proforma 수 확인
+        lane_dict = {m["lane_code"]: m for m in mapping_data}
+        assert lane_dict["TEST_LANE"]["proforma_count"] == 2
+        assert lane_dict["FE1"]["proforma_count"] == 1
 
-                # Proforma 개수 확인
-                lane_a = next(
-                    (lane for lane in mapping_data if lane["lane_code"] == "LANE_A"),
-                    None,
-                )
-                lane_b = next(
-                    (lane for lane in mapping_data if lane["lane_code"] == "LANE_B"),
-                    None,
-                )
+        # 타임라인 주차가 생성되었는지 확인
+        timeline_weeks = response.context["timeline_weeks"]
+        assert len(timeline_weeks) > 0
 
-                if lane_a:
-                    assert lane_a.get("proforma_count") == 2  # PF_01, PF_02
-                if lane_b:
-                    assert lane_b.get("proforma_count") == 1  # PF_03
-
-    def test_lpm_view_003_existing_mapping_checked(self, auth_client, lpm_view_data):
+    def test_lpm_view_003_existing_mapping_checked(
+        self, auth_client, lane_proforma_with_mapping
+    ):
         """
-        [LPM_VIEW_003] Lane Proforma Mapping 기존 매핑 체크 상태 표시
-        저장된 매핑이 화면에 체크된 상태로 표시
+        [LPM_VIEW_003] 기존 매핑이 있을 때 체크 상태 표시
+        저장된 매핑이 화면에 체크된 상태로 표시되는지 확인
         """
-        scenario = lpm_view_data["scenario"]
-        pf_a1 = lpm_view_data["pf_a1"]
-        pf_a2 = lpm_view_data["pf_a2"]
-        pf_b1 = lpm_view_data["pf_b1"]
-
-        # 기존 매핑 생성
-        LaneProformaMapping.objects.create(
-            scenario=scenario,
-            lane_id="LANE_A",
-            proforma=pf_a1,
-        )
-        LaneProformaMapping.objects.create(
-            scenario=scenario,
-            lane_id="LANE_A",
-            proforma=pf_a2,
-        )
-        LaneProformaMapping.objects.create(
-            scenario=scenario,
-            lane_id="LANE_B",
-            proforma=pf_b1,
-        )
-
+        data = lane_proforma_with_mapping
         url = reverse("input_data:lane_proforma_mapping")
-        response = auth_client.get(url, {"scenario_id": scenario.id})
+        response = auth_client.get(url, {"scenario_id": data["scenario"].id})
 
         assert response.status_code == 200
+        mapping_data = response.context["mapping_data"]
 
-        # 매핑 데이터 확인
-        if "mapping_data" in response.context:
-            mapping_data = response.context["mapping_data"]
-            if isinstance(mapping_data, list):
-                lane_a = next(
-                    (lane for lane in mapping_data if lane["lane_code"] == "LANE_A"),
-                    None,
-                )
-                lane_b = next(
-                    (lane for lane in mapping_data if lane["lane_code"] == "LANE_B"),
-                    None,
-                )
+        # TEST_LANE: 2개 모두 선택됨
+        test_lane = next(m for m in mapping_data if m["lane_code"] == "TEST_LANE")
+        assert test_lane["selected_count"] == 2
+        for pf_item in test_lane["proforma_items"]:
+            assert pf_item["is_selected"] is True
 
-                # selected_count 확인
-                if lane_a:
-                    assert lane_a.get("selected_count") == 2
-                if lane_b:
-                    assert lane_b.get("selected_count") == 1
+        # FE1: 1개 선택됨
+        fe1_lane = next(m for m in mapping_data if m["lane_code"] == "FE1")
+        assert fe1_lane["selected_count"] == 1
+
+    def test_lpm_view_004_timeline_effective_period(
+        self, auth_client, lane_proforma_with_mapping
+    ):
+        """
+        [LPM_VIEW_004] 겹침 구간 처리 - 타임라인 기간 분할 검증
+        같은 Lane에 6101(2026-01-01~)과 6102(2026-07-02~)가 선택될 때
+        6101의 effective 기간이 6102 시작 전날까지로 잘리는지 확인
+        """
+        data = lane_proforma_with_mapping
+        url = reverse("input_data:lane_proforma_mapping")
+        response = auth_client.get(url, {"scenario_id": data["scenario"].id})
+
+        assert response.status_code == 200
+        mapping_data = response.context["mapping_data"]
+
+        test_lane = next(m for m in mapping_data if m["lane_code"] == "TEST_LANE")
+        pf1_item = next(
+            p
+            for p in test_lane["proforma_items"]
+            if p["proforma"].proforma_name == "6101"
+        )
+        pf2_item = next(
+            p
+            for p in test_lane["proforma_items"]
+            if p["proforma"].proforma_name == "6102"
+        )
+
+        # 6101의 effective는 6102 시작(7/2) 전에 끊어야 함
+        pf1_cells = pf1_item["cells"]
+        pf1_effective_cells = [c for c in pf1_cells if c["effective"]]
+        pf1_in_range_cells = [c for c in pf1_cells if c["in_range"]]
+        # effective 셀 수 < in_range 셀 수 (6102에 의해 잘렸으므로)
+        assert len(pf1_effective_cells) < len(pf1_in_range_cells)
+
+        # 6102의 effective는 시작일 이후부터
+        pf2_cells = pf2_item["cells"]
+        pf2_effective_cells = [c for c in pf2_cells if c["effective"]]
+        assert len(pf2_effective_cells) > 0
 
 
+# ==========================================================================
+# 2. Action (저장) — LPM_ACT_001 ~ 003
+# ==========================================================================
 @pytest.mark.django_db
 class TestLaneProformaMappingAction:
     """
     Lane Proforma Mapping 액션 테스트
     """
 
-    @pytest.fixture
-    def lpm_action_data(self, db, user, base_scenario):
+    def test_lpm_act_001_save_mapping(self, auth_client, lane_proforma_scenario):
         """
-        Lane Proforma Mapping 액션 테스트용 데이터
+        [LPM_ACT_001] Proforma 매핑 저장
+        선택한 Proforma가 LaneProformaMapping에 정상 저장되는지 검증
         """
-        # 3개 Proforma (모두 같은 Lane)
-        proformae = []
-        for i in range(1, 4):
-            pf = ProformaSchedule.objects.create(
-                scenario=base_scenario,
-                lane_id="TEST_LANE",
-                proforma_name=f"PF_{i:02d}",
-                effective_from_date=f"2026-0{i}-01",
-                declared_count=2,
-                duration=7.0 + i,
-                created_by=user,
-                updated_by=user,
-            )
-
-            ProformaScheduleDetail.objects.create(
-                proforma=pf,
-                calling_port_seq=1,
-                calling_port_indicator="1",
-                direction="E",
-                port_id=f"PORT_{i}",
-                terminal_code=f"PORT_{i}01",
-                etb_day_code="MON",
-                etb_day_time="0800",
-                etb_day_number=0,
-                created_by=user,
-                updated_by=user,
-            )
-
-            proformae.append(pf)
-
-        return {
-            "scenario": base_scenario,
-            "proformae": proformae,
-        }
-
-    def test_lpm_act_001_save_mapping(self, auth_client, lpm_action_data):
-        """
-        [LPM_ACT_001] Lane Proforma Mapping 저장
-        선택한 Proforma가 LaneProformaMapping에 정상 저장
-        """
-        scenario = lpm_action_data["scenario"]
-        pf1, pf2, pf3 = lpm_action_data["proformae"]
-
-        # 2개 Proforma만 선택
+        data = lane_proforma_scenario
         url = reverse("input_data:lane_proforma_mapping")
-        response = auth_client.post(
-            url,
-            {
-                "scenario_id": scenario.id,
-                "selected_proformas": [str(pf1.id), str(pf2.id)],
-            },
-        )
+
+        form_data = {
+            "scenario_id": data["scenario"].id,
+            "selected_proformas": [str(data["pf1"].id), str(data["pf3"].id)],
+        }
+        response = auth_client.post(url, data=form_data)
 
         assert response.status_code == 302
 
-        # DB에 2건 생성되었는지 확인
-        mappings = LaneProformaMapping.objects.filter(scenario=scenario)
+        mappings = LaneProformaMapping.objects.filter(scenario=data["scenario"])
         assert mappings.count() == 2
 
-        # 선택된 Proforma ID 확인
         mapped_pf_ids = set(mappings.values_list("proforma_id", flat=True))
-        assert pf1.id in mapped_pf_ids
-        assert pf2.id in mapped_pf_ids
-        assert pf3.id not in mapped_pf_ids
+        assert data["pf1"].id in mapped_pf_ids
+        assert data["pf3"].id in mapped_pf_ids
 
-    def test_lpm_act_002_update_mapping(self, auth_client, lpm_action_data):
+    def test_lpm_act_002_update_mapping(self, auth_client, lane_proforma_with_mapping):
         """
-        [LPM_ACT_002] Lane Proforma Mapping 수정 (덮어쓰기)
-        기존 매핑 3건 삭제 후 새 매핑 1건으로 교체
+        [LPM_ACT_002] 매핑 수정 (덮어쓰기)
+        기존 매핑(3건) 삭제 후 새 매핑(1건)으로 교체되는지 검증
         """
-        scenario = lpm_action_data["scenario"]
-        pf1, pf2, pf3 = lpm_action_data["proformae"]
-
-        # 기존 매핑 3건 생성
-        for pf in [pf1, pf2, pf3]:
-            LaneProformaMapping.objects.create(
-                scenario=scenario,
-                lane_id=pf.lane_id,
-                proforma=pf,
-            )
-
-        assert LaneProformaMapping.objects.filter(scenario=scenario).count() == 3
-
-        # 수정: 1건만 선택
-        url = reverse("input_data:lane_proforma_mapping")
-        response = auth_client.post(
-            url,
-            {
-                "scenario_id": scenario.id,
-                "selected_proformas": [str(pf1.id)],
-            },
+        data = lane_proforma_with_mapping
+        assert (
+            LaneProformaMapping.objects.filter(scenario=data["scenario"]).count() == 3
         )
+
+        url = reverse("input_data:lane_proforma_mapping")
+        form_data = {
+            "scenario_id": data["scenario"].id,
+            "selected_proformas": [str(data["pf2"].id)],
+        }
+        response = auth_client.post(url, data=form_data)
 
         assert response.status_code == 302
 
-        # 기존 데이터 삭제 및 새 데이터 생성 확인
-        mappings = LaneProformaMapping.objects.filter(scenario=scenario)
+        mappings = LaneProformaMapping.objects.filter(scenario=data["scenario"])
         assert mappings.count() == 1
-        assert mappings.first().proforma_id == pf1.id
+        assert mappings.first().proforma_id == data["pf2"].id
 
-    def test_lpm_act_003_clear_mapping(self, auth_client, lpm_action_data):
+    def test_lpm_act_003_clear_mapping(self, auth_client, lane_proforma_with_mapping):
         """
-        [LPM_ACT_003] Lane Proforma Mapping 전체 해제
-        아무것도 선택하지 않고 저장하면 기존 매핑이 모두 삭제
+        [LPM_ACT_003] 매핑 전체 해제
+        아무것도 선택하지 않고 저장하면 기존 매핑이 모두 삭제되는지 검증
         """
-        scenario = lpm_action_data["scenario"]
-        pf1, pf2, pf3 = lpm_action_data["proformae"]
-
-        # 기존 매핑 3건 생성
-        for pf in [pf1, pf2, pf3]:
-            LaneProformaMapping.objects.create(
-                scenario=scenario,
-                lane_id=pf.lane_id,
-                proforma=pf,
-            )
-
-        assert LaneProformaMapping.objects.filter(scenario=scenario).count() == 3
-
-        # 전체 해제
+        data = lane_proforma_with_mapping
         url = reverse("input_data:lane_proforma_mapping")
-        response = auth_client.post(
-            url,
-            {
-                "scenario_id": scenario.id,
-                "selected_proformas": [],  # 빈 배열
-            },
-        )
+        form_data = {
+            "scenario_id": data["scenario"].id,
+        }
+        response = auth_client.post(url, data=form_data)
 
         assert response.status_code == 302
+        assert (
+            LaneProformaMapping.objects.filter(scenario=data["scenario"]).count() == 0
+        )
 
-        # 모든 데이터 삭제 확인
-        assert LaneProformaMapping.objects.filter(scenario=scenario).count() == 0
 
-
+# ==========================================================================
+# 3. List (조회 - readonly) — LPM_LIST_001 ~ 002
+# ==========================================================================
 @pytest.mark.django_db
 class TestLaneProformaMappingList:
     """
     Lane Proforma Mapping 조회 화면 테스트
     """
 
-    @pytest.fixture
-    def lpm_list_data(self, db, user, base_scenario):
-        """
-        조회 화면용 데이터
-        """
-        # 2개 Lane × 여러 Proforma
-        pf_a1 = ProformaSchedule.objects.create(
-            scenario=base_scenario,
-            lane_id="LANE_A",
-            proforma_name="PF_01",
-            effective_from_date="2026-01-01",
-            declared_count=2,
-            duration=7.0,
-            created_by=user,
-            updated_by=user,
-        )
-
-        ProformaScheduleDetail.objects.create(
-            proforma=pf_a1,
-            calling_port_seq=1,
-            calling_port_indicator="1",
-            direction="E",
-            port_id="PORT_A",
-            terminal_code="PORT_A01",
-            etb_day_code="MON",
-            etb_day_time="0800",
-            etb_day_number=0,
-            created_by=user,
-            updated_by=user,
-        )
-
-        pf_a2 = ProformaSchedule.objects.create(
-            scenario=base_scenario,
-            lane_id="LANE_A",
-            proforma_name="PF_02",
-            effective_from_date="2026-01-15",
-            declared_count=3,
-            duration=10.0,
-            created_by=user,
-            updated_by=user,
-        )
-
-        ProformaScheduleDetail.objects.create(
-            proforma=pf_a2,
-            calling_port_seq=1,
-            calling_port_indicator="1",
-            direction="E",
-            port_id="PORT_B",
-            terminal_code="PORT_B01",
-            etb_day_code="TUE",
-            etb_day_time="0900",
-            etb_day_number=0,
-            created_by=user,
-            updated_by=user,
-        )
-
-        pf_b1 = ProformaSchedule.objects.create(
-            scenario=base_scenario,
-            lane_id="LANE_B",
-            proforma_name="PF_03",
-            effective_from_date="2026-02-01",
-            declared_count=2,
-            duration=8.0,
-            created_by=user,
-            updated_by=user,
-        )
-
-        ProformaScheduleDetail.objects.create(
-            proforma=pf_b1,
-            calling_port_seq=1,
-            calling_port_indicator="1",
-            direction="W",
-            port_id="PORT_C",
-            terminal_code="PORT_C01",
-            etb_day_code="WED",
-            etb_day_time="1000",
-            etb_day_number=0,
-            created_by=user,
-            updated_by=user,
-        )
-
-        # 매핑 생성 (LANE_A: 2개, LANE_B: 1개)
-        LaneProformaMapping.objects.create(
-            scenario=base_scenario,
-            lane_id="LANE_A",
-            proforma=pf_a1,
-        )
-        LaneProformaMapping.objects.create(
-            scenario=base_scenario,
-            lane_id="LANE_A",
-            proforma=pf_a2,
-        )
-        LaneProformaMapping.objects.create(
-            scenario=base_scenario,
-            lane_id="LANE_B",
-            proforma=pf_b1,
-        )
-
-        return {
-            "scenario": base_scenario,
-        }
-
-    def test_lpm_list_001_view(self, auth_client, lpm_list_data):
+    def test_lpm_list_001_view(self, auth_client, lane_proforma_with_mapping):
         """
         [LPM_LIST_001] Lane Proforma Mapping 조회 화면
-        Input Management의 조회 화면이 readonly로 정상 표시
+        Input Management 메뉴의 조회 화면이 readonly로 정상 표시되는지 검증
         """
-        scenario = lpm_list_data["scenario"]
-
+        data = lane_proforma_with_mapping
         url = reverse("input_data:lane_proforma_list")
-        response = auth_client.get(url, {"scenario_id": scenario.id})
+        response = auth_client.get(url, {"scenario_id": data["scenario"].id})
 
         assert response.status_code == 200
+        assert response.context["is_readonly"] is True
 
-        # Context 검증
-        if "is_readonly" in response.context:
-            assert response.context["is_readonly"] is True
+        mapping_data = response.context["mapping_data"]
+        assert len(mapping_data) == 2
 
-        if "mapping_data" in response.context:
-            mapping_data = response.context["mapping_data"]
-            if isinstance(mapping_data, list):
-                # Lane 개수 확인 (2개)
-                lane_codes = [item.get("lane_code") for item in mapping_data]
-                assert len(lane_codes) == 2
-
-                # selected_count 확인
-                lane_a = next(
-                    (lane for lane in mapping_data if lane["lane_code"] == "LANE_A"),
-                    None,
-                )
-                lane_b = next(
-                    (lane for lane in mapping_data if lane["lane_code"] == "LANE_B"),
-                    None,
-                )
-
-                if lane_a:
-                    assert lane_a.get("selected_count") == 2
-                if lane_b:
-                    assert lane_b.get("selected_count") == 1
+        # 데이터는 편집 화면과 동일하게 표시됨
+        test_lane = next(m for m in mapping_data if m["lane_code"] == "TEST_LANE")
+        assert test_lane["selected_count"] == 2
 
     def test_lpm_list_002_init_no_scenario(self, auth_client):
         """
-        [LPM_LIST_002] Lane Proforma Mapping 초기 진입
+        [LPM_LIST_002] 조회 화면 초기 진입
         시나리오 미선택 시 빈 화면 정상 로드 및 readonly 플래그 확인
         """
         url = reverse("input_data:lane_proforma_list")
         response = auth_client.get(url)
 
         assert response.status_code == 200
-
-        # readonly 확인
-        if "is_readonly" in response.context:
-            assert response.context["is_readonly"] is True
-
-        # 빈 데이터
-        if "mapping_data" in response.context:
-            assert response.context["mapping_data"] == [] or isinstance(
-                response.context["mapping_data"], list
-            )
+        assert response.context["is_readonly"] is True
+        assert response.context["mapping_data"] == []

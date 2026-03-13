@@ -1,8 +1,3 @@
-"""
-Cascading API Tests
-CASCADING_VIEW_002, CASCADING_EXISTING_001, CASCADING_API_001 시나리오 테스트
-"""
-
 from django.urls import reverse
 
 import pytest
@@ -12,11 +7,6 @@ from input_data.models import VesselCapacity
 
 @pytest.mark.django_db
 class TestCascadingAPI:
-    """
-    Cascading 관련 API 테스트
-    Scenarios: CASCADING_VIEW_002, CASCADING_EXISTING_001, CASCADING_API_001
-    """
-
     def test_cascading_view_002_proforma_detail_api(
         self, auth_client, cascading_with_details
     ):

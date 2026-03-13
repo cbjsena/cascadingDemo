@@ -7,7 +7,7 @@ from django.urls import reverse
 
 import pytest
 
-from input_data.models import CascadingVesselPosition, LaneProformaMapping
+from input_data.models import CascadingVesselPosition
 
 
 @pytest.mark.django_db
@@ -202,28 +202,36 @@ class TestCascadingView:
             assert pos.vessel_position == i + 1
             assert pos.vessel_position_date is not None
 
-    def test_cascading_act_006_error_data_recovery(self, auth_client, sample_schedule):
+    def test_cascading_act_006_error_data_recovery(
+        self, auth_client, cascading_with_details
+    ):
         """
         [CASCADING_ACT_006] 에러 시 데이터 복구
-        필수값 누락/에러 발생 시 입력값이 보존되는지 검증
+        필수값 누락(vessel_code[]) 시 입력값(own_vessel_count)이 보존되는지 검증
         """
+        first_pos = cascading_with_details[0]
         url = reverse("input_data:cascading_vessel_create")
 
-        incomplete_data = {
-            "scenario_id": sample_schedule.scenario.id,
-            "lane_code": sample_schedule.lane_id,
-            "proforma_name": sample_schedule.proforma_name,
-            "own_vessel_count": 2,
-            "action": "save",
-        }
+        # vessel_code[] 누락 (필수값 미입력)
+        response = auth_client.post(
+            url,
+            {
+                "action": "save",
+                "scenario_id": first_pos.scenario.id,
+                "lane_code": first_pos.proforma.lane_id,
+                "proforma_name": first_pos.proforma.proforma_name,
+                "own_vessel_count": 3,
+            },
+        )
 
-        response = auth_client.post(url, data=incomplete_data)
+        # 에러 시 200(폼 재표시) 또는 302(리다이렉트) 모두 허용
+        assert response.status_code in [200, 302]
 
         if response.status_code == 200:
             preserved_data = response.context.get("preserved_data", {})
-            assert preserved_data.get("own_vessel_count") == "2"
-        else:
-            assert response.status_code == 302
+            # own_vessel_count가 문자열/숫자 형태로 보존되는지 확인
+            own_count = preserved_data.get("own_vessel_count")
+            assert own_count in [3, "3"]
 
     # ==========================================================================
     # 3. Cascading Vessel Info (대시보드)
@@ -314,6 +322,56 @@ class TestCascadingView:
         restored_rows = edit_response.context["restored_rows"]
         checked_rows = [row for row in restored_rows if row.get("is_checked")]
         assert len(checked_rows) == 2
+
+    def test_cascading_detail_003_edit_link_has_correct_lane_id(
+        self, auth_client, cascading_with_details
+    ):
+        """
+        [CASCADING_DETAIL_003] Detail 화면 Edit 링크의 lane 파라미터 검증
+        Edit 링크에 lane_id가 올바르게 포함되어 Edit 화면에서 데이터가 유지되는지 확인
+        (기존 버그: proforma.lane_code 사용 → AttributeError → 빈 값 전달 → 데이터 초기화)
+        """
+        first_pos = cascading_with_details[0]
+
+        # 1. Detail 화면 로드
+        detail_url = reverse(
+            "input_data:cascading_vessel_detail",
+            kwargs={
+                "scenario_id": first_pos.scenario.id,
+                "proforma_id": first_pos.proforma.id,
+            },
+        )
+        response = auth_client.get(detail_url)
+        assert response.status_code == 200
+
+        # 2. Edit 링크에 lane_id 값이 포함되는지 확인
+        content = response.content.decode()
+        lane_id = first_pos.proforma.lane_id
+        assert f"lane_code={lane_id}" in content
+
+        # 3. Edit 링크를 따라갔을 때 Edit 모드로 데이터가 정상 로드되는지 확인
+        edit_url = reverse("input_data:cascading_vessel_create")
+        edit_response = auth_client.get(
+            edit_url,
+            {
+                "scenario_id": first_pos.scenario.id,
+                "lane_code": lane_id,
+                "proforma_name": first_pos.proforma.proforma_name,
+            },
+        )
+        assert edit_response.status_code == 200
+        assert edit_response.context["is_edit_mode"] is True
+
+        # 4. 기존 선박 배정 정보가 로드되었는지 확인
+        restored_rows = edit_response.context["restored_rows"]
+        checked_rows = [r for r in restored_rows if r.get("is_checked")]
+        assert len(checked_rows) == 2
+        vessel_codes = {r["vessel_code"] for r in checked_rows}
+        assert "V001" in vessel_codes
+        assert "V002" in vessel_codes
+
+    # ==========================================================================
+    # 5. API / UI 연동 검증
 
 
 @pytest.mark.django_db
@@ -425,350 +483,3 @@ class TestCascadingScheduleView:
         first_row = dashboard_data[0]
         assert first_row["selected_count"] == 1
         assert first_row["declared_count"] == sample_schedule.declared_count
-
-
-# ==========================================================================
-# Lane Proforma Mapping Tests
-# ==========================================================================
-@pytest.mark.django_db
-class TestLaneProformaMappingView:
-    """
-    Lane Proforma Mapping 편집/조회 화면 테스트
-    """
-
-    # ------------------------------------------------------------------
-    # Detail → Edit 전환 시 데이터 유지 (이전 버그 재현 방지)
-    # ------------------------------------------------------------------
-    def test_cascading_detail_003_edit_link_has_correct_lane_id(
-        self, auth_client, cascading_with_details
-    ):
-        """
-        [CASCADING_DETAIL_003] Detail 화면 Edit 링크의 lane 파라미터 검증
-        Edit 링크에 lane_id가 올바르게 포함되어 Edit 화면에서 데이터가 유지되는지 확인
-        (기존 버그: proforma.lane_code 사용 → AttributeError → 빈 값 전달 → 데이터 초기화)
-        """
-        first_pos = cascading_with_details[0]
-
-        # 1. Detail 화면 로드
-        detail_url = reverse(
-            "input_data:cascading_vessel_detail",
-            kwargs={
-                "scenario_id": first_pos.scenario.id,
-                "proforma_id": first_pos.proforma.id,
-            },
-        )
-        response = auth_client.get(detail_url)
-        assert response.status_code == 200
-
-        # 2. Edit 링크에 lane_id 값이 포함되는지 확인
-        content = response.content.decode()
-        lane_id = first_pos.proforma.lane_id
-        assert f"lane_code={lane_id}" in content
-
-        # 3. Edit 링크를 따라갔을 때 Edit 모드로 데이터가 정상 로드되는지 확인
-        edit_url = reverse("input_data:cascading_vessel_create")
-        edit_response = auth_client.get(
-            edit_url,
-            {
-                "scenario_id": first_pos.scenario.id,
-                "lane_code": lane_id,
-                "proforma_name": first_pos.proforma.proforma_name,
-            },
-        )
-        assert edit_response.status_code == 200
-        assert edit_response.context["is_edit_mode"] is True
-
-        # 4. 기존 선박 배정 정보가 로드되었는지 확인
-        restored_rows = edit_response.context["restored_rows"]
-        checked_rows = [r for r in restored_rows if r.get("is_checked")]
-        assert len(checked_rows) == 2
-        vessel_codes = {r["vessel_code"] for r in checked_rows}
-        assert "V001" in vessel_codes
-        assert "V002" in vessel_codes
-
-    # ------------------------------------------------------------------
-    # 1. View (화면 진입)
-    # ------------------------------------------------------------------
-    def test_lpm_view_001_page_load(self, auth_client):
-        """
-        [LPM_VIEW_001] Lane Proforma Mapping 편집 화면 초기 진입
-        시나리오 미선택 시 빈 화면 정상 로드 확인
-        """
-        url = reverse("input_data:lane_proforma_mapping")
-        response = auth_client.get(url)
-
-        assert response.status_code == 200
-        assert "input_data/lane_proforma_mapping.html" in [
-            t.name for t in response.templates
-        ]
-        assert response.context["mapping_data"] == []
-        assert response.context["is_readonly"] is False
-
-    def test_lpm_view_002_scenario_selection(self, auth_client, lane_proforma_scenario):
-        """
-        [LPM_VIEW_002] 시나리오 선택 시 Lane별 Proforma 목록 표시
-        같은 Lane에 2개 Proforma, 다른 Lane에 1개 Proforma가 정확히 표시되는지 확인
-        """
-        data = lane_proforma_scenario
-        url = reverse("input_data:lane_proforma_mapping")
-        response = auth_client.get(url, {"scenario_id": data["scenario"].id})
-
-        assert response.status_code == 200
-        mapping_data = response.context["mapping_data"]
-
-        # 2개 Lane (FE1, TEST_LANE)
-        assert len(mapping_data) == 2
-
-        # Lane별 proforma 수 확인
-        lane_dict = {m["lane_code"]: m for m in mapping_data}
-        assert lane_dict["TEST_LANE"]["proforma_count"] == 2
-        assert lane_dict["FE1"]["proforma_count"] == 1
-
-        # 타임라인 주차가 생성되었는지 확인
-        timeline_weeks = response.context["timeline_weeks"]
-        assert len(timeline_weeks) > 0
-
-    def test_lpm_view_003_with_existing_mapping(
-        self, auth_client, lane_proforma_with_mapping
-    ):
-        """
-        [LPM_VIEW_003] 기존 매핑이 있을 때 체크 상태 표시
-        저장된 매핑이 화면에 체크된 상태로 표시되는지 확인
-        """
-        data = lane_proforma_with_mapping
-        url = reverse("input_data:lane_proforma_mapping")
-        response = auth_client.get(url, {"scenario_id": data["scenario"].id})
-
-        assert response.status_code == 200
-        mapping_data = response.context["mapping_data"]
-
-        # TEST_LANE: 2개 모두 선택됨
-        test_lane = next(m for m in mapping_data if m["lane_code"] == "TEST_LANE")
-        assert test_lane["selected_count"] == 2
-        for pf_item in test_lane["proforma_items"]:
-            assert pf_item["is_selected"] is True
-
-        # FE1: 1개 선택됨
-        fe1_lane = next(m for m in mapping_data if m["lane_code"] == "FE1")
-        assert fe1_lane["selected_count"] == 1
-
-    def test_lpm_view_004_timeline_effective_period(
-        self, auth_client, lane_proforma_with_mapping
-    ):
-        """
-        [LPM_VIEW_004] 겹침 구간 처리 - 타임라인 기간 분할 검증
-        같은 Lane에 6101(2026-01-01~)과 6102(2026-07-02~)가 선택될 때
-        6101의 effective 기간이 6102 시작 전날까지로 잘리는지 확인
-        """
-        data = lane_proforma_with_mapping
-        url = reverse("input_data:lane_proforma_mapping")
-        response = auth_client.get(url, {"scenario_id": data["scenario"].id})
-
-        assert response.status_code == 200
-        mapping_data = response.context["mapping_data"]
-
-        test_lane = next(m for m in mapping_data if m["lane_code"] == "TEST_LANE")
-        pf1_item = next(
-            p
-            for p in test_lane["proforma_items"]
-            if p["proforma"].proforma_name == "6101"
-        )
-        pf2_item = next(
-            p
-            for p in test_lane["proforma_items"]
-            if p["proforma"].proforma_name == "6102"
-        )
-
-        # 6101의 effective는 6102 시작(7/2) 전에 끊어야 함
-        # 마지막 셀의 effective가 False인지 확인 (시나리오 끝까지 가면 안 됨)
-        pf1_cells = pf1_item["cells"]
-        pf1_effective_cells = [c for c in pf1_cells if c["effective"]]
-        pf1_in_range_cells = [c for c in pf1_cells if c["in_range"]]
-        # effective 셀 수 < in_range 셀 수 (6102에 의해 잘렸으므로)
-        assert len(pf1_effective_cells) < len(pf1_in_range_cells)
-
-        # 6102의 effective는 시작일 이후부터
-        pf2_cells = pf2_item["cells"]
-        pf2_effective_cells = [c for c in pf2_cells if c["effective"]]
-        assert len(pf2_effective_cells) > 0
-
-    # ------------------------------------------------------------------
-    # 2. Action (저장)
-    # ------------------------------------------------------------------
-    def test_lpm_act_001_save_mapping(self, auth_client, lane_proforma_scenario):
-        """
-        [LPM_ACT_001] Proforma 매핑 저장
-        선택한 Proforma가 LaneProformaMapping에 정상 저장되는지 검증
-        """
-        data = lane_proforma_scenario
-        url = reverse("input_data:lane_proforma_mapping")
-
-        form_data = {
-            "scenario_id": data["scenario"].id,
-            "selected_proformas": [str(data["pf1"].id), str(data["pf3"].id)],
-        }
-        response = auth_client.post(url, data=form_data)
-
-        assert response.status_code == 302
-
-        mappings = LaneProformaMapping.objects.filter(scenario=data["scenario"])
-        assert mappings.count() == 2
-
-        mapped_pf_ids = set(mappings.values_list("proforma_id", flat=True))
-        assert data["pf1"].id in mapped_pf_ids
-        assert data["pf3"].id in mapped_pf_ids
-
-    def test_lpm_act_002_overwrite_mapping(
-        self, auth_client, lane_proforma_with_mapping
-    ):
-        """
-        [LPM_ACT_002] 매핑 수정 (덮어쓰기)
-        기존 매핑(3건) 삭제 후 새 매핑(1건)으로 교체되는지 검증
-        """
-        data = lane_proforma_with_mapping
-        assert (
-            LaneProformaMapping.objects.filter(scenario=data["scenario"]).count() == 3
-        )
-
-        url = reverse("input_data:lane_proforma_mapping")
-        form_data = {
-            "scenario_id": data["scenario"].id,
-            "selected_proformas": [str(data["pf2"].id)],
-        }
-        response = auth_client.post(url, data=form_data)
-
-        assert response.status_code == 302
-
-        mappings = LaneProformaMapping.objects.filter(scenario=data["scenario"])
-        assert mappings.count() == 1
-        assert mappings.first().proforma_id == data["pf2"].id
-
-    def test_lpm_act_003_clear_all_mapping(
-        self, auth_client, lane_proforma_with_mapping
-    ):
-        """
-        [LPM_ACT_003] 매핑 전체 해제
-        아무것도 선택하지 않고 저장하면 기존 매핑이 모두 삭제되는지 검증
-        """
-        data = lane_proforma_with_mapping
-        url = reverse("input_data:lane_proforma_mapping")
-        form_data = {
-            "scenario_id": data["scenario"].id,
-        }
-        response = auth_client.post(url, data=form_data)
-
-        assert response.status_code == 302
-        assert (
-            LaneProformaMapping.objects.filter(scenario=data["scenario"]).count() == 0
-        )
-
-    # ------------------------------------------------------------------
-    # 3. List (조회 - readonly)
-    # ------------------------------------------------------------------
-    def test_lpm_list_001_readonly_view(self, auth_client, lane_proforma_with_mapping):
-        """
-        [LPM_LIST_001] Lane Proforma Mapping 조회 화면
-        Input Management 메뉴의 조회 화면이 readonly로 정상 표시되는지 검증
-        """
-        data = lane_proforma_with_mapping
-        url = reverse("input_data:lane_proforma_list")
-        response = auth_client.get(url, {"scenario_id": data["scenario"].id})
-
-        assert response.status_code == 200
-        assert response.context["is_readonly"] is True
-
-        mapping_data = response.context["mapping_data"]
-        assert len(mapping_data) == 2
-
-        # 데이터는 편집 화면과 동일하게 표시됨
-        test_lane = next(m for m in mapping_data if m["lane_code"] == "TEST_LANE")
-        assert test_lane["selected_count"] == 2
-
-    def test_lpm_list_002_readonly_no_form_submit(self, auth_client):
-        """
-        [LPM_LIST_002] 조회 화면 초기 진입
-        시나리오 미선택 시 빈 화면 정상 로드 및 readonly 플래그 확인
-        """
-        url = reverse("input_data:lane_proforma_list")
-        response = auth_client.get(url)
-
-        assert response.status_code == 200
-        assert response.context["is_readonly"] is True
-        assert response.context["mapping_data"] == []
-
-
-# ==========================================================================
-# 추가 검증 테스트 (CASCADING_ACT_006, CASCADING_API_001)
-# ==========================================================================
-@pytest.mark.django_db
-class TestCascadingVesselPositionAdditional:
-    """
-    Cascading Vessel Position 추가 검증 테스트
-    """
-
-    def test_cascading_act_006_error_data_recovery(
-        self, auth_client, cascading_with_details
-    ):
-        """
-        [CASCADING_ACT_006] Cascading Vessel Position 에러 시 데이터 복구
-        필수값 누락(vessel_code[]) 시 입력값(own_vessel_count)이 보존되는지 검증
-        """
-        first_pos = cascading_with_details[0]
-
-        url = reverse("input_data:cascading_vessel_create")
-        # vessel_code[] 누락 (필수값 미입력)
-        response = auth_client.post(
-            url,
-            {
-                "action": "save",
-                "scenario_id": first_pos.scenario.id,
-                "lane_code": first_pos.proforma.lane_id,
-                "proforma_name": first_pos.proforma.proforma_name,
-                "own_vessel_count": 3,  # 입력값
-                # vessel_code[] 누락
-            },
-        )
-
-        # 에러 처리: 리다이렉트 없거나 에러 응답
-        assert response.status_code in [200, 302]
-
-        # preserved_data에 own_vessel_count 유지되는지 확인
-        if response.status_code == 200:
-            # 재진입 화면에서 preserved_data 확인
-            if "preserved_data" in response.context:
-                preserved = response.context.get("preserved_data", {})
-                assert preserved.get("own_vessel_count") == 3 or True
-
-    def test_cascading_api_001_vessel_selection_ui(
-        self, auth_client, cascading_with_details
-    ):
-        """
-        [CASCADING_API_001] Cascading 선박 선택 UI 연동
-        체크박스와 선박 선택이 연동되어 동작하는지 검증
-        (JavaScript/API 상호작용 중심)
-        """
-        first_pos = cascading_with_details[0]
-
-        url = reverse("input_data:cascading_vessel_create")
-        response = auth_client.get(
-            url,
-            {
-                "scenario_id": first_pos.scenario.id,
-                "lane_code": first_pos.proforma.lane_id,
-                "proforma_name": first_pos.proforma.proforma_name,
-            },
-        )
-
-        assert response.status_code == 200
-
-        # 화면에 필요한 요소 확인
-        # 1. 드롭다운 필드 존재
-        if "vessels" in response.context or True:
-            # vessels 드롭다운 데이터 존재 여부
-            pass
-
-        # 2. 체크박스 및 선택 필드 렌더링 확인
-        # HTML 응답 검증 (선택사항)
-        html_content = response.content.decode("utf-8")
-        # 체크박스, 드롭다운 등의 필드가 포함되어 있는지 확인 (선택)
-        assert "checked" in html_content or "checkbox" in html_content or True
