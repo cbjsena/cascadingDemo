@@ -58,7 +58,7 @@ bunker_consumption_sea_list = scenario_crud_view(
             )
             if scenario_id
             else BunkerConsumptionSea.objects.none()
-        ).order_by("base_year_month", "vessel_capacity", "sea_speed"),
+        ).order_by("vessel_capacity", "sea_speed"),
         "search_filter_fn": lambda qs, s: (
             qs.annotate(
                 vc_str=Cast("vessel_capacity", output_field=CharField()),
@@ -66,10 +66,6 @@ bunker_consumption_sea_list = scenario_crud_view(
             ).filter(Q(vc_str__icontains=s) | Q(ss_str__icontains=s))
         ),
         "extra_search_fields": [
-            {
-                "param": "base_year_month",
-                "filter_kwarg": "base_year_month",
-            },
             {
                 "param": "vessel_capacity",
                 "filter_kwarg": "vessel_capacity",
@@ -80,29 +76,25 @@ bunker_consumption_sea_list = scenario_crud_view(
             },
         ],
         "extra_context": {
-            "base_year_month_choices": get_scenario_base_year_month_choices,
             "sea_speed_choices": _get_sea_speed_choices,
         },
         "fields": [
-            {"post_key": "new_base_year_month", "model_field": "base_year_month"},
             {"post_key": "new_vessel_capacity", "model_field": "vessel_capacity"},
             {"post_key": "new_sea_speed", "model_field": "sea_speed"},
             {"post_key": "new_bunker_consumption", "model_field": "bunker_consumption"},
         ],
-        "unique_fields": ["base_year_month", "vessel_capacity", "sea_speed"],
+        "unique_fields": ["vessel_capacity", "sea_speed"],
         "csv_map": BUNKER_CONSUMPTION_SEA_CSV_MAP,
         "max_rows": 1000,
         "dt_columns": [
             "",  # 0. Checkbox (정렬 제외)
             "",  # 1. No (순번, 정렬 제외)
-            "base_year_month",  # 2. Base Year Month
-            "vessel_capacity",  # 3. Vessel Capacity
-            "sea_speed",  # 4. Sea Speed
-            "bunker_consumption",  # 5. Bunker Consumption
+            "vessel_capacity",  # 2. Vessel Capacity
+            "sea_speed",  # 3. Sea Speed
+            "bunker_consumption",  # 4. Bunker Consumption
         ],
         "serialize_fn": lambda obj: {
             "id": obj.id,
-            "base_year_month": obj.base_year_month,
             "vessel_capacity": obj.vessel_capacity,
             "sea_speed": float(obj.sea_speed) if obj.sea_speed else 0,
             "bunker_consumption": (
@@ -131,7 +123,7 @@ bunker_consumption_port_list = scenario_crud_view(
             )
             if scenario_id
             else BunkerConsumptionPort.objects.none()
-        ).order_by("base_year_month", "vessel_capacity"),
+        ).order_by("vessel_capacity"),
         "search_filter_fn": lambda qs, s: (
             qs.annotate(
                 vc_str=Cast("vessel_capacity", output_field=CharField()),
@@ -139,19 +131,12 @@ bunker_consumption_port_list = scenario_crud_view(
         ),
         "extra_search_fields": [
             {
-                "param": "base_year_month",
-                "filter_kwarg": "base_year_month",
-            },
-            {
                 "param": "vessel_capacity",
                 "filter_kwarg": "vessel_capacity",
             },
         ],
-        "extra_context": {
-            "base_year_month_choices": get_scenario_base_year_month_choices,
-        },
+        "extra_context": {},
         "fields": [
-            {"post_key": "new_base_year_month", "model_field": "base_year_month"},
             {"post_key": "new_vessel_capacity", "model_field": "vessel_capacity"},
             {
                 "post_key": "new_port_stay_bunker_consumption",
@@ -166,20 +151,18 @@ bunker_consumption_port_list = scenario_crud_view(
                 "model_field": "pilot_inout_bunker_consumption",
             },
         ],
-        "unique_fields": ["base_year_month", "vessel_capacity"],
+        "unique_fields": ["vessel_capacity"],
         "csv_map": BUNKER_CONSUMPTION_PORT_CSV_MAP,
         "dt_columns": [
             "",  # 0. Checkbox (정렬 제외)
             "",  # 1. No (순번, 정렬 제외)
-            "base_year_month",  # 2. Base Year Month
-            "vessel_capacity",  # 3. Vessel Capacity
-            "port_stay_bunker_consumption",  # 4. Port Stay
-            "idling_bunker_consumption",  # 5. Idling
-            "pilot_inout_bunker_consumption",  # 6. Pilot In/Out
+            "vessel_capacity",  # 2. Vessel Capacity
+            "port_stay_bunker_consumption",  # 3. Port Stay
+            "idling_bunker_consumption",  # 4. Idling
+            "pilot_inout_bunker_consumption",  # 5. Pilot In/Out
         ],
         "serialize_fn": lambda obj: {
             "id": obj.id,
-            "base_year_month": obj.base_year_month,
             "vessel_capacity": obj.vessel_capacity,
             "port_stay_bunker_consumption": (
                 float(obj.port_stay_bunker_consumption)

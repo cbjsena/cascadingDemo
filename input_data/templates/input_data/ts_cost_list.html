@@ -4,6 +4,32 @@
 {% block page_heading %}TS Cost{% endblock %}
 {% block breadcrumb_menu %}Cost{% endblock %}
 
+{% block common_filter_bym %}
+<div class="col-md-2">
+    <label class="form-label fw-bold small text-muted">Base Year Month</label>
+    <select class="form-select form-select-sm dt-filter" id="filterBaseYearMonth" name="base_year_month">
+        <option value="">All Periods</option>
+        {% for choice in base_year_month_choices %}
+        <option value="{{ choice }}" {% if search_params.base_year_month == choice %}selected{% endif %}>
+            {{ choice }}
+        </option>
+        {% endfor %}
+    </select>
+</div>
+{% endblock %}
+
+{% block common_modal_bym %}
+<div class="mb-3">
+    <label class="form-label small fw-bold">Base Year Month</label>
+    <select class="form-select" id="modalBaseYearMonth" name="new_base_year_month_0" required>
+        <option value="">Select Period</option>
+        {% for choice in base_year_month_choices %}
+        <option value="{{ choice }}">{{ choice }}</option>
+        {% endfor %}
+    </select>
+</div>
+{% endblock %}
+
 {% block extra_filters %}
 <div class="col-md-2">
     <label class="form-label fw-bold small text-muted">Lane Code</label>

@@ -1,10 +1,9 @@
 ﻿[Base Data Table Definition]
-Generated At,2026-03-10 00:07:15
+Generated At,2026-03-13 02:33:30
 
 Table Name,Column Name,Data Type,Nullable,Description (Comment)
 sce_bunker_consumption_port,created_at,datetime,NO,Created At
 sce_bunker_consumption_port,updated_at,datetime,NO,Updated At
-sce_bunker_consumption_port,base_year_month,string,NO,Year and month used as the base period / YYYYMM
 sce_bunker_consumption_port,vessel_capacity,int,NO,"Vessel Capacity (TEU), 1851 types"
 sce_bunker_consumption_port,port_stay_bunker_consumption,numeric,NO,Hourly bunker consumption during port stay (Ton)
 sce_bunker_consumption_port,idling_bunker_consumption,numeric,NO,Hourly bunker consumption during idling (Ton)
@@ -14,7 +13,6 @@ sce_bunker_consumption_port,updated_by_id,int,YES,Updated By
 sce_bunker_consumption_port,scenario_id,int,NO,Scenario ID
 sce_bunker_consumption_sea,created_at,datetime,NO,Created At
 sce_bunker_consumption_sea,updated_at,datetime,NO,Updated At
-sce_bunker_consumption_sea,base_year_month,string,NO,Year and month used as the base period / YYYYMM
 sce_bunker_consumption_sea,vessel_capacity,int,NO,"Vessel Capacity (TEU), 1851 types"
 sce_bunker_consumption_sea,sea_speed,numeric,NO,"Speed (Knot), 13 types consisting of 0.5 difference from 14 to 20"
 sce_bunker_consumption_sea,bunker_consumption,numeric,NO,Daily bunker consumption at sea (Ton)

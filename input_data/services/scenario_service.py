@@ -1,4 +1,3 @@
-from django.conf import settings
 from django.contrib.auth import get_user_model
 from django.db import transaction
 from django.utils import timezone
@@ -46,7 +45,7 @@ def create_scenario_from_base(
     - user: 이 작업을 수행한 사용자 (created_by에 저장)
     - base_year_week: 기준 주차 (YYYY-WXX 형식)
 
-    DEBUG=True인 경우 BunkerConsumptionSea/BunkerConsumptionPort는 시나리오 시작 월만 복사
+    DEBUG=True인 경우 대용량 테이블은 제한된 데이터만 복사
     """
 
     now = timezone.now()
@@ -113,18 +112,6 @@ def create_scenario_from_base(
         else:
             # 조건이 없으면 전체 데이터 가져오기
             qs = base_model.objects.all()
-
-        # BunkerConsumptionSea/BunkerConsumptionPort: 시나리오 기간에 해당하는 데이터만 필터링
-        if table_name in ["sce_bunker_consumption_sea", "sce_bunker_consumption_port"]:
-            if scenario_start_month and scenario_end_month:
-                # 시나리오의 기간(시작 월~종료 월) 범위 내 데이터만 필터링
-                qs = qs.filter(
-                    base_year_month__gte=scenario_start_month,
-                    base_year_month__lte=scenario_end_month,
-                )
-                # DEBUG 모드: 시작 월만 복사
-                if settings.DEBUG:
-                    qs = qs.filter(base_year_month=scenario_start_month)
 
         # FK lazy loading 방지: select_related 적용
         fk_fields = [

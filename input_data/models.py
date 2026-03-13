@@ -1279,9 +1279,6 @@ class TSCost(AbsTSCost, ScenarioBaseModel):
 class AbsBunkerConsumptionSea(models.Model):
     """Bunker Consumption Sea 데이터 필드 (추상)"""
 
-    base_year_month = models.CharField(
-        max_length=6, verbose_name="Year and month used as the base period / YYYYMM"
-    )
     vessel_capacity = models.IntegerField(
         verbose_name="Vessel Capacity (TEU), 1851 types"
     )
@@ -1308,7 +1305,7 @@ class BaseBunkerConsumptionSea(AbsBunkerConsumptionSea):
         db_table = "base_bunker_consumption_sea"
         constraints = [
             models.UniqueConstraint(
-                fields=["base_year_month", "vessel_capacity", "sea_speed"],
+                fields=["vessel_capacity", "sea_speed"],
                 name="uq_basebunkerconsumptionsea",
             ),
         ]
@@ -1322,17 +1319,17 @@ class BunkerConsumptionSea(AbsBunkerConsumptionSea, ScenarioBaseModel):
         db_table = "sce_bunker_consumption_sea"
         constraints = [
             models.UniqueConstraint(
-                fields=["scenario", "base_year_month", "vessel_capacity", "sea_speed"],
+                fields=["scenario", "vessel_capacity", "sea_speed"],
                 name="uq_bunkerconsumptionsea",
             ),
         ]
         indexes = [
             models.Index(
-                fields=["scenario", "base_year_month"],
+                fields=["scenario"],
                 name="idx_sce_bcs_scenario_month",
             ),
             models.Index(
-                fields=["scenario", "base_year_month", "vessel_capacity", "sea_speed"],
+                fields=["scenario", "vessel_capacity", "sea_speed"],
                 name="idx_sce_bcs_composite",
             ),
         ]
@@ -1342,9 +1339,6 @@ class BunkerConsumptionSea(AbsBunkerConsumptionSea, ScenarioBaseModel):
 class AbsBunkerConsumptionPort(models.Model):
     """Bunker Consumption Port 데이터 필드 (추상)"""
 
-    base_year_month = models.CharField(
-        max_length=6, verbose_name="Year and month used as the base period / YYYYMM"
-    )
     vessel_capacity = models.IntegerField(
         verbose_name="Vessel Capacity (TEU), 1851 types"
     )
@@ -1376,7 +1370,7 @@ class BaseBunkerConsumptionPort(AbsBunkerConsumptionPort):
         db_table = "base_bunker_consumption_port"
         constraints = [
             models.UniqueConstraint(
-                fields=["base_year_month", "vessel_capacity"],
+                fields=["vessel_capacity"],
                 name="uq_basebunkerconsumptionport",
             ),
         ]
@@ -1392,17 +1386,17 @@ class BunkerConsumptionPort(AbsBunkerConsumptionPort, ScenarioBaseModel):
         db_table = "sce_bunker_consumption_port"
         constraints = [
             models.UniqueConstraint(
-                fields=["scenario", "base_year_month", "vessel_capacity"],
+                fields=["scenario", "vessel_capacity"],
                 name="uq_bunkerconsumptionport",
             ),
         ]
         indexes = [
             models.Index(
-                fields=["scenario", "base_year_month"],
+                fields=["scenario"],
                 name="idx_sce_bcp_scenario_month",
             ),
             models.Index(
-                fields=["scenario", "base_year_month", "vessel_capacity"],
+                fields=["scenario", "vessel_capacity"],
                 name="idx_sce_bcp_composite",
             ),
         ]

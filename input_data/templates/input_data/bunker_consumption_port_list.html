@@ -4,6 +4,7 @@
 {% block page_heading %}Bunker Consumption Port{% endblock %}
 {% block breadcrumb_menu %}Bunker{% endblock %}
 
+
 {% block extra_filters %}
 <div class="col-md-2">
     <label class="form-label fw-bold small text-muted">Vessel Capacity</label>
@@ -15,7 +16,6 @@
 {% endblock %}
 
 {% block table_headers %}
-    <th>Base Year Month</th>
     <th class="text-end">Vessel Capacity (TEU)</th>
     <th class="text-end">Port Stay (Ton/Hour)</th>
     <th class="text-end">Idling (Ton/Hour)</th>
@@ -44,7 +44,6 @@
 {% endblock %}
 
 {% block dt_columns %}
-    { data: "base_year_month", render: function(d) { return `<span class="badge bg-info text-dark">${d}</span>`; } },
     { data: "vessel_capacity", className: "text-end fw-bold" },
     { data: "port_stay_bunker_consumption", className: "text-end", render: function(d) { return parseFloat(d).toFixed(6); } },
     { data: "idling_bunker_consumption", className: "text-end", render: function(d) { return parseFloat(d).toFixed(6); } },

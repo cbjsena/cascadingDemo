@@ -4,6 +4,7 @@
 {% block page_heading %}Bunker Consumption Sea{% endblock %}
 {% block breadcrumb_menu %}Bunker{% endblock %}
 
+
 {% block extra_filters %}
 <div class="col-md-2">
     <label class="form-label fw-bold small text-muted">Vessel Capacity</label>
@@ -19,7 +20,6 @@
 {% endblock %}
 
 {% block table_headers %}
-    <th>Base Year Month</th>
     <th class="text-end">Vessel Capacity (TEU)</th>
     <th class="text-end">Sea Speed (Knot)</th>
     <th class="text-end">Bunker Consumption (Ton/Day)</th>
@@ -48,7 +48,6 @@
 {% endblock %}
 
 {% block dt_columns %}
-    { data: "base_year_month", render: function(d) { return `<span class="badge bg-info text-dark">${d}</span>`; } },
     { data: "vessel_capacity", className: "text-end fw-bold" },
     { data: "sea_speed", className: "text-end" },
     { data: "bunker_consumption", className: "text-end", render: function(d) { return parseFloat(d).toFixed(6); } }

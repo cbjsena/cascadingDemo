@@ -117,7 +117,6 @@ TS_COST_CSV_MAP = [
 
 BUNKER_CONSUMPTION_SEA_CSV_MAP = [
     ("scenario_code", "scenario_code", False),
-    ("base_year_month", "base_year_month", True),
     ("vessel_capacity", "vessel_capacity", True),
     ("sea_speed", "sea_speed", True),
     ("bunker_consumption", "bunker_consumption", True),
@@ -125,7 +124,6 @@ BUNKER_CONSUMPTION_SEA_CSV_MAP = [
 
 BUNKER_CONSUMPTION_PORT_CSV_MAP = [
     ("scenario_code", "scenario_code", False),
-    ("base_year_month", "base_year_month", True),
     ("vessel_capacity", "vessel_capacity", True),
     ("port_stay_bunker_consumption", "port_stay_bunker_consumption", True),
     ("idling_bunker_consumption", "idling_bunker_consumption", True),

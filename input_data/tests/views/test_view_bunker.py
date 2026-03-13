@@ -1,6 +1,6 @@
 """
 Bunker 화면 테스트
-Test Scenarios: BUNKER_SEA_001~007
+Test Scenarios: BUNKER_SEA_001~006, BUNKER_PORT_001~004, BUNKER_PRICE_001~005
 """
 
 from django.urls import reverse
@@ -20,8 +20,9 @@ from input_data.models import (
 
 @pytest.fixture
 def bunker_scenario(db, user):
-    """Bunker 테스트용 시나리오 2개"""
-    # BaseWeekPeriod 데이터 생성 (모달 base_year_month select 용)
+    """Bunker 테스트용 시나리오 2개 + BaseWeekPeriod (Bunker Price base_year_month select 전용)"""
+    # BaseWeekPeriod: Bunker Price 모달의 base_year_month select에서만 사용
+    # (Sea/Port에서는 base_year_month 필드가 제거되어 불필요)
     BaseWeekPeriod.objects.get_or_create(
         base_year="2026",
         base_week="01",
@@ -68,7 +69,6 @@ class TestBunkerConsumptionSeaView:
         s1, s2 = bunker_scenario
         BunkerConsumptionSea.objects.create(
             scenario=s1,
-            base_year_month="202601",
             vessel_capacity=1851,
             sea_speed=14.0,
             bunker_consumption=55.123,
@@ -77,7 +77,6 @@ class TestBunkerConsumptionSeaView:
         )
         BunkerConsumptionSea.objects.create(
             scenario=s1,
-            base_year_month="202601",
             vessel_capacity=1851,
             sea_speed=16.0,
             bunker_consumption=70.456,
@@ -86,7 +85,6 @@ class TestBunkerConsumptionSeaView:
         )
         BunkerConsumptionSea.objects.create(
             scenario=s2,
-            base_year_month="202601",
             vessel_capacity=4000,
             sea_speed=18.0,
             bunker_consumption=120.789,
@@ -112,18 +110,8 @@ class TestBunkerConsumptionSeaView:
         assert response.status_code == 200
         assert len(response.context["items"]) == 2
 
-    def test_bunker_sea_base_year_month_filter(self, auth_client, sea_data):
-        """[BUNKER_SEA_003] Base Year Month 추가 필터"""
-        s1 = sea_data["s1"]
-        url = reverse("input_data:bunker_consumption_sea_list")
-        response = auth_client.get(
-            url, {"scenario_id": s1.id, "base_year_month": "202601"}
-        )
-        assert response.status_code == 200
-        assert len(response.context["items"]) == 2
-
     def test_bunker_sea_search(self, auth_client, sea_data):
-        """[BUNKER_SEA_004] 검색 (vessel_capacity or sea_speed)"""
+        """[BUNKER_SEA_003] 검색 (vessel_capacity or sea_speed)"""
         s1 = sea_data["s1"]
         url = reverse("input_data:bunker_consumption_sea_list")
         response = auth_client.get(url, {"scenario_id": s1.id, "search": "1851"})
@@ -131,7 +119,7 @@ class TestBunkerConsumptionSeaView:
         assert len(response.context["items"]) == 2
 
     def test_bunker_sea_add_row_save(self, auth_client, sea_data):
-        """[BUNKER_SEA_005] Add Row 저장"""
+        """[BUNKER_SEA_004] Add Row 저장"""
         s1 = sea_data["s1"]
         url = reverse("input_data:bunker_consumption_sea_list")
         response = auth_client.post(
@@ -139,7 +127,6 @@ class TestBunkerConsumptionSeaView:
             {
                 "action": "save",
                 "scenario_id": s1.id,
-                "new_base_year_month_0": "202602",
                 "new_vessel_capacity_0": "2500",
                 "new_sea_speed_0": "15.0",
                 "new_bunker_consumption_0": "60.555",
@@ -148,12 +135,12 @@ class TestBunkerConsumptionSeaView:
         assert response.status_code == 302
         assert BunkerConsumptionSea.objects.filter(
             scenario=s1,
-            base_year_month="202602",
             vessel_capacity=2500,
+            sea_speed="15.000",
         ).exists()
 
     def test_bunker_sea_delete(self, auth_client, sea_data):
-        """[BUNKER_SEA_006] 행 삭제"""
+        """[BUNKER_SEA_005] 행 삭제"""
         s1 = sea_data["s1"]
         pks = list(
             BunkerConsumptionSea.objects.filter(scenario=s1).values_list(
@@ -169,18 +156,17 @@ class TestBunkerConsumptionSeaView:
         assert BunkerConsumptionSea.objects.filter(scenario=s1).count() == 0
 
     def test_bunker_sea_duplicate_skip(self, auth_client, sea_data):
-        """[BUNKER_SEA_007] 중복 데이터 저장 시 skip"""
+        """[BUNKER_SEA_006] 중복 데이터 저장 시 skip"""
         from django.contrib.messages import get_messages
 
         s1 = sea_data["s1"]
         url = reverse("input_data:bunker_consumption_sea_list")
-        # 이미 존재하는 (202601, 1851, 14.0) 데이터를 다시 저장
+        # 이미 존재하는 (1851, 14.0) 데이터를 다시 저장
         response = auth_client.post(
             url,
             {
                 "action": "save",
                 "scenario_id": s1.id,
-                "new_base_year_month_0": "202601",
                 "new_vessel_capacity_0": "1851",
                 "new_sea_speed_0": "14.0",
                 "new_bunker_consumption_0": "99.999",
@@ -192,7 +178,6 @@ class TestBunkerConsumptionSeaView:
         # 기존 값 유지 확인
         obj = BunkerConsumptionSea.objects.get(
             scenario=s1,
-            base_year_month="202601",
             vessel_capacity=1851,
             sea_speed="14.000",
         )
@@ -208,7 +193,6 @@ class TestBunkerConsumptionPortView:
         s1, s2 = bunker_scenario
         BunkerConsumptionPort.objects.create(
             scenario=s1,
-            base_year_month="202601",
             vessel_capacity=1851,
             port_stay_bunker_consumption=2.500,
             idling_bunker_consumption=1.200,
@@ -218,7 +202,6 @@ class TestBunkerConsumptionPortView:
         )
         BunkerConsumptionPort.objects.create(
             scenario=s1,
-            base_year_month="202602",
             vessel_capacity=4000,
             port_stay_bunker_consumption=4.100,
             idling_bunker_consumption=2.300,
@@ -254,7 +237,6 @@ class TestBunkerConsumptionPortView:
             {
                 "action": "save",
                 "scenario_id": s1.id,
-                "new_base_year_month_0": "202603",
                 "new_vessel_capacity_0": "2500",
                 "new_port_stay_bunker_consumption_0": "3.100",
                 "new_idling_bunker_consumption_0": "1.800",
@@ -264,7 +246,6 @@ class TestBunkerConsumptionPortView:
         assert response.status_code == 302
         assert BunkerConsumptionPort.objects.filter(
             scenario=s1,
-            base_year_month="202603",
             vessel_capacity=2500,
         ).exists()
 
