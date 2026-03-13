@@ -26,18 +26,19 @@ from input_data.services.proforma_service import ProformaService
 
 
 def pytest_configure(config):
+    """로컬 환경일 때 마이그레이션을 생략하여 테스트 속도 향상"""
     if os.getenv("APP_ENV") == "local":
         config.option.nomigrations = True
 
 
 # =========================================================
-# Master Data Fixtures (FK 참조 대상)
+# 1. Master Data Fixtures (FK 참조 대상)
 # =========================================================
 @pytest.fixture(autouse=True)
 def master_data(db):
     """
     모든 테스트에서 자동으로 생성되는 Master 데이터.
-    FK 참조 무결성을 위해 테스트에서 사용하는 모든 lane_code, port_code, trade_code 포함.
+    API 앱과 input_data 앱에서 사용하는 모든 Lane, Port, Trade 코드를 통합 포함.
     """
     # Lanes
     lanes = [
@@ -47,6 +48,7 @@ def master_data(db):
         "FP1",
         "LANE_A",
         "LANE_B",
+        "LANE_X",
         "OTHER",
         "LANE_MID",
         "LANE_DUR0",
@@ -88,67 +90,63 @@ def master_data(db):
             trade_code=code, defaults={"trade_name": code}
         )
 
-        # 기존 2026, 2027 데이터 삭제 (중복 방지)
-        BaseWeekPeriod.objects.filter(base_year__in=["2026", "2027"]).delete()
+    # 주차(Week Period) 마스터 생성 로직
+    BaseWeekPeriod.objects.filter(base_year__in=["2026", "2027"]).delete()
+    current_date = date(2026, 1, 5)  # 2026년 1월 5일 (월요일, 2026년 1주차 시작)
 
-        # 2026년 1월 5일 (월요일, 2026년 1주차 시작)
-        current_date = date(2026, 1, 5)
+    for year in ["2026", "2027"]:
+        for week_num in range(1, 53):
+            week_end = current_date + timedelta(days=6)
+            month = current_date.month
 
-        # 2026년과 2027년, 2년 치를 순차적으로 생성
-        for year in ["2026", "2027"]:
-            for week_num in range(1, 53):  # 1주차 ~ 52주차
-                week_end = current_date + timedelta(days=6)  # 일요일
-
-                # 해당 주차의 '월(Month)'은 주차 시작일 기준
-                month = current_date.month
-
-                BaseWeekPeriod.objects.create(
-                    base_year=year,
-                    base_week=f"{week_num:02d}",
-                    base_month=f"{month:02d}",
-                    week_start_date=current_date,
-                    week_end_date=week_end,
-                )
-
-                current_date += timedelta(weeks=1)  # 다음 주로 이동
+            BaseWeekPeriod.objects.create(
+                base_year=year,
+                base_week=f"{week_num:02d}",
+                base_month=f"{month:02d}",
+                week_start_date=current_date,
+                week_end_date=week_end,
+            )
+            current_date += timedelta(weeks=1)
 
 
 # =========================================================
-# User & Client Fixtures
+# 2. User & Client Fixtures
 # =========================================================
 @pytest.fixture
 def user(db):
-    """일반 사용자 (test_user)"""
+    """일반 사용자"""
     return User.objects.create_user(username="test_user", password="password")
 
 
 @pytest.fixture
 def other_user(db):
-    """다른 사용자 (other_user) - 권한 테스트용"""
+    """다른 사용자 (권한 분리 테스트용)"""
     return User.objects.create_user(username="other_user", password="password")
 
 
 @pytest.fixture
 def admin_user(db):
-    """관리자 (admin_user) - 슈퍼유저 권한 테스트용"""
+    """관리자 사용자"""
     return User.objects.create_superuser(username="admin_user", password="password")
 
 
 @pytest.fixture
 def auth_client(client, user):
-    """로그인된 Client"""
+    """자동으로 로그인된 Client (API 테스트 및 뷰 테스트 범용)"""
     client.login(username="test_user", password="password")
     return client
 
 
 # =========================================================
-# Scenario & Proforma Fixtures
+# 3. Scenario & Proforma Fixtures
 # =========================================================
 @pytest.fixture
 def base_scenario(db, user):
-    """기본 시나리오 (데이터 없음)"""
+    """
+    기본 시나리오
+    """
     return ScenarioInfo.objects.create(
-        code="SC_TEST_BASE",
+        code="SC_TEST_BASE",  # 특정 코드를 명시하여 API 테스트와 호환되게 함
         description="Base Test Scenario for testing",
         base_year_week=constants.DEFAULT_BASE_YEAR_WEEK,
         planning_horizon_months=12,
@@ -161,8 +159,7 @@ def base_scenario(db, user):
 
 @pytest.fixture
 def scenario_with_data(db, user):
-    """하위 데이터가 포함된 시나리오"""
-    # 1. 부모 생성 (Scenario)
+    """하위 스케줄 데이터가 포함된 시나리오"""
     scenario = ScenarioInfo.objects.create(
         code="SC_TEST_DATA",
         description="Scenario for Cascade Test",
@@ -172,8 +169,6 @@ def scenario_with_data(db, user):
         created_by=user,
         updated_by=user,
     )
-
-    # 2. 자식 생성 (Proforma Master)
     master = ProformaSchedule.objects.create(
         scenario=scenario,
         lane_id="TEST_LANE",
@@ -185,8 +180,6 @@ def scenario_with_data(db, user):
         created_by=user,
         updated_by=user,
     )
-
-    # 3. 손자 생성 (Proforma Detail)
     ProformaScheduleDetail.objects.create(
         proforma=master,
         direction="E",
@@ -209,10 +202,7 @@ def scenario_with_data(db, user):
 
 @pytest.fixture
 def sample_schedule(db, base_scenario, user):
-    """
-    테스트용 단일 Proforma Schedule 데이터 (상세 조회용)
-    """
-    # 1. Master 생성
+    """테스트용 단일 Proforma Schedule 데이터 (상세 조회 및 Cascading용)"""
     master = ProformaSchedule.objects.create(
         scenario=base_scenario,
         lane_id="TEST_LANE",
@@ -221,12 +211,10 @@ def sample_schedule(db, base_scenario, user):
         duration=14.0,
         declared_capacity="5000",
         declared_count=2,
-        own_vessel_count=2,  # Cascading에서 사용
+        own_vessel_count=2,
         created_by=user,
         updated_by=user,
     )
-
-    # 2. Detail 생성
     ProformaScheduleDetail.objects.create(
         proforma=master,
         direction="E",
@@ -251,7 +239,6 @@ def sample_schedule(db, base_scenario, user):
         created_by=user,
         updated_by=user,
     )
-
     return master
 
 
@@ -270,7 +257,7 @@ def pf_complex_data(db, base_scenario, user):
         lane_id="TEST_LANE",
         proforma_name="PF_COMPLEX",
         effective_from_date=timezone.now().date(),
-        duration=14.0,  # Round Trip 14일
+        duration=14.0,
         declared_capacity="5000",
         declared_count=2,
         created_by=user,
@@ -293,7 +280,7 @@ def pf_complex_data(db, base_scenario, user):
         port_id="PORT_A",
         calling_port_indicator="1",
         calling_port_seq=1,
-        turn_port_info_code="Y",  # Head Virtual O
+        turn_port_info_code="Y",
         etb_day_number=0,
         etd_day_number=0.5,
     )
@@ -319,16 +306,15 @@ def pf_complex_data(db, base_scenario, user):
         etb_day_number=5,
         etd_day_number=5.5,
     )
-
     return base_scenario
 
 
 # =========================================================
-# Long Range Schedule (Integration) Fixtures
+# 4. LRS & Services & Distance Fixtures
 # =========================================================
 @pytest.fixture
 def lrs_integration_data(db, user):
-    """[추가됨] LRS 통합 테스트용 공통 데이터"""
+    """LRS 통합 테스트용 공통 데이터"""
     scenario = ScenarioInfo.objects.create(
         code="SC_LRS_TEST",
         description="Integration Test",
@@ -336,6 +322,7 @@ def lrs_integration_data(db, user):
         status="ACTIVE",
         created_by=user,
     )
+
     # - Lane A에는 'VESSEL_A' 배정
     LongRangeSchedule.objects.create(
         scenario=scenario,
@@ -349,6 +336,7 @@ def lrs_integration_data(db, user):
         created_by=user,
         updated_by=user,
     )
+
     # - Lane B에는 'VESSEL_B' 배정
     LongRangeSchedule.objects.create(
         scenario=scenario,
@@ -362,7 +350,6 @@ def lrs_integration_data(db, user):
         created_by=user,
         updated_by=user,
     )
-
     return scenario
 
 
@@ -380,7 +367,6 @@ def distance_data(db, base_scenario):
 
 @pytest.fixture
 def proforma_service():
-    """ProformaService 인스턴스"""
     return ProformaService()
 
 
@@ -395,7 +381,7 @@ def lrs_service():
 
 
 # =========================================================
-# Cascading Fixtures
+# 5. Cascading Data Fixtures
 # =========================================================
 @pytest.fixture
 def cascading_with_details(db, sample_schedule, user):
@@ -408,7 +394,7 @@ def cascading_with_details(db, sample_schedule, user):
     vessels = ["V001", "V002"]
     positions = []
     for i, vessel_code in enumerate(vessels):
-        position = CascadingVesselPosition.objects.create(
+        pos = CascadingVesselPosition.objects.create(
             scenario=sample_schedule.scenario,
             proforma=sample_schedule,
             vessel_code=vessel_code,
@@ -417,8 +403,7 @@ def cascading_with_details(db, sample_schedule, user):
             created_by=user,
             updated_by=user,
         )
-        positions.append(position)
-
+        positions.append(pos)
     return positions
 
 
@@ -450,8 +435,8 @@ def cascading_invalid_form_data(sample_schedule):
         "scenario_id": sample_schedule.scenario.id,
         "lane_code": sample_schedule.lane_id,
         "proforma_name": sample_schedule.proforma_name,
-        "own_vessel_count": 3,  # 3대 요구
-        "vessel_code[]": ["V001", "V002"],  # 2대만 선택 (불일치)
+        "own_vessel_count": 3,
+        "vessel_code[]": ["V001", "V002"],
         "vessel_capacity[]": ["5000", "5000"],
         "vessel_start_date[]": ["2026-02-15", "2026-02-22"],
         "lane_code_list[]": ["TEST_LANE", "TEST_LANE"],
@@ -466,9 +451,7 @@ def multiple_cascading_data(db, base_scenario, user):
     - 2개의 Proforma, 각각 CascadingVesselPosition 2건씩 생성
     """
     all_positions = []
-
     for idx in range(2):
-        # Proforma 생성
         proforma = ProformaSchedule.objects.create(
             scenario=base_scenario,
             lane_id="TEST_LANE",
@@ -481,10 +464,8 @@ def multiple_cascading_data(db, base_scenario, user):
             created_by=user,
             updated_by=user,
         )
-
-        # Position 2건
         for i in range(2):
-            position = CascadingVesselPosition.objects.create(
+            pos = CascadingVesselPosition.objects.create(
                 scenario=base_scenario,
                 proforma=proforma,
                 vessel_code=f"V{idx+1}0{i+1}",
@@ -493,13 +474,12 @@ def multiple_cascading_data(db, base_scenario, user):
                 created_by=user,
                 updated_by=user,
             )
-            all_positions.append(position)
-
+            all_positions.append(pos)
     return all_positions
 
 
 # =========================================================
-# Lane Proforma Mapping Fixtures
+# 6. Lane Proforma Mapping Fixtures
 # =========================================================
 @pytest.fixture
 def lane_proforma_scenario(db, user):
@@ -507,7 +487,6 @@ def lane_proforma_scenario(db, user):
     Lane Proforma Mapping 테스트용 시나리오 + 동일 Lane에 기간이 다른 Proforma 2개
     LPM_VIEW_*, LPM_ACT_*, LPM_LIST_* 테스트에서 사용
     """
-
     scenario = ScenarioInfo.objects.create(
         code="SC_LPM_TEST",
         description="Lane Proforma Mapping Test",
@@ -531,7 +510,6 @@ def lane_proforma_scenario(db, user):
         created_by=user,
         updated_by=user,
     )
-
     pf2 = ProformaSchedule.objects.create(
         scenario=scenario,
         lane_id="TEST_LANE",
@@ -543,8 +521,6 @@ def lane_proforma_scenario(db, user):
         created_by=user,
         updated_by=user,
     )
-
-    # 다른 Lane(FE1)에 Proforma 1개
     pf3 = ProformaSchedule.objects.create(
         scenario=scenario,
         lane_id="FE1",
@@ -556,13 +532,7 @@ def lane_proforma_scenario(db, user):
         created_by=user,
         updated_by=user,
     )
-
-    return {
-        "scenario": scenario,
-        "pf1": pf1,
-        "pf2": pf2,
-        "pf3": pf3,
-    }
+    return {"scenario": scenario, "pf1": pf1, "pf2": pf2, "pf3": pf3}
 
 
 @pytest.fixture

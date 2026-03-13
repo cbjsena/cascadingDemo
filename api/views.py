@@ -6,6 +6,7 @@ from django.http import JsonResponse
 from django.views.decorators.http import require_GET
 
 from common import messages as msg
+from common.constants import DAYS
 from input_data.models import (
     BaseVesselInfo,
     BaseWeekPeriod,
@@ -103,35 +104,36 @@ def proforma_detail(request):
                 and scenario.base_year_week
                 and len(scenario.base_year_week) == 6
             ):
+                from datetime import timedelta
+
+                from input_data.models import BaseWeekPeriod
 
                 try:
-                    from datetime import datetime, timedelta
+                    year_str = scenario.base_year_week[:4]
+                    week_str = scenario.base_year_week[
+                        4:6
+                    ]  # CharField 대응 ("01" 형태 유지)
 
-                    year = scenario.base_year_week[:4]
-                    week = scenario.base_year_week[4:]
-                    # ISO week to date: 해당 주의 월요일
-                    first_day = datetime.strptime(
-                        f"{year}-W{week:02d}-1", "%Y-W%W-%w"
-                    ).date()
+                    # 파이썬 ISO 캘린더 대신 BaseWeekPeriod 테이블에서 실제 시작일 조회
+                    start_period = BaseWeekPeriod.objects.filter(
+                        base_year=year_str, base_week=week_str
+                    ).first()
 
-                    # first_port_day에 맞춰 날짜 조정
-                    if first_port_day:
-                        day_map = {
-                            "SUN": 6,
-                            "MON": 0,
-                            "TUE": 1,
-                            "WED": 2,
-                            "THU": 3,
-                            "FRI": 4,
-                            "SAT": 5,
-                        }
-                        target_weekday = day_map.get(first_port_day)
-                        if target_weekday is not None:
+                    if start_period:
+                        first_day = start_period.week_start_date
+
+                        # first_port_day에 맞춰 날짜 조정
+                        if first_port_day in DAYS:
+                            # DAYS index: SUN(0), MON(1)...
+                            # python weekday(): MON(0), TUE(1)... SUN(6)
+                            # 변환 공식: (DAYS 인덱스 - 1) % 7
+                            target_weekday = (DAYS.index(first_port_day) - 1) % 7
+
                             current_weekday = first_day.weekday()
                             days_ahead = (target_weekday - current_weekday) % 7
                             first_day = first_day + timedelta(days=days_ahead)
 
-                    initial_start_date = first_day.strftime("%Y-%m-%d")
+                        initial_start_date = first_day.strftime("%Y-%m-%d")
                 except (ValueError, TypeError):
                     pass  # 파싱 실패 시 초기 빈 문자열("") 유지
 

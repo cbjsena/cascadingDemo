@@ -206,7 +206,7 @@ class TestProformaFileCalculation:
         """CSV 파일을 읽어 List of Dict로 반환"""
         # 경로: input_data/tests/views/data/
         file_path = os.path.join(
-            settings.BASE_DIR, "input_data", "tests", "services", "data", filename
+            settings.BASE_DIR, "tests", "input_data", "services", "data", filename
         )
         data = []
         with open(file_path, encoding="utf-8-sig") as f:

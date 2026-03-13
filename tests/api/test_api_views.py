@@ -29,7 +29,7 @@ class TestApiViews:
 
         # 시나리오가 자동 ID로 생성되었는지 확인
         assert self.scenario.id is not None
-        assert self.scenario.code == "SC20260201_001"
+        assert self.scenario.code == "SC_TEST_BASE"
 
         # 1. Distance (PUS -> TYO : 500)
         Distance.objects.create(

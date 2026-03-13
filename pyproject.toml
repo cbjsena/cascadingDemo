@@ -5,12 +5,7 @@ python_functions = ["test_*"]
 python_classes = ["Test*", "*Test"]
 addopts = "--reuse-db --nomigrations --ff -n 4 -v"
 
-testpaths = [
-    "tests",
-    "common",
-    "input_data",
-    "api"
-]
+testpaths = ["tests"]
 #addopts = "--reuse-db -v --cov=default --cov-report=term-missing --cov-report=html"
 #    --cov=default
 #    --cov-report=term-missing
