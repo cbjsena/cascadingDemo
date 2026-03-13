@@ -9,8 +9,6 @@ from .cascading import (  # noqa: F401
     cascading_vessel_create,
     cascading_vessel_detail,
     cascading_vessel_info,
-    lane_proforma_list,
-    lane_proforma_mapping,
 )
 from .common import input_list  # noqa: F401
 from .cost import (  # noqa: F401
@@ -19,6 +17,10 @@ from .cost import (  # noqa: F401
     ts_cost_list,
 )
 from .dashboard import input_home  # noqa: F401
+from .lane_proforma import (  # noqa: F401
+    lane_proforma_list,
+    lane_proforma_mapping,
+)
 from .long_range import (  # noqa: F401
     long_range_list,
 )

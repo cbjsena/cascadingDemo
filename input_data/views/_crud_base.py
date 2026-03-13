@@ -65,6 +65,22 @@ from common.menus import (
 from input_data.models import ScenarioInfo
 
 
+def _load_queryset(config, scenario_id):
+    """config["queryset_fn"]을 호출하여 기본 QuerySet을 반환한다.
+
+    queryset_fn이 scenario_id 파라미터를 지원하면 전달하고,
+    그렇지 않으면 호출 후 scenario_id로 필터링한다.
+    """
+    sig = inspect.signature(config["queryset_fn"])
+    if "scenario_id" in sig.parameters:
+        return config["queryset_fn"](scenario_id=scenario_id)
+
+    qs = config["queryset_fn"]()
+    if scenario_id:
+        qs = qs.filter(scenario_id=scenario_id)
+    return qs
+
+
 # =========================================================
 # 1. DELETE 처리 (공통)
 # =========================================================
@@ -199,13 +215,7 @@ def _handle_csv_download(request, *, config, scenario_id):
         return _redirect_with_scenario(config["url_name"], scenario_id)
 
     # 쿼리셋 구성 (화면과 동일한 필터)
-    sig = inspect.signature(config["queryset_fn"])
-    if "scenario_id" in sig.parameters:
-        queryset = config["queryset_fn"](scenario_id=scenario_id)
-    else:
-        queryset = config["queryset_fn"]()
-        if scenario_id:
-            queryset = queryset.filter(scenario_id=scenario_id)
+    queryset = _load_queryset(config, scenario_id)
 
     # CSV 생성
     output = io.StringIO()
@@ -218,7 +228,7 @@ def _handle_csv_download(request, *, config, scenario_id):
     # 데이터
     for obj in queryset:
         row = []
-        for db_column, model_field, _required in csv_map:
+        for _, model_field, _ in csv_map:
             if model_field == "scenario_code":
                 val = obj.scenario.code
             else:
@@ -299,7 +309,7 @@ def _handle_csv_upload(request, *, config, scenario_id):
             obj_data = {}
             all_required_ok = True
 
-            for i, (db_column, model_field, required) in enumerate(data_columns):
+            for i, (_, model_field, required) in enumerate(data_columns):
                 val = row[i + 1].strip() if (i + 1) < len(row) else ""
                 obj_data[model_field] = val if val else None
 
@@ -344,14 +354,7 @@ def _handle_datatables_ajax(request, config, scenario_id):
     """DataTables의 서버사이드 요청(페이징, 정렬, 검색)을 처리하고 JSON을 반환합니다."""
 
     # 1. Base QuerySet 로드
-    sig = inspect.signature(config["queryset_fn"])
-    is_filtered = False
-
-    if "scenario_id" in sig.parameters:
-        qs = config["queryset_fn"](scenario_id=scenario_id)
-    else:
-        qs = config["queryset_fn"]()
-
+    qs = _load_queryset(config, scenario_id)
     # 2. 커스텀 필터 적용 (ex: base_year_month Select Box)
     for field in config.get("extra_search_fields", []):
         val = request.GET.get(field["param"])
@@ -359,16 +362,14 @@ def _handle_datatables_ajax(request, config, scenario_id):
             qs = qs.filter(**{field["filter_kwarg"]: val})
 
     records_total = qs.count()
-    records_filtered = records_total
 
     # 3. DataTables 검색어(Search) 적용
     search_value = request.GET.get("search[value]", "").strip()
     if search_value and "search_filter_fn" in config:
         qs = config["search_filter_fn"](qs, search_value)
-        is_filtered = True
-
-    if is_filtered:
         records_filtered = qs.count()
+    else:
+        records_filtered = records_total
 
     # 4. DataTables 정렬(Sorting) 적용
     dt_columns = config.get("dt_columns", [])
@@ -428,17 +429,7 @@ def _handle_get(request, *, config):
     scenarios = ScenarioInfo.objects.all().order_by("-created_at")
 
     # ---- Step 2: 기본 QuerySet (scenario_id 초기 필터링) ----
-    import inspect
-
-    sig = inspect.signature(config["queryset_fn"])
-    if "scenario_id" in sig.parameters:
-        # queryset_fn이 scenario_id 파라미터를 받는 경우
-        queryset = config["queryset_fn"](scenario_id=scenario_id)
-    else:
-        # 기존 호환성: scenario_id 파라미터 없는 경우
-        queryset = config["queryset_fn"]()
-        if scenario_id:
-            queryset = queryset.filter(scenario_id=scenario_id)
+    queryset = _load_queryset(config, scenario_id)
 
     # ---- Step 3: 추가 검색 필드 필터 (예: base_year_month) ----
     search_params = {"scenario_id": scenario_id, "search": search}
@@ -456,28 +447,25 @@ def _handle_get(request, *, config):
         queryset = config["search_filter_fn"](queryset, search)
 
     # ---- Step 4.5: 대용량 테이블 최적화 ----
-    # BunkerConsumptionSea 같은 대용량 테이블의 경우, 필터/검색이 없으면 처음 1000개만 로드
-    model_table = config.get("model")._meta.db_table
-    if model_table == "sce_bunker_consumption_sea":
-        # 추가 필터나 검색이 없으면 처음 1000개만 로드
+    # config에 max_rows가 설정된 경우, 필터/검색이 없으면 해당 개수만 로드
+    max_rows = config.get("max_rows")
+    if max_rows:
         has_filter = any(
             request.GET.get(ef["param"], "").strip()
             for ef in config.get("extra_search_fields", [])
         )
         if not has_filter and not search:
-            queryset = queryset[:1000]
+            queryset = queryset[:max_rows]
 
     # ---- Step 5: 추가 context (모달 드롭다운용 데이터) ----
     for key, loader_fn in config.get("extra_context", {}).items():
         try:
-            # 함수가 scenario_id 파라미터를 받을 수 있는지 확인
-            sig = inspect.signature(loader_fn)
-            if "scenario_id" in sig.parameters:
+            loader_sig = inspect.signature(loader_fn)
+            if "scenario_id" in loader_sig.parameters:
                 extra_context[key] = loader_fn(scenario_id=scenario_id)
             else:
                 extra_context[key] = loader_fn()
         except Exception:
-            # 에러 발생 시 파라미터 없이 호출
             extra_context[key] = loader_fn()
 
     # ---- Step 6: 템플릿 렌더링 ----

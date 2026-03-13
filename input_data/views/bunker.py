@@ -91,6 +91,7 @@ bunker_consumption_sea_list = scenario_crud_view(
         ],
         "unique_fields": ["base_year_month", "vessel_capacity", "sea_speed"],
         "csv_map": BUNKER_CONSUMPTION_SEA_CSV_MAP,
+        "max_rows": 1000,
         "dt_columns": [
             "",  # 0. Checkbox (정렬 제외)
             "",  # 1. No (순번, 정렬 제외)

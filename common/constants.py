@@ -20,6 +20,27 @@ DEFAULT_STAY_HOURS = 24.0  # 행 추가 시 ETB -> ETD 간격
 DEFAULT_BASE_YEAR_WEEK = "202605"
 
 # ==========================================
+# Excel Manager
+# ==========================================
+# Template 기본값
+EXCEL_DEFAULT_GRID_START_ROW = 6
+EXCEL_DEFAULT_DATA_START_ROW = 7
+EXCEL_DEFAULT_MERGE_WIDTH = 3
+EXCEL_TEMPLATE_EMPTY_ROWS = 10
+
+# 파싱 설정
+EXCEL_MAX_SCAN_ROWS = 100
+EXCEL_CONSECUTIVE_EMPTY_LIMIT = 3
+EXCEL_KEY_COLUMN_INDEX = 2  # 데이터 유무 판별 컬럼 (Port Code)
+EXCEL_NO_COLUMN_INDEX = 1
+
+# 라벨 / 섹션명
+EXCEL_LABEL_SUMMARY = "Summary"
+EXCEL_SECTION_BASIC = "Basic Information"
+EXCEL_SECTION_GRID = "Port Schedule"
+EXCEL_DEFAULT_TIME = "0000"
+
+# ==========================================
 # Bunker Sea Speed Defaults
 # ==========================================
 # Sea Speed 범위 (Knot) — 0.5 단위
