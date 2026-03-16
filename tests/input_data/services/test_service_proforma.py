@@ -139,7 +139,8 @@ class TestProformaServiceLogic:
 
     def test_save_mapping_and_indicator(self, proforma_service, base_scenario, user):
         """
-        [PF_SAVE_001] DB 저장 로직 및 Indicator 생성 검증
+        [PF_SAVE_001 서비스] save_schedule 내부 DB 저장 로직 및 Indicator 생성 검증
+        뷰 레벨 테스트: test_view_proforma.py::test_action_save_full 참조
         """
         header = {
             "scenario_id": base_scenario.id,
