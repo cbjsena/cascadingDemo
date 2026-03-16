@@ -1,6 +1,6 @@
 """
 init_master_data 커맨드 테스트
-Test Scenarios: CMD_INIT_MASTER_001~004
+Test Scenarios: IN_MST_CMD_001~004
 """
 
 from django.core.management import call_command
@@ -59,7 +59,7 @@ class TestInitMasterData:
 
     def test_master_data_prompt_abort(self, temp_master_data_dir, capsys, monkeypatch):
         """
-        [CMD_INIT_MASTER_001] 확인 프롬프트에 'no' 입력 시 중단
+        [IN_MST_CMD_001] 확인 프롬프트에 'no' 입력 시 중단
         """
         base_dir, _ = temp_master_data_dir
 
@@ -81,7 +81,7 @@ class TestInitMasterData:
 
     def test_master_data_force(self, temp_master_data_dir, capsys):
         """
-        [CMD_INIT_MASTER_002] --force 옵션으로 확인 스킵 후 정상 실행
+        [IN_MST_CMD_002] --force 옵션으로 확인 스킵 후 정상 실행
         """
         base_dir, _ = temp_master_data_dir
 
@@ -99,7 +99,7 @@ class TestInitMasterData:
 
     def test_master_data_delete_order(self, temp_master_data_dir, capsys, user):
         """
-        [CMD_INIT_MASTER_003] PROTECT FK 의존성 순서 준수
+        [IN_MST_CMD_003] PROTECT FK 의존성 순서 준수
         sce_ -> base_ -> master_ 순서로 삭제 시 ProtectedError 미발생
         """
         base_dir, data_dir = temp_master_data_dir
@@ -136,7 +136,7 @@ class TestInitMasterData:
 
     def test_master_then_base_reload(self, temp_master_data_dir, capsys):
         """
-        [CMD_INIT_MASTER_004] master_ 리로드 후 init_base_data로 base_ 리로드 연계
+        [IN_MST_CMD_004] master_ 리로드 후 init_base_data로 base_ 리로드 연계
         """
         base_dir, data_dir = temp_master_data_dir
 
@@ -165,7 +165,7 @@ class TestInitBaseDataSeparation:
 
     def test_base_data_does_not_delete_master_or_sce(self, temp_master_data_dir, user):
         """
-        [CMD_INIT_BASE_001] init_base_data는 master_/sce_ 영향 없음
+        [IN_SCE_CMD_006] init_base_data는 master_/sce_ 영향 없음
         """
         base_dir, data_dir = temp_master_data_dir
 
@@ -198,7 +198,7 @@ class TestInitBaseDataSeparation:
 
     def test_base_data_loader_shared_logic(self, temp_master_data_dir):
         """
-        [CMD_INIT_BASE_002] 공통 로직(load_data/clean_row) 정상 동작
+        [IN_SCE_CMD_007] 공통 로직(load_data/clean_row) 정상 동작
         """
         base_dir, data_dir = temp_master_data_dir
 

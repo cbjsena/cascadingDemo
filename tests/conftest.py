@@ -387,7 +387,7 @@ def lrs_service():
 def cascading_with_details(db, sample_schedule, user):
     """
     Cascading Vessel Position 테스트 데이터
-    CASCADING_VIEW_003, CASCADING_ACT_002, CASCADING_DETAIL_001/002 등에서 사용
+    IN_CV_003, IN_CV_005, IN_CV_011/002 등에서 사용
     ※ Position 수는 sample_schedule.declared_count(=2)를 초과하지 않도록 한다.
     """
     # Position 데이터 2건 (= sample_schedule.declared_count)
@@ -411,7 +411,7 @@ def cascading_with_details(db, sample_schedule, user):
 def cascading_form_data(sample_schedule):
     """
     Cascading 생성/수정용 폼 데이터
-    CASCADING_ACT_001, CASCADING_ACT_002, CASCADING_ACT_003 등에서 사용
+    IN_CV_004, IN_CV_005, IN_CV_006 등에서 사용
     """
     return {
         "scenario_id": sample_schedule.scenario.id,
@@ -429,7 +429,7 @@ def cascading_form_data(sample_schedule):
 def cascading_invalid_form_data(sample_schedule):
     """
     Cascading 유효하지 않은 폼 데이터 (Own Vessels와 선박 수 불일치)
-    CASCADING_ACT_004, CASCADING_ACT_006 등에서 사용
+    IN_CV_007, IN_CV_009 등에서 사용
     """
     return {
         "scenario_id": sample_schedule.scenario.id,
@@ -447,7 +447,7 @@ def cascading_invalid_form_data(sample_schedule):
 def multiple_cascading_data(db, base_scenario, user):
     """
     여러 Cascading 데이터 (Vessel Info 대시보드 조회 테스트용)
-    CASCADING_VESSEL_INFO_001에서 사용
+    IN_CV_010에서 사용
     - 2개의 Proforma, 각각 CascadingVesselPosition 2건씩 생성
     """
     all_positions = []

@@ -14,7 +14,7 @@ class TestDBComments:
     """
 
     def test_postgresql_execution(self, capsys):
-        """[TEST_DOC_01] PostgreSQL 환경에서 테이블/컬럼 코멘트 쿼리 실행 검증"""
+        """[CM_DOC_001] PostgreSQL 환경에서 테이블/컬럼 코멘트 쿼리 실행 검증"""
         # 1. PostgreSQL 환경 Mocking
         with patch("django.db.connection.vendor", "postgresql"):
             with patch("django.db.connection.cursor") as mock_cursor_ctx:
@@ -42,7 +42,7 @@ class TestDBComments:
                 ), "Column comment SQL missing"
 
     def test_sqlite_skip(self, capsys):
-        """[TEST_DOC_02] SQLite 환경에서 스킵 메시지 출력 검증"""
+        """[CM_DOC_002] SQLite 환경에서 스킵 메시지 출력 검증"""
         with patch("django.db.connection.vendor", "sqlite"):
             call_command("update_db_comments")
 

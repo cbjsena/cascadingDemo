@@ -18,12 +18,12 @@ from input_data.models import (
 class TestCascadingService:
     """
     Cascading 서비스 로직 테스트
-    Scenarios: CASCADING_SVC_001, CASCADING_SVC_002
+    Scenarios: IN_CV_SVC_001, IN_CV_SVC_002
     """
 
     def test_cascading_svc_001_service_logic(self, cascading_with_details):
         """
-        [CASCADING_SVC_001] Cascading 서비스 로직
+        [IN_CV_SVC_001] Cascading 서비스 로직
         get_cascading_data가 CascadingVesselPosition 기반으로 정확한 데이터를 반환하는지 검증
         """
         from input_data.services.cascading_service import CascadingService
@@ -55,7 +55,7 @@ class TestCascadingService:
 
     def test_cascading_svc_002_vessel_position_copy(self, sample_schedule, user):
         """
-        [CASCADING_SVC_002] vessel_position / vessel_position_date 복사 검증
+        [IN_CV_SVC_002] vessel_position / vessel_position_date 복사 검증
         BaseCascadingVesselPosition에서 CascadingVesselPosition으로 복사 시
         vessel_position과 vessel_position_date가 그대로 복사되는지 검증
         """

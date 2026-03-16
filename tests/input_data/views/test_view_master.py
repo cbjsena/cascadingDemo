@@ -1,8 +1,8 @@
 """
 Master 화면 테스트
-Test Scenarios: MASTER_TRADE_001~005, MASTER_PORT_001~003, MASTER_LANE_001~003,
-                MASTER_WEEK_PERIOD_001~003, MASTER_MENU_001~003,
-                MASTER_CSV_001~003
+Test Scenarios: IN_MTR_001~005, IN_MPT_001~003, IN_MLN_001~003,
+                IN_MWP_001~003, IN_MST_001~003,
+                IN_MST_004~003
 """
 
 import io
@@ -20,7 +20,7 @@ class TestMasterTradeView:
 
     def test_trade_list(self, auth_client):
         """
-        [MASTER_TRADE_001] Trade Info 목록 조회 및 데이터 표시 (DataTables API)
+        [IN_MTR_001] Trade Info 목록 조회 및 데이터 표시 (DataTables API)
         """
         url = reverse("input_data:master_trade_list")
         response = auth_client.get(url)
@@ -34,7 +34,7 @@ class TestMasterTradeView:
 
     def test_trade_search(self, auth_client):
         """
-        [MASTER_TRADE_002] 코드/이름으로 DataTables AJAX 검색 필터링
+        [IN_MTR_002] 코드/이름으로 DataTables AJAX 검색 필터링
         """
         MasterTrade.objects.get_or_create(
             trade_code="FE1", defaults={"trade_name": "Far East 1"}
@@ -58,7 +58,7 @@ class TestMasterTradeView:
 
     def test_trade_add_row_save(self, auth_client):
         """
-        [MASTER_TRADE_003] 새 Trade 추가 후 DB 저장
+        [IN_MTR_003] 새 Trade 추가 후 DB 저장
         """
         url = reverse("input_data:master_trade_list")
         response = auth_client.post(
@@ -80,7 +80,7 @@ class TestMasterTradeView:
 
     def test_trade_delete(self, auth_client):
         """
-        [MASTER_TRADE_004] 선택 Trade 삭제 (참조 없는 경우)
+        [IN_MTR_004] 선택 Trade 삭제 (참조 없는 경우)
         """
         MasterTrade.objects.get_or_create(
             trade_code="DEL_TRADE", defaults={"trade_name": "To Delete"}
@@ -100,7 +100,7 @@ class TestMasterTradeView:
 
     def test_trade_delete_protect_error(self, auth_client):
         """
-        [MASTER_TRADE_005] PROTECT FK 참조 시 삭제 에러 (base_/sce_ 가 참조하면 삭제 불가)
+        [IN_MTR_005] PROTECT FK 참조 시 삭제 에러 (base_/sce_ 가 참조하면 삭제 불가)
         이 테스트는 실제 참조 데이터가 있어야 ProtectedError 발생.
         base_vessel_capacity 등이 Trade FK를 참조하는 경우를 확인.
         """
@@ -144,7 +144,7 @@ class TestMasterPortView:
 
     def test_port_list(self, auth_client):
         """
-        [MASTER_PORT_001] Port Info 목록 조회 (DataTables API)
+        [IN_MPT_001] Port Info 목록 조회 (DataTables API)
         """
         url = reverse("input_data:master_port_list")
         response = auth_client.get(url)
@@ -155,7 +155,7 @@ class TestMasterPortView:
 
     def test_port_continent_filter(self, auth_client):
         """
-        [MASTER_PORT_002] DataTables AJAX로 Continent 필터링
+        [IN_MPT_002] DataTables AJAX로 Continent 필터링
         """
         MasterPort.objects.update_or_create(
             port_code="PUS_AS",
@@ -182,7 +182,7 @@ class TestMasterPortView:
 
     def test_port_add_row_save(self, auth_client):
         """
-        [MASTER_PORT_003] 새 Port 추가 후 DB 저장
+        [IN_MPT_003] 새 Port 추가 후 DB 저장
         """
         url = reverse("input_data:master_port_list")
         response = auth_client.post(
@@ -206,7 +206,7 @@ class TestMasterLaneView:
 
     def test_lane_list(self, auth_client):
         """
-        [MASTER_LANE_001] Lane Info 목록 조회 (DataTables API)
+        [IN_MLN_001] Lane Info 목록 조회 (DataTables API)
         """
         url = reverse("input_data:master_lane_list")
         response = auth_client.get(url)
@@ -217,7 +217,7 @@ class TestMasterLaneView:
 
     def test_lane_search(self, auth_client):
         """
-        [MASTER_LANE_002] DataTables AJAX 코드/이름으로 검색 필터링
+        [IN_MLN_002] DataTables AJAX 코드/이름으로 검색 필터링
         """
         url = reverse("input_data:master_lane_list")
         # DataTables AJAX 요청
@@ -234,7 +234,7 @@ class TestMasterLaneView:
 
     def test_lane_add_row_save(self, auth_client):
         """
-        [MASTER_LANE_003] 새 Lane 추가 후 DB 저장
+        [IN_MLN_003] 새 Lane 추가 후 DB 저장
         """
         url = reverse("input_data:master_lane_list")
         response = auth_client.post(
@@ -260,7 +260,7 @@ class TestMasterWeekPeriodView:
 
     def test_week_period_list(self, auth_client):
         """
-        [MASTER_WEEK_PERIOD_001] Week Period 목록 조회 (DataTables API)
+        [IN_MWP_001] Week Period 목록 조회 (DataTables API)
         """
         url = reverse("input_data:master_week_period_list")
         response = auth_client.get(url)
@@ -274,7 +274,7 @@ class TestMasterWeekPeriodView:
 
     def test_week_period_search(self, auth_client):
         """
-        [MASTER_WEEK_PERIOD_002] DataTables AJAX 연도/주차로 검색 필터링
+        [IN_MWP_002] DataTables AJAX 연도/주차로 검색 필터링
         """
         from datetime import date
 
@@ -313,7 +313,7 @@ class TestMasterWeekPeriodView:
 
     def test_week_period_add_row_save(self, auth_client):
         """
-        [MASTER_WEEK_PERIOD_003] 새 Week Period 추가 후 DB 저장
+        [IN_MWP_003] 새 Week Period 추가 후 DB 저장
         """
         url = reverse("input_data:master_week_period_list")
         response = auth_client.post(
@@ -340,7 +340,7 @@ class TestMasterMenu:
 
     def test_master_menu_position(self, auth_client):
         """
-        [MASTER_MENU_001] Master 메뉴가 사이드바에 렌더링되는지 확인
+        [IN_MST_001] Master 메뉴가 사이드바에 렌더링되는지 확인
         """
         url = reverse("input_data:master_trade_list")
         response = auth_client.get(url)
@@ -354,7 +354,7 @@ class TestMasterMenu:
 
     def test_master_context_keys(self, auth_client):
         """
-        [MASTER_MENU_002] context에 menu_structure 존재 확인
+        [IN_MST_002] context에 menu_structure 존재 확인
         """
         url = reverse("input_data:master_trade_list")
         response = auth_client.get(url)
@@ -365,7 +365,7 @@ class TestMasterMenu:
 
     def test_week_period_menu_link(self, auth_client):
         """
-        [MASTER_MENU_003] Week Period 메뉴 링크 존재 확인
+        [IN_MST_003] Week Period 메뉴 링크 존재 확인
         """
         url = reverse("input_data:master_week_period_list")
         response = auth_client.get(url)
@@ -382,7 +382,7 @@ class TestMasterCSV:
 
     def test_csv_download_trade(self, auth_client):
         """
-        [MASTER_CSV_001] Trade CSV 다운로드 — 헤더 및 데이터 검증
+        [IN_MST_004] Trade CSV 다운로드 — 헤더 및 데이터 검증
         """
         MasterTrade.objects.get_or_create(
             trade_code="CSV_T1", defaults={"trade_name": "CSV Test Trade"}
@@ -402,7 +402,7 @@ class TestMasterCSV:
 
     def test_csv_download_port(self, auth_client):
         """
-        [MASTER_CSV_001] Port CSV 다운로드 검증
+        [IN_MST_004] Port CSV 다운로드 검증
         """
         MasterPort.objects.get_or_create(
             port_code="CSV_P1", defaults={"port_name": "CSV Test Port"}
@@ -418,7 +418,7 @@ class TestMasterCSV:
 
     def test_csv_upload_trade(self, auth_client):
         """
-        [MASTER_CSV_002] Trade CSV 업로드 — DB 저장 검증
+        [IN_MST_005] Trade CSV 업로드 — DB 저장 검증
         """
         csv_content = "trade_code,trade_name,from_continent_code,to_continent_code\n"
         csv_content += "UP_T1,Upload Trade 1,AS,EU\n"
@@ -440,7 +440,7 @@ class TestMasterCSV:
 
     def test_csv_upload_no_file(self, auth_client):
         """
-        [MASTER_CSV_003] 파일 미선택 시 에러 메시지
+        [IN_MST_006] 파일 미선택 시 에러 메시지
         """
         url = reverse("input_data:master_trade_list")
         response = auth_client.post(url, {"action": "csv_upload"}, follow=True)
@@ -451,7 +451,7 @@ class TestMasterCSV:
 
     def test_csv_upload_week_period(self, auth_client):
         """
-        [MASTER_CSV_002] Week Period CSV 업로드 — DB 저장 검증
+        [IN_MST_005] Week Period CSV 업로드 — DB 저장 검증
         """
         csv_content = (
             "base_year,base_week,base_month,week_start_date,week_end_date\n"
@@ -469,7 +469,7 @@ class TestMasterCSV:
 
     def test_csv_buttons_visible(self, auth_client):
         """
-        [MASTER_CSV_001] CSV 버튼이 화면에 표시되는지 확인
+        [IN_MST_004] CSV 버튼이 화면에 표시되는지 확인
         """
         url = reverse("input_data:master_trade_list")
         response = auth_client.get(url)

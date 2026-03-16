@@ -1,6 +1,6 @@
 """
 Bunker 화면 테스트
-Test Scenarios: BUNKER_SEA_001~006, BUNKER_PORT_001~004, BUNKER_PRICE_001~005
+Test Scenarios: IN_BCS_001~006, IN_BCP_001~004, IN_BP_001~005
 """
 
 from django.urls import reverse
@@ -94,7 +94,7 @@ class TestBunkerConsumptionSeaView:
         return {"s1": s1, "s2": s2}
 
     def test_bunker_sea_list(self, auth_client, sea_data):
-        """[BUNKER_SEA_001] 목록 조회 — 전체 데이터 표시"""
+        """[IN_BCS_001] 목록 조회 — 전체 데이터 표시"""
         s1 = sea_data["s1"]
         url = reverse("input_data:bunker_consumption_sea_list")
         response = auth_client.get(url, {"scenario_id": s1.id})
@@ -103,7 +103,7 @@ class TestBunkerConsumptionSeaView:
         assert len(response.context["items"]) == 2
 
     def test_bunker_sea_scenario_filter(self, auth_client, sea_data):
-        """[BUNKER_SEA_002] 시나리오 필터 적용"""
+        """[IN_BCS_002] 시나리오 필터 적용"""
         s1 = sea_data["s1"]
         url = reverse("input_data:bunker_consumption_sea_list")
         response = auth_client.get(url, {"scenario_id": s1.id})
@@ -111,7 +111,7 @@ class TestBunkerConsumptionSeaView:
         assert len(response.context["items"]) == 2
 
     def test_bunker_sea_search(self, auth_client, sea_data):
-        """[BUNKER_SEA_003] 검색 (vessel_capacity or sea_speed)"""
+        """[IN_BCS_003] 검색 (vessel_capacity or sea_speed)"""
         s1 = sea_data["s1"]
         url = reverse("input_data:bunker_consumption_sea_list")
         response = auth_client.get(url, {"scenario_id": s1.id, "search": "1851"})
@@ -119,7 +119,7 @@ class TestBunkerConsumptionSeaView:
         assert len(response.context["items"]) == 2
 
     def test_bunker_sea_add_row_save(self, auth_client, sea_data):
-        """[BUNKER_SEA_004] Add Row 저장"""
+        """[IN_BCS_004] Add Row 저장"""
         s1 = sea_data["s1"]
         url = reverse("input_data:bunker_consumption_sea_list")
         response = auth_client.post(
@@ -140,7 +140,7 @@ class TestBunkerConsumptionSeaView:
         ).exists()
 
     def test_bunker_sea_delete(self, auth_client, sea_data):
-        """[BUNKER_SEA_005] 행 삭제"""
+        """[IN_BCS_005] 행 삭제"""
         s1 = sea_data["s1"]
         pks = list(
             BunkerConsumptionSea.objects.filter(scenario=s1).values_list(
@@ -156,7 +156,7 @@ class TestBunkerConsumptionSeaView:
         assert BunkerConsumptionSea.objects.filter(scenario=s1).count() == 0
 
     def test_bunker_sea_duplicate_skip(self, auth_client, sea_data):
-        """[BUNKER_SEA_006] 중복 데이터 저장 시 skip"""
+        """[IN_BCS_006] 중복 데이터 저장 시 skip"""
         from django.contrib.messages import get_messages
 
         s1 = sea_data["s1"]
@@ -212,7 +212,7 @@ class TestBunkerConsumptionPortView:
         return {"s1": s1, "s2": s2}
 
     def test_bunker_port_list(self, auth_client, port_data):
-        """[BUNKER_PORT_001] 목록 조회 — 전체 데이터 표시"""
+        """[IN_BCP_001] 목록 조회 — 전체 데이터 표시"""
         s1 = port_data["s1"]
         url = reverse("input_data:bunker_consumption_port_list")
         response = auth_client.get(url, {"scenario_id": s1.id})
@@ -221,7 +221,7 @@ class TestBunkerConsumptionPortView:
         assert len(response.context["items"]) == 2
 
     def test_bunker_port_scenario_filter(self, auth_client, port_data):
-        """[BUNKER_PORT_002] 시나리오 필터 적용"""
+        """[IN_BCP_002] 시나리오 필터 적용"""
         s1 = port_data["s1"]
         url = reverse("input_data:bunker_consumption_port_list")
         response = auth_client.get(url, {"scenario_id": s1.id})
@@ -229,7 +229,7 @@ class TestBunkerConsumptionPortView:
         assert len(response.context["items"]) == 2
 
     def test_bunker_port_add_row_save(self, auth_client, port_data):
-        """[BUNKER_PORT_003] Add Row 저장"""
+        """[IN_BCP_003] Add Row 저장"""
         s1 = port_data["s1"]
         url = reverse("input_data:bunker_consumption_port_list")
         response = auth_client.post(
@@ -250,7 +250,7 @@ class TestBunkerConsumptionPortView:
         ).exists()
 
     def test_bunker_port_delete(self, auth_client, port_data):
-        """[BUNKER_PORT_004] 행 삭제"""
+        """[IN_BCP_004] 행 삭제"""
         s1 = port_data["s1"]
         pks = list(
             BunkerConsumptionPort.objects.filter(scenario=s1).values_list(
@@ -300,7 +300,7 @@ class TestBunkerPriceView:
         return {"s1": s1, "s2": s2, "trade": trade, "lane": lane}
 
     def test_bunker_price_list(self, auth_client, price_data):
-        """[BUNKER_PRICE_001] 목록 조회 — 전체 데이터 표시"""
+        """[IN_BP_001] 목록 조회 — 전체 데이터 표시"""
         s1 = price_data["s1"]
         url = reverse("input_data:bunker_price_list")
         response = auth_client.get(url, {"scenario_id": s1.id})
@@ -309,7 +309,7 @@ class TestBunkerPriceView:
         assert len(response.context["items"]) == 2
 
     def test_bunker_price_scenario_filter(self, auth_client, price_data):
-        """[BUNKER_PRICE_002] 시나리오 필터 적용"""
+        """[IN_BP_002] 시나리오 필터 적용"""
         s1 = price_data["s1"]
         url = reverse("input_data:bunker_price_list")
         response = auth_client.get(url, {"scenario_id": s1.id})
@@ -317,7 +317,7 @@ class TestBunkerPriceView:
         assert len(response.context["items"]) == 2
 
     def test_bunker_price_search(self, auth_client, price_data):
-        """[BUNKER_PRICE_003] 검색 (trade_code, lane_code, bunker_type)"""
+        """[IN_BP_003] 검색 (trade_code, lane_code, bunker_type)"""
         s1 = price_data["s1"]
         url = reverse("input_data:bunker_price_list")
         response = auth_client.get(url, {"scenario_id": s1.id, "search": "LSFO"})
@@ -325,7 +325,7 @@ class TestBunkerPriceView:
         assert len(response.context["items"]) == 1
 
     def test_bunker_price_add_row_save(self, auth_client, price_data):
-        """[BUNKER_PRICE_004] Add Row 저장"""
+        """[IN_BP_004] Add Row 저장"""
         s1 = price_data["s1"]
         trade = price_data["trade"]
         lane = price_data["lane"]
@@ -352,7 +352,7 @@ class TestBunkerPriceView:
         ).exists()
 
     def test_bunker_price_delete(self, auth_client, price_data):
-        """[BUNKER_PRICE_005] 행 삭제"""
+        """[IN_BP_005] 행 삭제"""
         s1 = price_data["s1"]
         pks = list(BunkerPrice.objects.filter(scenario=s1).values_list("pk", flat=True))
         url = reverse("input_data:bunker_price_list")

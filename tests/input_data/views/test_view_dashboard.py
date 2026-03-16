@@ -11,7 +11,7 @@ class TestDashboardView:
 
     def test_dashboard_context_keys(self, auth_client, base_scenario):
         """
-        [DASHBOARD_001] Dashboard Context 변수명 및 값 검증
+        [IN_DASH_001] Dashboard Context 변수명 및 값 검증
         """
         url = reverse("input_data:input_home")
         response = auth_client.get(url)
@@ -38,7 +38,7 @@ class TestDashboardView:
 
     def test_dashboard_rendering(self, auth_client, base_scenario):
         """
-        [DASHBOARD_002] Dashboard HTML 렌더링 시 시나리오 정보 포함 확인
+        [IN_DASH_002] Dashboard HTML 렌더링 시 시나리오 정보 포함 확인
         """
         url = reverse("input_data:input_home")
         response = auth_client.get(url)

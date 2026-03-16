@@ -11,7 +11,7 @@ class TestLongRangeListView:
     """
 
     def test_lrs_list_001_search(self, auth_client, lrs_integration_data):
-        """[LRS_LIST_001] 목록 페이지 검색 필터"""
+        """[IN_LRS_001] 목록 페이지 검색 필터"""
         url = reverse("input_data:long_range_list")
 
         response = auth_client.get(
@@ -31,7 +31,7 @@ class TestLongRangeListView:
     def test_lrs_list_002_edit_button_visibility(
         self, auth_client, lrs_integration_data
     ):
-        """[LRS_LIST_002] 3가지 필수 검색 조건이 있을 때 Edit 링크가 존재하는지 확인"""
+        """[IN_LRS_002] 3가지 필수 검색 조건이 있을 때 Edit 링크가 존재하는지 확인"""
         url = reverse("input_data:long_range_list")
 
         # 시나리오, 레인, 프로포마 이름이 모두 지정되어야 Edit 화면(Cascading)으로 돌아갈 수 있음
@@ -52,7 +52,7 @@ class TestLongRangeListView:
         assert str(lrs_integration_data.id) in content
 
     def test_lrs_list_003_empty_result(self, auth_client, lrs_integration_data):
-        """[LRS_LIST_003] 존재하지 않는 데이터 검색 시 빈 목록 표출 검증"""
+        """[IN_LRS_003] 존재하지 않는 데이터 검색 시 빈 목록 표출 검증"""
         url = reverse("input_data:long_range_list")
 
         # DB에 없는 'GHOST'라는 선박 코드로 검색

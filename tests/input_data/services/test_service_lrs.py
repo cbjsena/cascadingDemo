@@ -14,11 +14,11 @@ from input_data.models import (
 class TestLongRangeService:
     """
     Long Range Schedule(LRS) 엔진 스케줄링 로직 집중 테스트
-    Scenarios: LRS_SVC_001, LRS_SVC_HEAD_Y, LRS_SVC_MID_Y, LRS_SVC_TAIL_Y
+    Scenarios: IN_LRS_SVC_001, IN_LRS_SVC_003, IN_LRS_SVC_007, IN_LRS_SVC_004
     """
 
     def test_lrs_svc_001_basic_creation(self, lrs_service, sample_schedule, user):
-        """[LRS_SVC_001] 기본 LRS 생성 엔진 테스트 (단일 선박, 가상포트 없음)"""
+        """[IN_LRS_SVC_001] 기본 LRS 생성 엔진 테스트 (단일 선박, 가상포트 없음)"""
 
         # Given
         start_date = timezone.now().date()
@@ -47,8 +47,8 @@ class TestLongRangeService:
 
     def test_lrs_svc_head_tail_y_logic(self, lrs_service, pf_complex_data):
         """
-        [LRS_SVC_HEAD_Y] Head Y: 첫 포트 연속 Y -> 가상 포트 생성 (Voyage -1, 반대 방향)
-        [LRS_SVC_TAIL_Y] Tail Y: 마지막 포트 Y -> 가상 포트 미생성 (Loop 방지)
+        [IN_LRS_SVC_003] Head Y: 첫 포트 연속 Y -> 가상 포트 생성 (Voyage -1, 반대 방향)
+        [IN_LRS_SVC_004] Tail Y: 마지막 포트 Y -> 가상 포트 미생성 (Loop 방지)
         """
         # Given: 부모 Master와 분리된 Detail 리스트 가져오기
         rows = list(
@@ -82,7 +82,7 @@ class TestLongRangeService:
 
     def test_lrs_svc_mid_y_virtual_port(self, lrs_service, pf_complex_data, user):
         """
-        [LRS_SVC_MID_Y] 가상 포트 생성 (Middle Y)
+        [IN_LRS_SVC_007] 가상 포트 생성 (Middle Y)
         기항지 순서가 N -> Y -> N 일 때 중간 포트에서 가상 포트 정상 생성 검증
         """
         start_date = timezone.now().date()
@@ -174,7 +174,7 @@ class TestLongRangeService:
         self, lrs_service, pf_complex_data, user
     ):
         """
-        [LRS_SVC_002] Validation 예외 (Duration 0)
+        [IN_LRS_SVC_002] Validation 예외 (Duration 0)
         Proforma Schedule의 운항 일수(Duration)가 0이거나 없을 때 방어 로직 검증
         """
         start_date = timezone.now().date()
@@ -227,7 +227,7 @@ class TestLongRangeService:
 
     def test_lrs_svc_date_continuity(self, lrs_service, sample_schedule, user):
         """
-        [LRS_SVC_DATE] 날짜 연속성
+        [IN_LRS_SVC_005] 날짜 연속성
         항차 간 날짜 증가 검증 (Voyage 2 Start = Voyage 1 Start + Duration)
         """
         start_date = timezone.now().date()
@@ -270,7 +270,7 @@ class TestLongRangeService:
 
     def test_lrs_svc_dup_prevention(self, lrs_service, sample_schedule, user):
         """
-        [LRS_SVC_DUP] 중복 방지
+        [IN_LRS_SVC_006] 중복 방지
         동일 선박 중복 입력 시 처리 (에러 없이 중복 건너뜀)
         """
         start_date = timezone.now().date()

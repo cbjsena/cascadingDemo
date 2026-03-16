@@ -21,7 +21,7 @@ class TestScenarioModels:
 
     def test_scenario_creation_defaults(self, base_scenario):
         """
-        [MODEL_SCE_001] Scenario 모델 Default
+        [IN_SCE_MDL_001] Scenario 모델 Default
         ScenarioInfo 생성 시 Default 값(status=ACTIVE) 및 ID 자동 할당 검증
         """
         assert base_scenario.code == "SC_TEST_BASE"
@@ -31,7 +31,7 @@ class TestScenarioModels:
 
     def test_cascade_delete(self, scenario_with_data):
         """
-        [MODEL_SCE_002] Scenario Cascade Delete
+        [IN_SCE_MDL_002] Scenario Cascade Delete
         Scenario 삭제 시 하위 ProformaSchedule이 Cascade 삭제되는지 검증
         """
         # Given: 부모와 자식 데이터가 존재함
@@ -55,7 +55,7 @@ class TestProformaModels:
 
     def test_proforma_creation_link(self, base_scenario, user):
         """
-        [MODEL_PF_001] Proforma Master-Detail FK
+        [IN_PF_MDL_001] Proforma Master-Detail FK
         ProformaSchedule(Master)과 ProformaScheduleDetail(Detail) 생성 시 FK 연결 검증
         """
         eff_from_date = timezone.make_aware(datetime(2026, 1, 1))
@@ -90,7 +90,7 @@ class TestProformaModels:
 
     def test_master_unique_constraint(self, base_scenario, user):
         """
-        [MODEL_PF_002] Proforma Master Unique
+        [IN_PF_MDL_002] Proforma Master Unique
         동일 시나리오 내 동일 Lane/Proforma Name 중복 생성 시 IntegrityError 발생 검증
         """
         common_master_data = {
@@ -111,7 +111,7 @@ class TestProformaModels:
 
     def test_detail_unique_constraint(self, base_scenario, user):
         """
-        [MODEL_PF_003] Proforma Detail Unique
+        [IN_PF_MDL_003] Proforma Detail Unique
         동일 Proforma 내 동일 포트/방향/순서 중복 생성 시 IntegrityError 발생 검증
         """
         master = ProformaSchedule.objects.create(
@@ -149,7 +149,7 @@ class TestCascadingVesselPositionModels:
 
     def test_cascading_position_creation(self, sample_schedule, user):
         """
-        [MODEL_CVP_001] CascadingVesselPosition 생성
+        [IN_CV_MDL_001] CascadingVesselPosition 생성
         생성 시 필드 값 및 __str__ 출력 검증
         """
         position = CascadingVesselPosition.objects.create(
@@ -174,7 +174,7 @@ class TestCascadingVesselPositionModels:
 
     def test_cascading_position_query(self, cascading_with_details):
         """
-        [MODEL_CVP_002] CascadingVesselPosition 조회
+        [IN_CV_MDL_002] CascadingVesselPosition 조회
         fixture에서 생성된 Position 데이터 검증
         """
         first_pos = cascading_with_details[0]
@@ -190,7 +190,7 @@ class TestCascadingVesselPositionModels:
 
     def test_cascading_position_unique_constraint(self, sample_schedule, user):
         """
-        [MODEL_CVP_003] CascadingVesselPosition Unique
+        [IN_CV_MDL_003] CascadingVesselPosition Unique
         동일 scenario+proforma+vessel_position 중복 생성 시 IntegrityError 발생 검증
         """
         CascadingVesselPosition.objects.create(
@@ -214,7 +214,7 @@ class TestCascadingVesselPositionModels:
 
     def test_cascading_position_cascade_delete(self, cascading_with_details):
         """
-        [MODEL_CVP_004] Scenario Cascade Delete
+        [IN_CV_MDL_004] Scenario Cascade Delete
         Scenario 삭제 시 CascadingVesselPosition도 함께 삭제되는지 검증
         """
         first_pos = cascading_with_details[0]
@@ -240,7 +240,7 @@ class TestCascadingScheduleModels:
 
     def test_cascading_schedule_creation(self, sample_schedule, user):
         """
-        [MODEL_CS_001] CascadingSchedule 생성
+        [IN_CS_MDL_001] CascadingSchedule 생성
         생성 시 필드 값 및 __str__ 출력 검증 (vessel_code 없음)
         """
         from input_data.models import CascadingSchedule
@@ -268,7 +268,7 @@ class TestCascadingScheduleModels:
 
     def test_cascading_schedule_unique_constraint(self, sample_schedule, user):
         """
-        [MODEL_CS_002] CascadingSchedule Unique
+        [IN_CS_MDL_002] CascadingSchedule Unique
         동일 scenario+proforma+vessel_position 중복 생성 시 IntegrityError 발생 검증
         """
         from input_data.models import CascadingSchedule
@@ -292,7 +292,7 @@ class TestCascadingScheduleModels:
 
     def test_cascading_schedule_cascade_delete(self, sample_schedule, user):
         """
-        [MODEL_CS_003] CascadingSchedule Cascade Delete
+        [IN_CS_MDL_003] CascadingSchedule Cascade Delete
         Scenario 삭제 시 CascadingSchedule도 함께 삭제되는지 검증
         """
         from input_data.models import CascadingSchedule

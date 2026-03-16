@@ -152,7 +152,7 @@ class TestScenarioCreationService:
 
     def test_sce_svc_001_general_tables_creation(self, setup_base_general_data, user):
         """
-        [SCE_SVC_001] 시나리오 기본 생성 (일반 테이블)
+        [IN_SCE_SVC_001] 시나리오 기본 생성 (일반 테이블)
         Master-Detail 분리가 없는 일반 테이블들이 Base에서 Scenario로 정상 복사되는지 검증
         """
         # When
@@ -186,7 +186,7 @@ class TestScenarioCreationService:
         assert vessel_capacities.first().scenario == scenario
 
     def test_sce_svc_002_multiple_scenario_creation(self, setup_base_data, user):
-        """[SCE_SVC_002] 여러 시나리오 생성 검증"""
+        """[IN_SCE_SVC_002] 여러 시나리오 생성 검증"""
         # Given: 첫 번째 생성
         first_scenario, _ = create_scenario_from_base(
             description="First Scenario", user=user
@@ -235,7 +235,7 @@ class TestScenarioCreationService:
         )
 
     def test_sce_svc_003_system_user_creation(self, setup_base_data):
-        """[SCE_SVC_003] 시스템 유저 자동 할당 검증"""
+        """[IN_SCE_SVC_003] 시스템 유저 자동 할당 검증"""
         # When: user 없이 생성
         scenario, summary = create_scenario_from_base(
             description="System Test Scenario", user=None
@@ -253,7 +253,7 @@ class TestScenarioCreationService:
         self, setup_base_proforma_data, user
     ):
         """
-        [SCE_SVC_004] Proforma Master-Detail 분리 검증
+        [IN_SCE_SVC_004] Proforma Master-Detail 분리 검증
         BaseProformaSchedule Flat 데이터가 ProformaSchedule(Master)와 ProformaScheduleDetail로 정상 분리되는지 검증
         """
         # When
@@ -294,7 +294,7 @@ class TestScenarioCreationService:
         self, setup_base_cascading_data, user
     ):
         """
-        [SCE_SVC_005] Cascading Vessel Position 생성 검증
+        [IN_SCE_SVC_005] Cascading Vessel Position 생성 검증
         BaseCascadingVesselPosition Flat 데이터가 CascadingVesselPosition으로 정상 복사되는지 검증
         """
         # When
@@ -333,7 +333,7 @@ class TestScenarioCreationService:
         self, setup_base_cascading_data, user
     ):
         """
-        [SCE_SVC_006] Cascading Schedule Base 복사 검증
+        [IN_SCE_SVC_006] Cascading Schedule Base 복사 검증
         BaseCascadingSchedule Flat 데이터가 CascadingSchedule로 정상 복사되는지 검증
         """
 
@@ -382,7 +382,7 @@ class TestScenarioCreationService:
 class TestScenarioCreationFilters:
     """
     SCENARIO_CREATION_FILTERS 검증 (V### 정규식 필터)
-    Test Scenarios: SCE_FILTER_001, SCE_FILTER_002
+    Test Scenarios: IN_SCE_SVC_007, IN_SCE_SVC_008
     """
 
     @pytest.fixture
@@ -446,7 +446,7 @@ class TestScenarioCreationFilters:
 
     def test_vessel_info_v_hash_filter(self, setup_filter_data):
         """
-        [SCE_FILTER_001] VesselInfo V### 형태만 복사 검증
+        [IN_SCE_SVC_007] VesselInfo V### 형태만 복사 검증
         V001, V123, V999 -> 복사됨
         V0AB, VSSL, V1234, ABCD -> 복사 안 됨
         """
@@ -474,7 +474,7 @@ class TestScenarioCreationFilters:
 
     def test_vessel_capacity_v_hash_filter(self, setup_filter_data):
         """
-        [SCE_FILTER_002] VesselCapacity도 V### 필터 적용 검증
+        [IN_SCE_SVC_008] VesselCapacity도 V### 필터 적용 검증
         V001, V999 -> 복사됨
         ABCD -> 복사 안 됨
         """

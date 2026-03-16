@@ -24,7 +24,7 @@ class TestDocGeneration:
         ]
 
     def test_generate_csv_success(self, tmp_path, mock_pg_data):
-        """[TEST_DOC_03] PostgreSQL 환경에서 CSV 파일 정상 생성 검증"""
+        """[CM_DOC_003] PostgreSQL 환경에서 CSV 파일 정상 생성 검증"""
 
         # 1. settings.BASE_DIR을 pytest가 제공하는 임시 폴더(tmp_path)로 변경
         with patch("django.conf.settings.BASE_DIR", str(tmp_path)):
@@ -63,7 +63,7 @@ class TestDocGeneration:
                         assert rows[5] == ["base_test_table", "col_2", "int", "YES", ""]
 
     def test_skip_non_postgresql(self, tmp_path):
-        """[TEST_DOC_04] MySQL 등 타 DB에서는 파일 생성 스킵"""
+        """[CM_DOC_004] MySQL 등 타 DB에서는 파일 생성 스킵"""
         with patch("django.conf.settings.BASE_DIR", str(tmp_path)):
             with patch("django.db.connection.vendor", "mysql"):
                 app_config = apps.get_app_config("input_data")
@@ -75,7 +75,7 @@ class TestDocGeneration:
                 ), "File should NOT be created for MySQL"
 
     def test_empty_data_handling(self, tmp_path):
-        """[TEST_DOC_05] DB 쿼리 결과가 없을 때 파일 생성하지 않음"""
+        """[CM_DOC_005] DB 쿼리 결과가 없을 때 파일 생성하지 않음"""
         with patch("django.conf.settings.BASE_DIR", str(tmp_path)):
             with patch("django.db.connection.vendor", "postgresql"):
                 with patch("django.db.connection.cursor") as mock_cursor_ctx:

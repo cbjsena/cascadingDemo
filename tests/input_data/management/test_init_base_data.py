@@ -22,7 +22,7 @@ class TestInitBaseData:
 
     def test_load_base_data_success(self, temp_base_data_dir):
         """
-        [CMD_INIT_001] 정상 데이터 로드 및 날짜/숫자 파싱 확인
+        [IN_SCE_CMD_001] 정상 데이터 로드 및 날짜/숫자 파싱 확인
         """
         base_dir, data_dir = temp_base_data_dir
 
@@ -53,7 +53,7 @@ TEST2,Test Vessel 2,C,2025/02/01"""
 
     def test_date_format_compatibility(self, temp_base_data_dir):
         """
-        [CMD_INIT_003] 날짜 포맷 호환성 (YYYY/MM/DD HH:MM:SS, YYYY/MM/DD 혼용)
+        [IN_SCE_CMD_003] 날짜 포맷 호환성 (YYYY/MM/DD HH:MM:SS, YYYY/MM/DD 혼용)
         """
         base_dir, data_dir = temp_base_data_dir
 
@@ -81,7 +81,7 @@ TEST_FMT2,Test Vessel 2,C,2025/02/15"""
 
     def test_load_empty_values(self, temp_base_data_dir):
         """
-        [CMD_INIT_002] 빈 값 처리 (숫자 -> 0/None, 날짜 -> None)
+        [IN_SCE_CMD_002] 빈 값 처리 (숫자 -> 0/None, 날짜 -> None)
         """
         base_dir, data_dir = temp_base_data_dir
 
@@ -101,7 +101,7 @@ EMPTY,EMPTY vessel,,,"""
 
     def test_row_error_handling(self, temp_base_data_dir, capsys):
         """
-        [CMD_INIT_004] 잘못된 데이터 행 처리 (스킵 및 경고)
+        [IN_SCE_CMD_004] 잘못된 데이터 행 처리 (스킵 및 경고)
         """
         base_dir, data_dir = temp_base_data_dir
 
@@ -130,7 +130,7 @@ OK2,Normal Vessel 2,2026/01/01 00:00:00"""
 
     def test_file_not_found(self, temp_base_data_dir, capsys):
         """
-        [CMD_INIT_005] 파일이 없을 때 처리
+        [IN_SCE_CMD_005] 파일이 없을 때 처리
         """
         base_dir, data_dir = temp_base_data_dir
         # CSV 파일 생성 안 함

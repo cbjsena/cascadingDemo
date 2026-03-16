@@ -19,7 +19,7 @@ class TestScenarioView:
     # ==========================================================================
     def test_scenario_list_view(self, auth_client, base_scenario):
         """
-        [INPUT_SCENARIO_LIST_001] 시나리오 목록 조회 및 기본값 확인
+        [IN_SCE_001] 시나리오 목록 조회 및 기본값 확인
         """
         url = reverse("input_data:scenario_list")
         response = auth_client.get(url)
@@ -37,7 +37,7 @@ class TestScenarioView:
 
     def test_anonymous_access_control(self, client):
         """
-        [INPUT_ACCESS_001] 비로그인 사용자 접근 차단
+        [CM_AUTH_001] 비로그인 사용자 접근 차단
         """
         urls = [
             reverse("input_data:scenario_list"),
@@ -54,7 +54,7 @@ class TestScenarioView:
     # ==========================================================================
     def test_scenario_create_success(self, auth_client, user):
         """
-        [INPUT_SCENARIO_CREATE_001] 신규 시나리오 생성 (성공)
+        [IN_SCE_002] 신규 시나리오 생성 (성공)
         """
         url = reverse("input_data:scenario_create")
         data = {
@@ -78,7 +78,7 @@ class TestScenarioView:
 
     def test_scenario_create_code_auto_increment(self, auth_client, user):
         """
-        [INPUT_SCENARIO_CREATE_002] code 자동 채번 검증
+        [IN_SCE_003] code 자동 채번 검증
         """
         url = reverse("input_data:scenario_create")
 
@@ -103,7 +103,7 @@ class TestScenarioView:
     # ==========================================================================
     def test_scenario_clone_success(self, auth_client, scenario_with_data):
         """
-        [INPUT_SCENARIO_CLONE_001] 기존 시나리오 복제 (성공)
+        [IN_SCE_004] 기존 시나리오 복제 (성공)
         """
         # Given: scenario_with_data에는 하위 Proforma Master/Detail 데이터가 각 1건씩 있음
         source_id = scenario_with_data.id
@@ -158,7 +158,7 @@ class TestScenarioView:
     # ==========================================================================
     def test_scenario_delete_success(self, auth_client, scenario_with_data):
         """
-        [INPUT_SCENARIO_DELETE_001] 시나리오 삭제 (성공 & Cascade)
+        [IN_SCE_005] 시나리오 삭제 (성공 & Cascade)
         """
         target_id = scenario_with_data.id
         url = reverse("input_data:scenario_delete", args=[target_id])
@@ -176,7 +176,7 @@ class TestScenarioView:
 
     def test_scenario_delete_permission_denied(self, auth_client, other_user):
         """
-        [INPUT_SCENARIO_DELETE_002] 타인 시나리오 삭제 시도 (권한 없음)
+        [IN_SCE_006] 타인 시나리오 삭제 시도 (권한 없음)
         """
         # 타인(other_user) 소유의 시나리오 생성
         other_scenario = ScenarioInfo.objects.create(
@@ -197,7 +197,7 @@ class TestScenarioView:
 
     def test_scenario_delete_by_superuser(self, client, admin_user, other_user):
         """
-        [INPUT_SCENARIO_DELETE_003] 관리자(Superuser)의 삭제 (성공)
+        [IN_SCE_007] 관리자(Superuser)의 삭제 (성공)
         """
         # 타인 소유 시나리오
         target = ScenarioInfo.objects.create(
@@ -222,7 +222,7 @@ class TestScenarioDashboardView:
 
     def test_dashboard_lane_link_not_empty(self, auth_client, sample_schedule):
         """
-        [SCE_DASHBOARD_LINK_001] Dashboard에서 Proforma 링크의 lane_code 파라미터가
+        [IN_DASH_003] Dashboard에서 Proforma 링크의 lane_code 파라미터가
         비어있지 않은지 검증.
         Bug Fix: .values() 딕셔너리에서 item.lane_code(없는 키) → item.lane_id
         """

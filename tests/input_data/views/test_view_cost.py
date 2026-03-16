@@ -1,7 +1,7 @@
 """
 Cost 화면 테스트
-Test Scenarios: CANAL_FEE_001~005, DISTANCE_001~005, TS_COST_001~007,
-                CSV_DOWNLOAD_001~003, CSV_UPLOAD_001~003
+Test Scenarios: IN_CF_001~005, IN_DST_001~005, IN_TSC_001~007,
+                IN_CSV_001~003, IN_CSV_004~003
 """
 
 import io
@@ -78,7 +78,7 @@ class TestCanalFeeView:
 
     def test_canal_fee_list(self, auth_client, canal_fee_data):
         """
-        [CANAL_FEE_001] Canal Fee 목록 조회
+        [IN_CF_001] Canal Fee 목록 조회
         Canal Fee 페이지 정상 로드 및 context 검증
         """
         url = reverse("input_data:canal_fee_list")
@@ -95,7 +95,7 @@ class TestCanalFeeView:
 
     def test_canal_fee_scenario_filter(self, auth_client, canal_fee_data):
         """
-        [CANAL_FEE_002] Canal Fee 시나리오 필터
+        [IN_CF_002] Canal Fee 시나리오 필터
         시나리오 선택 시 해당 데이터만 표시 검증
         """
         s1 = canal_fee_data["s1"]
@@ -114,7 +114,7 @@ class TestCanalFeeView:
 
     def test_canal_fee_search(self, auth_client, canal_fee_data):
         """
-        [CANAL_FEE_003] Canal Fee 검색 필터링
+        [IN_CF_003] Canal Fee 검색 필터링
         Vessel/Port 코드 검색 검증
         """
         # s1 시나리오 내에서 검색 진행 (V001, KRPUS 존재)
@@ -131,7 +131,7 @@ class TestCanalFeeView:
 
     def test_canal_fee_add_row_save(self, auth_client, canal_fee_data):
         """
-        [CANAL_FEE_004] Canal Fee 모달 추가 저장
+        [IN_CF_004] Canal Fee 모달 추가 저장
         모달에서 새 Canal Fee 입력 후 DB 저장 검증
         """
         s1 = canal_fee_data["s1"]
@@ -166,7 +166,7 @@ class TestCanalFeeView:
 
     def test_canal_fee_delete(self, auth_client, canal_fee_data):
         """
-        [CANAL_FEE_005] Canal Fee 삭제
+        [IN_CF_005] Canal Fee 삭제
         선택 Canal Fee 삭제 검증
         """
         cf1 = canal_fee_data["cf1"]
@@ -220,7 +220,7 @@ class TestDistanceView:
 
     def test_distance_list(self, auth_client, distance_data):
         """
-        [DISTANCE_001] Distance 목록 조회 및 Context 검증
+        [IN_DST_001] Distance 목록 조회 및 Context 검증
         """
         url = reverse("input_data:distance_list")
         response = auth_client.get(url)
@@ -233,7 +233,7 @@ class TestDistanceView:
 
     def test_distance_scenario_filter(self, auth_client, distance_data):
         """
-        [DISTANCE_002] 시나리오 선택 시 해당 데이터만 표시
+        [IN_DST_002] 시나리오 선택 시 해당 데이터만 표시
         """
         s1 = distance_data["s1"]
         url = reverse("input_data:distance_list")
@@ -246,7 +246,7 @@ class TestDistanceView:
 
     def test_distance_search(self, auth_client, distance_data):
         """
-        [DISTANCE_003] Port 코드 검색 필터링
+        [IN_DST_003] Port 코드 검색 필터링
         """
         s1 = distance_data["s1"]
         url = reverse("input_data:distance_list")
@@ -261,7 +261,7 @@ class TestDistanceView:
 
     def test_distance_add_row_save(self, auth_client, distance_data):
         """
-        [DISTANCE_004] 모달에서 Distance 추가 후 DB 저장
+        [IN_DST_004] 모달에서 Distance 추가 후 DB 저장
         """
         s1 = distance_data["s1"]
         url = reverse("input_data:distance_list")
@@ -287,7 +287,7 @@ class TestDistanceView:
 
     def test_distance_delete(self, auth_client, distance_data):
         """
-        [DISTANCE_005] 선택 Distance 삭제
+        [IN_DST_005] 선택 Distance 삭제
         """
         d1 = distance_data["d1"]
         s1 = distance_data["s1"]
@@ -336,7 +336,7 @@ class TestTSCostView:
 
     def test_ts_cost_list(self, auth_client, ts_cost_data):
         """
-        [TS_COST_001] TS Cost 목록 조회
+        [IN_TSC_001] TS Cost 목록 조회
         """
         url = reverse("input_data:ts_cost_list")
         response = auth_client.get(url)
@@ -352,7 +352,7 @@ class TestTSCostView:
 
     def test_ts_cost_scenario_filter(self, auth_client, ts_cost_data):
         """
-        [TS_COST_002] 시나리오 선택 시 해당 데이터만 표시
+        [IN_TSC_002] 시나리오 선택 시 해당 데이터만 표시
         """
         s1 = ts_cost_data["s1"]
         url = reverse("input_data:ts_cost_list")
@@ -365,7 +365,7 @@ class TestTSCostView:
 
     def test_ts_cost_base_year_month_filter(self, auth_client, ts_cost_data):
         """
-        [TS_COST_007] Base Year Month 필터링
+        [IN_TSC_007] Base Year Month 필터링
         """
         s1 = ts_cost_data["s1"]
         url = reverse("input_data:ts_cost_list")
@@ -380,7 +380,7 @@ class TestTSCostView:
 
     def test_ts_cost_search(self, auth_client, ts_cost_data):
         """
-        [TS_COST_003] Lane/Port 코드 검색 필터링
+        [IN_TSC_003] Lane/Port 코드 검색 필터링
         """
         s1 = ts_cost_data["s1"]
         url = reverse("input_data:ts_cost_list")
@@ -392,7 +392,7 @@ class TestTSCostView:
 
     def test_ts_cost_add_row_save(self, auth_client, ts_cost_data):
         """
-        [TS_COST_004] 모달에서 TS Cost 추가 후 DB 저장
+        [IN_TSC_004] 모달에서 TS Cost 추가 후 DB 저장
         """
         s1 = ts_cost_data["s1"]
         url = reverse("input_data:ts_cost_list")
@@ -420,7 +420,7 @@ class TestTSCostView:
 
     def test_ts_cost_delete(self, auth_client, ts_cost_data):
         """
-        [TS_COST_005] 선택 TS Cost 삭제
+        [IN_TSC_005] 선택 TS Cost 삭제
         """
         tc1 = ts_cost_data["tc1"]
         s1 = ts_cost_data["s1"]
@@ -440,7 +440,7 @@ class TestTSCostView:
 
     def test_ts_cost_duplicate_skip(self, auth_client, ts_cost_data):
         """
-        [TS_COST_006] 동일 scenario+base_year_month+lane+port 중복 저장 시 skip + 경고
+        [IN_TSC_006] 동일 scenario+base_year_month+lane+port 중복 저장 시 skip + 경고
         """
         from django.contrib.messages import get_messages
 
@@ -503,7 +503,7 @@ class TestCsvDownloadUpload:
 
     def test_csv_download(self, auth_client, canal_fee_data):
         """
-        [CSV_DOWNLOAD_001] CSV 다운로드 시 올바른 content-type과 데이터 검증
+        [IN_CSV_001] CSV 다운로드 시 올바른 content-type과 데이터 검증
         """
         s1 = canal_fee_data["s1"]
         url = reverse("input_data:canal_fee_list")
@@ -527,7 +527,7 @@ class TestCsvDownloadUpload:
 
     def test_csv_download_scenario_filter(self, auth_client, canal_fee_data):
         """
-        [CSV_DOWNLOAD_002] 시나리오 미선택 시에도 다운로드 가능 (전체)
+        [IN_CSV_002] 시나리오 미선택 시에도 다운로드 가능 (전체)
         """
         url = reverse("input_data:canal_fee_list")
         response = auth_client.post(
@@ -539,7 +539,7 @@ class TestCsvDownloadUpload:
 
     def test_csv_download_has_scenario_code_column(self, auth_client, canal_fee_data):
         """
-        [CSV_DOWNLOAD_003] CSV에 scenario_code 컬럼이 포함되고 값이 정확한지 검증
+        [IN_CSV_003] CSV에 scenario_code 컬럼이 포함되고 값이 정확한지 검증
         """
         s1 = canal_fee_data["s1"]
         url = reverse("input_data:canal_fee_list")
@@ -556,7 +556,7 @@ class TestCsvDownloadUpload:
 
     def test_csv_upload(self, auth_client, canal_fee_data):
         """
-        [CSV_UPLOAD_001] CSV 업로드 시 DB에 데이터 저장 검증
+        [IN_CSV_004] CSV 업로드 시 DB에 데이터 저장 검증
         """
         s1 = canal_fee_data["s1"]
         # 헤더는 DB 컬럼명 사용
@@ -585,7 +585,7 @@ class TestCsvDownloadUpload:
 
     def test_csv_upload_no_file(self, auth_client, canal_fee_data):
         """
-        [CSV_UPLOAD_002] 파일 미선택 시 에러 메시지 검증
+        [IN_CSV_005] 파일 미선택 시 에러 메시지 검증
         """
         from django.contrib.messages import get_messages
 
@@ -602,7 +602,7 @@ class TestCsvDownloadUpload:
 
     def test_csv_upload_no_scenario(self, auth_client, canal_fee_data):
         """
-        [CSV_UPLOAD_003] 시나리오 미선택 시 에러 메시지 검증
+        [IN_CSV_006] 시나리오 미선택 시 에러 메시지 검증
         """
         from django.contrib.messages import get_messages
 

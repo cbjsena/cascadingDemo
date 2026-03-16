@@ -20,7 +20,7 @@ class TestProformaServiceLogic:
         self, proforma_service, base_scenario, distance_data
     ):
         """
-        [PF_CALC_002] 역산 로직 검증 (ETB 기준 -> Sea Time/Speed 계산)
+        [IN_PF_011] 역산 로직 검증 (ETB 기준 -> Sea Time/Speed 계산)
         Given:
          - Row 1 (PUS): Start Day 0 00:00, Work 10h -> ETD Day 0 10:00. Pilot Out 1h.
          - Row 2 (TYO): ETB Day 2 12:00 (User Input). Pilot In 1h. Dist 500.
@@ -70,7 +70,7 @@ class TestProformaServiceLogic:
 
     def test_etb_no_priority(self, proforma_service, base_scenario):
         """
-        [PF_LOGIC_001] ETB No 우선순위 검증
+        [IN_PF_012] ETB No 우선순위 검증
         자동 로직(요일 계산)보다 사용자가 입력한 etb_no(Day 10)가 유지되어야 함.
         """
         rows = [
@@ -103,7 +103,7 @@ class TestProformaServiceLogic:
 
     def test_past_time_correction(self, proforma_service, base_scenario):
         """
-        [PF_LOGIC_002] 과거 시간 입력 시 자동 보정
+        [IN_PF_013] 과거 시간 입력 시 자동 보정
         상황: Row 0가 2일(48h) 동안 작업하여 Day 2(TUE)에 끝남.
         입력: Row 1에 Day 1(MON)을 입력 (과거 시간 오류).
         기대: Day 2(TUE) 이후 가장 가까운 User Day(WED)인 Day 3으로 보정.
@@ -139,7 +139,7 @@ class TestProformaServiceLogic:
 
     def test_save_mapping_and_indicator(self, proforma_service, base_scenario, user):
         """
-        [PF_SAVE_001 서비스] save_schedule 내부 DB 저장 로직 및 Indicator 생성 검증
+        [IN_PF_014 서비스] save_schedule 내부 DB 저장 로직 및 Indicator 생성 검증
         뷰 레벨 테스트: test_view_proforma.py::test_action_save_full 참조
         """
         header = {
@@ -175,7 +175,7 @@ class TestProformaServiceLogic:
 
     def test_row_operations(self, proforma_service, base_scenario):
         """
-        [PF_GRID_001~003] 행 추가/삽입/삭제 로직 검증
+        [IN_PF_006~003] 행 추가/삽입/삭제 로직 검증
         """
         rows = []
         # Add
@@ -248,7 +248,7 @@ class TestProformaFileCalculation:
 
     def test_calculate_with_files(self, service, base_scenario):
         """
-        [PF_FILE_CALC_001] CSV 파일 기반 스케줄 계산 정합성 검증
+        [IN_PF_019] CSV 파일 기반 스케줄 계산 정합성 검증
         1. Output CSV를 기반으로 Distance 데이터 적재
         2. Input CSV를 읽어 Service 입력 포맷으로 변환
         3. calculate_schedule 실행
