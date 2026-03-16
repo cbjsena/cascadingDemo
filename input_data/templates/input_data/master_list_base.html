@@ -163,6 +163,10 @@ document.addEventListener('DOMContentLoaded', function() {
     // 공통 이벤트 처리 (검색)
     $('#btnCustomSearch').on('click', function() { table.draw(); });
     $('.dt-filter').on('change', function() { table.draw(); }); // 드롭다운 변경 시 즉각 갱신
+    // Enter 키로 검색 지원
+    $('#filterSearch').on('keypress', function(e) {
+        if (e.which === 13) { e.preventDefault(); table.draw(); }
+    });
 
     // 공통 버튼 이벤트
     document.getElementById('btnAddRow').addEventListener('click', function() {
