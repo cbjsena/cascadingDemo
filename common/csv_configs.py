@@ -138,3 +138,39 @@ BUNKER_PRICE_CSV_MAP = [
     ("bunker_type", "bunker_type", True),
     ("bunker_price", "bunker_price", True),
 ]
+
+
+# =========================================================
+# Master Group (시나리오 독립 — scenario_code 컬럼 없음)
+# =========================================================
+
+MASTER_TRADE_CSV_MAP = [
+    ("trade_code", "trade_code", True),
+    ("trade_name", "trade_name", True),
+    ("from_continent_code", "from_continent_code", False),
+    ("to_continent_code", "to_continent_code", False),
+]
+
+MASTER_PORT_CSV_MAP = [
+    ("port_code", "port_code", True),
+    ("port_name", "port_name", True),
+    ("continent_code", "continent_code", False),
+    ("country_code", "country_code", False),
+]
+
+MASTER_LANE_CSV_MAP = [
+    ("lane_code", "lane_code", True),
+    ("lane_name", "lane_name", True),
+    ("vessel_service_type_code", "vessel_service_type_code", False),
+    ("effective_from_date", "effective_from_date", False),
+    ("effective_to_date", "effective_to_date", False),
+    ("feeder_division_code", "feeder_division_code", False),
+]
+
+MASTER_WEEK_PERIOD_CSV_MAP = [
+    ("base_year", "base_year", True),
+    ("base_week", "base_week", True),
+    ("base_month", "base_month", False),
+    ("week_start_date", "week_start_date", True),
+    ("week_end_date", "week_end_date", True),
+]

@@ -1,8 +1,11 @@
 """
 Master 화면 테스트
 Test Scenarios: MASTER_TRADE_001~005, MASTER_PORT_001~003, MASTER_LANE_001~003,
-                MASTER_WEEK_PERIOD_001~003, MASTER_MENU_001~003
+                MASTER_WEEK_PERIOD_001~003, MASTER_MENU_001~003,
+                MASTER_CSV_001~003
 """
+
+import io
 
 from django.urls import reverse
 
@@ -371,3 +374,106 @@ class TestMasterMenu:
         content = response.content.decode("utf-8")
         # Week Period 메뉴가 렌더링되어야 함
         assert "Week Period" in content
+
+
+@pytest.mark.django_db
+class TestMasterCSV:
+    """Master CSV 다운로드/업로드 테스트"""
+
+    def test_csv_download_trade(self, auth_client):
+        """
+        [MASTER_CSV_001] Trade CSV 다운로드 — 헤더 및 데이터 검증
+        """
+        MasterTrade.objects.get_or_create(
+            trade_code="CSV_T1", defaults={"trade_name": "CSV Test Trade"}
+        )
+
+        url = reverse("input_data:master_trade_list")
+        response = auth_client.post(url, {"action": "csv_download"})
+
+        assert response.status_code == 200
+        assert response["Content-Type"] == "text/csv; charset=utf-8"
+        assert "attachment" in response["Content-Disposition"]
+
+        content = response.content.decode("utf-8-sig")
+        lines = content.strip().split("\n")
+        assert "trade_code" in lines[0]
+        assert "CSV_T1" in content
+
+    def test_csv_download_port(self, auth_client):
+        """
+        [MASTER_CSV_001] Port CSV 다운로드 검증
+        """
+        MasterPort.objects.get_or_create(
+            port_code="CSV_P1", defaults={"port_name": "CSV Test Port"}
+        )
+
+        url = reverse("input_data:master_port_list")
+        response = auth_client.post(url, {"action": "csv_download"})
+
+        assert response.status_code == 200
+        content = response.content.decode("utf-8-sig")
+        assert "port_code" in content
+        assert "CSV_P1" in content
+
+    def test_csv_upload_trade(self, auth_client):
+        """
+        [MASTER_CSV_002] Trade CSV 업로드 — DB 저장 검증
+        """
+        csv_content = "trade_code,trade_name,from_continent_code,to_continent_code\n"
+        csv_content += "UP_T1,Upload Trade 1,AS,EU\n"
+        csv_content += "UP_T2,Upload Trade 2,,\n"
+
+        csv_file = io.BytesIO(csv_content.encode("utf-8-sig"))
+        csv_file.name = "test_trades.csv"
+
+        url = reverse("input_data:master_trade_list")
+        response = auth_client.post(url, {"action": "csv_upload", "csv_file": csv_file})
+
+        assert response.status_code == 302
+        assert MasterTrade.objects.filter(trade_code="UP_T1").exists()
+        assert MasterTrade.objects.filter(trade_code="UP_T2").exists()
+
+        t1 = MasterTrade.objects.get(trade_code="UP_T1")
+        assert t1.trade_name == "Upload Trade 1"
+        assert t1.from_continent_code == "AS"
+
+    def test_csv_upload_no_file(self, auth_client):
+        """
+        [MASTER_CSV_003] 파일 미선택 시 에러 메시지
+        """
+        url = reverse("input_data:master_trade_list")
+        response = auth_client.post(url, {"action": "csv_upload"}, follow=True)
+
+        assert response.status_code == 200
+        msgs = [str(m) for m in response.context["messages"]]
+        assert any("file" in m.lower() or "select" in m.lower() for m in msgs)
+
+    def test_csv_upload_week_period(self, auth_client):
+        """
+        [MASTER_CSV_002] Week Period CSV 업로드 — DB 저장 검증
+        """
+        csv_content = (
+            "base_year,base_week,base_month,week_start_date,week_end_date\n"
+            "2027,10,03,2027-03-02,2027-03-08\n"
+        )
+
+        csv_file = io.BytesIO(csv_content.encode("utf-8-sig"))
+        csv_file.name = "test_week.csv"
+
+        url = reverse("input_data:master_week_period_list")
+        response = auth_client.post(url, {"action": "csv_upload", "csv_file": csv_file})
+
+        assert response.status_code == 302
+        assert BaseWeekPeriod.objects.filter(base_year="2027", base_week="10").exists()
+
+    def test_csv_buttons_visible(self, auth_client):
+        """
+        [MASTER_CSV_001] CSV 버튼이 화면에 표시되는지 확인
+        """
+        url = reverse("input_data:master_trade_list")
+        response = auth_client.get(url)
+
+        content = response.content.decode("utf-8")
+        assert "CSV Download" in content
+        assert "CSV Upload" in content

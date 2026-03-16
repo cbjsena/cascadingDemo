@@ -17,6 +17,46 @@
         </div>
     </div>
 
+    {% if has_csv %}
+    <div class="card shadow-sm mb-4">
+        <div class="card-header bg-light fw-bold">
+            <i class="bi bi-file-earmark-spreadsheet"></i> CSV Import / Export
+        </div>
+        <div class="card-body">
+            <div class="row g-3 align-items-end">
+                <!-- CSV Download -->
+                <div class="col-md-3">
+                    <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="csv_download">
+                        <button type="submit" class="btn btn-sm btn-outline-primary w-100">
+                            <i class="bi bi-download"></i> CSV Download
+                        </button>
+                    </form>
+                </div>
+
+                <!-- CSV Upload -->
+                <div class="col-md-6">
+                    <form method="post" enctype="multipart/form-data" class="d-flex gap-2 align-items-center" id="csvUploadForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="csv_upload">
+                        <input type="file" name="csv_file" accept=".csv" class="form-control form-control-sm">
+                        <button type="submit" class="btn btn-sm btn-outline-success flex-shrink-0">
+                            <i class="bi bi-upload"></i> CSV Upload
+                        </button>
+                    </form>
+                </div>
+
+                <div class="col-md-3">
+                    <small class="text-muted">
+                        <i class="bi bi-info-circle"></i> Download CSV → Edit → Upload.
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
     <div class="card shadow-sm mb-4">
         <div class="card-header bg-light fw-bold">Search Filter</div>
         <div class="card-body">

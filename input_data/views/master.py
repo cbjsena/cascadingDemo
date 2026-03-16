@@ -9,13 +9,23 @@ Master 데이터 관리 뷰 (Config 기반 공통 팩토리 패턴).
   → 내부에서 view() 함수를 정의하고 config를 클로저로 캡처한 뒤 반환
 """
 
+import csv
+import io
+
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from django.http import JsonResponse
+from django.http import HttpResponse, JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
+from common import messages as msg
+from common.csv_configs import (
+    MASTER_LANE_CSV_MAP,
+    MASTER_PORT_CSV_MAP,
+    MASTER_TRADE_CSV_MAP,
+    MASTER_WEEK_PERIOD_CSV_MAP,
+)
 from common.menus import (
     CREATION_MENU_STRUCTURE,
     MENU_STRUCTURE,
@@ -53,6 +63,8 @@ def master_crud_view(config):
                          [{"param": "continent", "filter_kwarg": "continent_code__icontains"}]
       extra_context_fn : (request) → dict : GET 렌더링 시 추가 context
       dt_columns       : DataTables 정렬용 컬럼 매핑 리스트
+      csv_map          : CSV 컬럼 매핑 리스트 [(header, model_field, required), ...]
+                         미지정 시 CSV 버튼이 표시되지 않음
     ──────────────────────────────────────────────────────────
     """
 
@@ -82,6 +94,12 @@ def master_crud_view(config):
                     messages.success(request, f"{created} {label}(s) added.")
                 return redirect(url_name)
 
+            elif action == "csv_download":
+                return _handle_master_csv_download(config)
+
+            elif action == "csv_upload":
+                return _handle_master_csv_upload(request, config)
+
         # ── AJAX 처리 (DataTables 서버사이드) ──
         if request.GET.get("draw"):
             return _handle_master_ajax(request, config)
@@ -98,6 +116,7 @@ def master_crud_view(config):
             "page_title": config["page_title"],
             "search": search,
             "reset_url": reverse(url_name),
+            "has_csv": bool(config.get("csv_map")),
         }
 
         # 추가 context (예: Port의 continent_codes)
@@ -164,6 +183,120 @@ def _handle_master_ajax(request, config):
             "data": data,
         }
     )
+
+
+# =========================================================
+# CSV 다운로드 (Master 전용 — 시나리오 없음)
+# =========================================================
+def _handle_master_csv_download(config):
+    """Master 테이블 전체 데이터를 CSV 파일로 다운로드한다."""
+    csv_map = config.get("csv_map", [])
+    if not csv_map:
+        return redirect(config["url_name"])
+
+    queryset = config["queryset_fn"]()
+
+    output = io.StringIO()
+    output.write("\ufeff")  # BOM (Excel 한글 깨짐 방지)
+    writer = csv.writer(output)
+
+    # 헤더
+    writer.writerow([col[0] for col in csv_map])
+
+    # 데이터
+    for obj in queryset:
+        row = []
+        for _, model_field, _ in csv_map:
+            val = getattr(obj, model_field, None)
+            row.append("" if val is None else str(val))
+        writer.writerow(row)
+
+    page_title = config["page_title"].replace(" ", "_").lower()
+    filename = f"{page_title}_all.csv"
+
+    response = HttpResponse(output.getvalue(), content_type="text/csv; charset=utf-8")
+    response["Content-Disposition"] = f'attachment; filename="{filename}"'
+    return response
+
+
+# =========================================================
+# CSV 업로드 (Master 전용 — 시나리오 없음)
+# =========================================================
+def _handle_master_csv_upload(request, config):
+    """CSV 파일을 업로드하여 Master 테이블에 저장한다."""
+    csv_map = config.get("csv_map", [])
+    url_name = config["url_name"]
+    label = config.get("label", config["model"]._meta.verbose_name)
+
+    if not csv_map:
+        messages.warning(request, msg.CSV_IMPORT_NOT_CONFIGURED)
+        return redirect(url_name)
+
+    csv_file = request.FILES.get("csv_file")
+    if not csv_file:
+        messages.error(request, msg.FILE_NOT_SELECTED)
+        return redirect(url_name)
+
+    if not csv_file.name.endswith(".csv"):
+        messages.error(request, msg.INVALID_FILE_EXT.format(ext="csv"))
+        return redirect(url_name)
+
+    model = config["model"]
+
+    try:
+        content = csv_file.read().decode("utf-8-sig")
+        reader = csv.reader(io.StringIO(content))
+        header_row = next(reader, None)
+        if not header_row:
+            messages.error(request, msg.CSV_FILE_EMPTY)
+            return redirect(url_name)
+
+        objects_to_create = []
+        skipped = 0
+
+        for row in reader:
+            if not row or all(cell.strip() == "" for cell in row):
+                continue
+
+            if len(row) < len(csv_map):
+                skipped += 1
+                continue
+
+            obj_data = {}
+            all_required_ok = True
+
+            for i, (_, model_field, required) in enumerate(csv_map):
+                val = row[i].strip() if i < len(row) else ""
+                obj_data[model_field] = val if val else None
+
+                if required and not val:
+                    all_required_ok = False
+                    break
+
+            if not all_required_ok:
+                skipped += 1
+                continue
+
+            objects_to_create.append(model(**obj_data))
+
+        created_count = 0
+        if objects_to_create:
+            model.objects.bulk_create(
+                objects_to_create, batch_size=1000, ignore_conflicts=True
+            )
+            created_count = len(objects_to_create)
+
+        messages.success(
+            request,
+            msg.CSV_IMPORT_RESULT.format(
+                created=created_count, label=label, skipped=skipped
+            ),
+        )
+
+    except Exception as e:
+        messages.error(request, msg.LOAD_ERROR.format(target="CSV", error=str(e)))
+
+    return redirect(url_name)
 
 
 # =========================================================
@@ -353,6 +486,7 @@ master_trade_list = master_crud_view(
         "queryset_fn": lambda: MasterTrade.objects.all().order_by("trade_code"),
         "search_fields": ["trade_code", "trade_name"],
         "save_fn": _save_trade,
+        "csv_map": MASTER_TRADE_CSV_MAP,
         "serialize_fn": lambda item: {
             "id": item.trade_code,
             "trade_code": item.trade_code,
@@ -385,6 +519,7 @@ master_port_list = master_crud_view(
         "queryset_fn": lambda: MasterPort.objects.all().order_by("port_code"),
         "search_fields": ["port_code", "port_name"],
         "save_fn": _save_port,
+        "csv_map": MASTER_PORT_CSV_MAP,
         "serialize_fn": lambda item: {
             "id": item.port_code,
             "port_code": item.port_code,
@@ -421,6 +556,7 @@ master_lane_list = master_crud_view(
         "queryset_fn": lambda: MasterLane.objects.all().order_by("lane_code"),
         "search_fields": ["lane_code", "lane_name"],
         "save_fn": _save_lane,
+        "csv_map": MASTER_LANE_CSV_MAP,
         "serialize_fn": lambda item: {
             "id": item.lane_code,
             "lane_code": item.lane_code,
@@ -466,6 +602,7 @@ master_week_period_list = master_crud_view(
         ),
         "search_fields": ["base_year", "base_week"],
         "save_fn": _save_week_period,
+        "csv_map": MASTER_WEEK_PERIOD_CSV_MAP,
         "serialize_fn": lambda item: {
             "id": item.id,
             "base_year": item.base_year,
