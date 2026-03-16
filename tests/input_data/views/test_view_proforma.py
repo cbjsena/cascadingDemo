@@ -21,7 +21,7 @@ class TestProformaReadViews:
 
     def test_proforma_list_view(self, auth_client, sample_schedule):
         """
-        [IN_PF_001] 목록 조회 테스트
+        [IN_PF_DIS_001] 목록 조회 테스트
         Changed: 메뉴 그룹이 'Schedule'인지 확인
         """
         url = reverse("input_data:proforma_list")
@@ -41,7 +41,7 @@ class TestProformaReadViews:
 
     def test_proforma_list_search(self, auth_client, base_scenario, user):
         """
-        [IN_PF_002] 검색 기능 테스트
+        [IN_PF_DIS_002] 검색 기능 테스트
         """
         # 검색 대상이 아닌 데이터 추가 (Master - Detail 분리 구조 적용)
         master = ProformaSchedule.objects.create(
@@ -96,7 +96,7 @@ class TestProformaReadViews:
 
     def test_proforma_detail_view(self, auth_client, sample_schedule):
         """
-        [IN_PF_003] 상세 조회 테스트
+        [IN_PF_DIS_003] 상세 조회 테스트
         Changed: 메뉴 그룹이 'Schedule'인지 확인
         """
         url = reverse("input_data:proforma_detail")
@@ -118,7 +118,7 @@ class TestProformaReadViews:
 
     def test_proforma_view_initial(self, auth_client, base_scenario):
         """
-        [IN_PF_004] 생성 화면 초기 진입
+        [IN_PF_DIS_004] 생성 화면 초기 진입
         Changed: Creation 섹션의 Schedule 그룹인지 확인
         """
         url = reverse("input_data:proforma_create")
@@ -135,7 +135,7 @@ class TestProformaReadViews:
 
     def test_proforma_edit_mode_load(self, auth_client, sample_schedule):
         """
-        [IN_PF_005] 수정 모드 데이터 로드
+        [IN_PF_DIS_005] 수정 모드 데이터 로드
         """
         url = reverse("input_data:proforma_create")
         params = {
@@ -161,7 +161,7 @@ class TestProformaGridActions:
     """
 
     def test_action_add_row(self, auth_client, base_scenario):
-        """[IN_PF_006] 행 추가"""
+        """[IN_PF_DIS_006] 행 추가"""
         url = reverse("input_data:proforma_create")
         data = {
             "action": "add_row",
@@ -174,7 +174,7 @@ class TestProformaGridActions:
         assert rows[0]["etb_day"] == "SUN"  # Default Value
 
     def test_action_insert_row(self, auth_client, base_scenario):
-        """[IN_PF_007] 행 삽입"""
+        """[IN_PF_DIS_007] 행 삽입"""
         url = reverse("input_data:proforma_create")
         # A, B 사이에 삽입 요청
         data = {
@@ -196,7 +196,7 @@ class TestProformaGridActions:
 
     def test_action_delete_row(self, auth_client, base_scenario):
         """
-        [IN_PF_008] 선택 행 삭제
+        [IN_PF_DIS_008] 선택 행 삭제
         """
         url = reverse("input_data:proforma_create")
         # index 1 (B) 삭제
@@ -217,7 +217,7 @@ class TestProformaGridActions:
 
     def test_action_new(self, auth_client, base_scenario):
         """
-        [IN_PF_009] 화면 초기화
+        [IN_PF_DIS_009] 화면 초기화
         """
         url = reverse("input_data:proforma_create")
         data = {"action": "new", "port_code[]": ["A", "B"]}
@@ -237,7 +237,7 @@ class TestProformaCalculation:
 
     def test_action_calculate(self, auth_client, base_scenario):
         """
-        [IN_PF_010/002] 계산 요청
+        [IN_PF_DIS_010/002] 계산 요청
         View가 Service를 호출해 계산된 rows를 반환하는지 확인
         """
         url = reverse("input_data:proforma_create")
@@ -259,7 +259,7 @@ class TestProformaCalculation:
 
     def test_action_save_full(self, auth_client, base_scenario):
         """
-        [IN_PF_014] 저장 요청 및 리다이렉트 (Master-Detail)
+        [IN_PF_DIS_014] 저장 요청 및 리다이렉트 (Master-Detail)
         """
         url = reverse("input_data:proforma_create")
         data = {
@@ -302,7 +302,7 @@ class TestProformaFileOperations:
 
     def test_action_export_excel(self, auth_client, base_scenario):
         """
-        [IN_PF_015] 엑셀 다운로드
+        [IN_PF_DIS_015] 엑셀 다운로드
         """
         url = reverse("input_data:proforma_create")
         data = {
@@ -320,7 +320,7 @@ class TestProformaFileOperations:
 
     def test_action_csv(self, auth_client, base_scenario):
         """
-        [IN_PF_016] DB 입력용 CSV 다운로드
+        [IN_PF_DIS_016] DB 입력용 CSV 다운로드
         """
         url = reverse("input_data:proforma_create")
         data = {
@@ -340,7 +340,7 @@ class TestProformaFileOperations:
 
     def test_upload_excel(self, auth_client, base_scenario):
         """
-        [IN_PF_017] 엑셀 업로드
+        [IN_PF_DIS_017] 엑셀 업로드
         """
         # 엑셀 파일 생성 (In-Memory)
         wb = openpyxl.Workbook()
@@ -371,7 +371,7 @@ class TestProformaFileOperations:
 
     def test_template_download(self, auth_client):
         """
-        [IN_PF_018] 템플릿 다운로드
+        [IN_PF_DIS_018] 템플릿 다운로드
         """
         url = reverse("input_data:proforma_template")
         response = auth_client.get(url)
@@ -395,7 +395,7 @@ class TestProformaLinkValidation:
         self, auth_client, sample_schedule
     ):
         """
-        [IN_PF_020] Proforma 목록 Detail 링크 검증
+        [IN_PF_DIS_020] Proforma 목록 Detail 링크 검증
         목록 화면의 Detail 버튼 href에 lane_code 파라미터가 올바르게 구성되는지 검증
         (FK attname 버그: lane_code=& 패턴 없음 확인)
         """
@@ -429,7 +429,7 @@ class TestProformaLinkValidation:
         self, auth_client, sample_schedule
     ):
         """
-        [IN_PF_021] Proforma 상세 파라미터 누락 처리
+        [IN_PF_DIS_021] Proforma 상세 파라미터 누락 처리
         필수 파라미터(lane_code) 누락 시 목록으로 리다이렉트되는지 검증
         """
         url = reverse("input_data:proforma_detail")
@@ -453,7 +453,7 @@ class TestProformaLinkValidation:
 
     def test_pf_detail_invalid_002_all_parameters_missing(self, auth_client):
         """
-        [IN_PF_021 확장] Proforma 상세 모든 파라미터 누락
+        [IN_PF_DIS_021 확장] Proforma 상세 모든 파라미터 누락
         모든 필수 파라미터 누락 시 처리 검증
         """
         url = reverse("input_data:proforma_detail")
@@ -466,4 +466,4 @@ class TestProformaLinkValidation:
             assert "proforma_list" in response.url or "/proforma/list" in response.url
 
 
-# NOTE: IN_DASH_003 테스트는 test_view_scenario.py::TestScenarioDashboardView에서 관리
+# NOTE: IN_DASH_DIS_003 테스트는 test_view_scenario.py::TestScenarioDashboardView에서 관리

@@ -1,6 +1,6 @@
 """
 Lane Proforma Mapping View Tests
-Test Scenarios: IN_LPM_001~004, IN_LPM_005~003, IN_LPM_008~002
+Test Scenarios: IN_LPM_DIS_001~004, IN_LPM_DIS_005~003, IN_LPM_DIS_008~002
 
 ※ conftest.py의 lane_proforma_scenario / lane_proforma_with_mapping fixture 사용
 """
@@ -13,7 +13,7 @@ from input_data.models import LaneProformaMapping
 
 
 # ==========================================================================
-# 1. View (화면 진입) — IN_LPM_001 ~ 004
+# 1. View (화면 진입) — IN_LPM_DIS_001 ~ 004
 # ==========================================================================
 @pytest.mark.django_db
 class TestLaneProformaMappingView:
@@ -23,7 +23,7 @@ class TestLaneProformaMappingView:
 
     def test_lpm_view_001_init(self, auth_client):
         """
-        [IN_LPM_001] Lane Proforma Mapping 편집 화면 초기 진입
+        [IN_LPM_DIS_001] Lane Proforma Mapping 편집 화면 초기 진입
         시나리오 미선택 시 빈 화면 정상 로드 확인
         """
         url = reverse("input_data:lane_proforma_mapping")
@@ -38,7 +38,7 @@ class TestLaneProformaMappingView:
 
     def test_lpm_view_002_scenario_select(self, auth_client, lane_proforma_scenario):
         """
-        [IN_LPM_002] 시나리오 선택 시 Lane별 Proforma 목록 표시
+        [IN_LPM_DIS_002] 시나리오 선택 시 Lane별 Proforma 목록 표시
         같은 Lane에 2개 Proforma, 다른 Lane에 1개 Proforma가 정확히 표시되는지 확인
         """
         data = lane_proforma_scenario
@@ -64,7 +64,7 @@ class TestLaneProformaMappingView:
         self, auth_client, lane_proforma_with_mapping
     ):
         """
-        [IN_LPM_003] 기존 매핑이 있을 때 체크 상태 표시
+        [IN_LPM_DIS_003] 기존 매핑이 있을 때 체크 상태 표시
         저장된 매핑이 화면에 체크된 상태로 표시되는지 확인
         """
         data = lane_proforma_with_mapping
@@ -88,7 +88,7 @@ class TestLaneProformaMappingView:
         self, auth_client, lane_proforma_with_mapping
     ):
         """
-        [IN_LPM_004] 겹침 구간 처리 - 타임라인 기간 분할 검증
+        [IN_LPM_DIS_004] 겹침 구간 처리 - 타임라인 기간 분할 검증
         같은 Lane에 6101(2026-01-01~)과 6102(2026-07-02~)가 선택될 때
         6101의 effective 기간이 6102 시작 전날까지로 잘리는지 확인
         """
@@ -125,7 +125,7 @@ class TestLaneProformaMappingView:
 
 
 # ==========================================================================
-# 2. Action (저장) — IN_LPM_005 ~ 003
+# 2. Action (저장) — IN_LPM_DIS_005 ~ 003
 # ==========================================================================
 @pytest.mark.django_db
 class TestLaneProformaMappingAction:
@@ -135,7 +135,7 @@ class TestLaneProformaMappingAction:
 
     def test_lpm_act_001_save_mapping(self, auth_client, lane_proforma_scenario):
         """
-        [IN_LPM_005] Proforma 매핑 저장
+        [IN_LPM_DIS_005] Proforma 매핑 저장
         선택한 Proforma가 LaneProformaMapping에 정상 저장되는지 검증
         """
         data = lane_proforma_scenario
@@ -158,7 +158,7 @@ class TestLaneProformaMappingAction:
 
     def test_lpm_act_002_update_mapping(self, auth_client, lane_proforma_with_mapping):
         """
-        [IN_LPM_006] 매핑 수정 (덮어쓰기)
+        [IN_LPM_DIS_006] 매핑 수정 (덮어쓰기)
         기존 매핑(3건) 삭제 후 새 매핑(1건)으로 교체되는지 검증
         """
         data = lane_proforma_with_mapping
@@ -181,7 +181,7 @@ class TestLaneProformaMappingAction:
 
     def test_lpm_act_003_clear_mapping(self, auth_client, lane_proforma_with_mapping):
         """
-        [IN_LPM_007] 매핑 전체 해제
+        [IN_LPM_DIS_007] 매핑 전체 해제
         아무것도 선택하지 않고 저장하면 기존 매핑이 모두 삭제되는지 검증
         """
         data = lane_proforma_with_mapping
@@ -198,7 +198,7 @@ class TestLaneProformaMappingAction:
 
 
 # ==========================================================================
-# 3. List (조회 - readonly) — IN_LPM_008 ~ 002
+# 3. List (조회 - readonly) — IN_LPM_DIS_008 ~ 002
 # ==========================================================================
 @pytest.mark.django_db
 class TestLaneProformaMappingList:
@@ -208,7 +208,7 @@ class TestLaneProformaMappingList:
 
     def test_lpm_list_001_view(self, auth_client, lane_proforma_with_mapping):
         """
-        [IN_LPM_008] Lane Proforma Mapping 조회 화면
+        [IN_LPM_DIS_008] Lane Proforma Mapping 조회 화면
         Input Management 메뉴의 조회 화면이 readonly로 정상 표시되는지 검증
         """
         data = lane_proforma_with_mapping
@@ -227,7 +227,7 @@ class TestLaneProformaMappingList:
 
     def test_lpm_list_002_init_no_scenario(self, auth_client):
         """
-        [IN_LPM_009] 조회 화면 초기 진입
+        [IN_LPM_DIS_009] 조회 화면 초기 진입
         시나리오 미선택 시 빈 화면 정상 로드 및 readonly 플래그 확인
         """
         url = reverse("input_data:lane_proforma_list")

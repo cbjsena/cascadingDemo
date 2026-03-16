@@ -143,7 +143,7 @@ class TestApiViews:
     # =========================================================
 
     def test_api_dist_001_success(self):
-        """[API_DIST_001] 거리 조회 (정상)"""
+        """[AP_DST_DIS_001] 거리 조회 (정상)"""
         url = reverse("api:port_distance")
         resp = self.client.get(
             url,
@@ -161,7 +161,7 @@ class TestApiViews:
         assert data["eca_distance"] == 100
 
     def test_api_dist_002_not_found(self):
-        """[API_DIST_002] 거리 조회 (없음) -> 0 반환"""
+        """[AP_DST_DIS_002] 거리 조회 (없음) -> 0 반환"""
         url = reverse("api:port_distance")
         resp = self.client.get(
             url,
@@ -182,7 +182,7 @@ class TestApiViews:
     # =========================================================
 
     def test_api_pf_001_lane_list(self):
-        """[API_PF_001] Lane 목록 조회"""
+        """[AP_PF_DIS_001] Lane 목록 조회"""
         url = reverse("api:proforma_options")
         resp = self.client.get(url, {"scenario_id": self.scenario.id})
 
@@ -193,7 +193,7 @@ class TestApiViews:
         assert "LANE_B" in data["options"]
 
     def test_api_pf_002_pf_list(self):
-        """[API_PF_002] PF 명 목록 조회 (Lane 필터링)"""
+        """[AP_PF_DIS_002] PF 명 목록 조회 (Lane 필터링)"""
         url = reverse("api:proforma_options")
         resp = self.client.get(
             url, {"scenario_id": self.scenario.id, "lane_code": "LANE_A"}
@@ -205,7 +205,7 @@ class TestApiViews:
         assert "PF_02" not in data["options"]  # Lane B 데이터는 없어야 함
 
     def test_api_pf_003_detail_success(self):
-        """[API_PF_003] PF 상세 조회 (성공)"""
+        """[AP_PF_DIS_003] PF 상세 조회 (성공)"""
         url = reverse("api:proforma_detail")
         resp = self.client.get(
             url,
@@ -225,7 +225,7 @@ class TestApiViews:
         assert data["first_port_day"] == "MON"
 
     def test_api_pf_004_detail_fail(self):
-        """[API_PF_004] PF 상세 조회 (실패 - 존재하지 않음)"""
+        """[AP_PF_DIS_004] PF 상세 조회 (실패 - 존재하지 않음)"""
         url = reverse("api:proforma_detail")
         resp = self.client.get(
             url,
@@ -246,7 +246,7 @@ class TestApiViews:
     # =========================================================
 
     def test_api_vsl_001_capacity_list(self):
-        """[API_VSL_001] 선박 목록 조회 (Capacity - Create 화면용)"""
+        """[AP_VSL_DIS_001] 선박 목록 조회 (Capacity - Create 화면용)"""
         url = reverse("api:vessel_list")
         resp = self.client.get(url, {"scenario_id": self.scenario.id})
 
@@ -259,7 +259,7 @@ class TestApiViews:
         assert v_cap["max_cap"] == 10000
 
     def test_api_vsl_002_check_busy(self):
-        """[API_VSL_002] 점유 확인 (Busy - Lane Code 반환)"""
+        """[AP_VSL_DIS_002] 점유 확인 (Busy - Lane Code 반환)"""
         url = reverse("api:vessel_lane_check")
 
         today_str = timezone.now().strftime("%Y-%m-%d")
@@ -279,7 +279,7 @@ class TestApiViews:
         assert data["lane_code"] == "LANE_X"
 
     def test_api_vsl_003_check_free(self):
-        """[API_VSL_003] 점유 확인 (Free - 빈 값 반환)"""
+        """[AP_VSL_DIS_003] 점유 확인 (Free - 빈 값 반환)"""
         url = reverse("api:vessel_lane_check")
         today_str = timezone.now().strftime("%Y-%m-%d")
 
@@ -298,7 +298,7 @@ class TestApiViews:
         assert data["lane_code"] == ""
 
     def test_api_vsl_004_options_filter(self):
-        """[API_VSL_004] 선박 옵션 (검색용 - Lane 필터링)"""
+        """[AP_VSL_DIS_004] 선박 옵션 (검색용 - Lane 필터링)"""
         url = reverse("api:vessel_options")
 
         resp = self.client.get(
@@ -319,12 +319,12 @@ class TestApiViews:
 class TestBaseVesselAPI:
     """
     Base Vessel List API 테스트
-    Test Scenarios: API_BASE_VSL_001, API_BASE_VSL_002, API_BASE_VSL_003
+    Test Scenarios: AP_BVL_DIS_001, AP_BVL_DIS_002, AP_BVL_DIS_003
     """
 
     def test_api_base_vsl_001_list(self, auth_client):
         """
-        [API_BASE_VSL_001] BaseVesselInfo 전체 목록 JSON 반환
+        [AP_BVL_DIS_001] BaseVesselInfo 전체 목록 JSON 반환
         """
         from input_data.models import BaseVesselInfo
 
@@ -355,7 +355,7 @@ class TestBaseVesselAPI:
 
     def test_api_base_vsl_002_empty(self, auth_client):
         """
-        [API_BASE_VSL_002] 데이터 없을 때 빈 배열 반환
+        [AP_BVL_DIS_002] 데이터 없을 때 빈 배열 반환
         """
         url = reverse("api:base_vessel_list")
         response = auth_client.get(url)
@@ -366,7 +366,7 @@ class TestBaseVesselAPI:
 
     def test_api_base_vsl_003_unauthenticated(self, client):
         """
-        [API_BASE_VSL_003] 비로그인 사용자 접근 차단
+        [AP_BVL_DIS_003] 비로그인 사용자 접근 차단
         """
         url = reverse("api:base_vessel_list")
         response = client.get(url)

@@ -11,7 +11,7 @@ class TestCascadingAPI:
         self, auth_client, cascading_with_details
     ):
         """
-        [IN_CV_002] Load Info (Proforma 정보 로드)
+        [IN_CV_DIS_002] Load Info (Proforma 정보 로드)
         Proforma 선택 후 API 호출 시 Declared Count/Own Vessel Count/
         From-To Week 등의 정보가 반환되는지 검증
         """
@@ -41,7 +41,7 @@ class TestCascadingAPI:
         self, auth_client, cascading_with_details
     ):
         """
-        [IN_CV_014] 기존 Cascading 데이터 존재 알림
+        [IN_CV_DIS_014] 기존 Cascading 데이터 존재 알림
         Scenario+Proforma 조합에 이미 CascadingVesselPosition이 존재할 때
         API 응답에 existing_cascading 정보가 포함되는지 검증
         """

@@ -55,7 +55,7 @@ class TestCascadingScheduleCreate:
 
     def test_cs_create_001_page_load(self, auth_client, cs_scenario_data):
         """
-        [IN_CS_001] Cascading Schedule 생성 초기 진입
+        [IN_CS_DIS_001] Cascading Schedule 생성 초기 진입
         생성 화면 초기 진입 시 빈 상태로 정상 로드
         """
         url = reverse("input_data:cascading_create")
@@ -67,7 +67,7 @@ class TestCascadingScheduleCreate:
 
     def test_cs_create_002_save_slots_creation(self, auth_client, cs_scenario_data):
         """
-        [IN_CS_002] Cascading Schedule 생성 (슬롯 저장)
+        [IN_CS_DIS_002] Cascading Schedule 생성 (슬롯 저장)
         Scenario 선택 후 슬롯을 선택하여 저장
         """
         scenario = cs_scenario_data["scenario"]
@@ -88,7 +88,7 @@ class TestCascadingScheduleCreate:
 
     def test_cs_create_003_save_slots_modification(self, auth_client, cs_scenario_data):
         """
-        [IN_CS_003] Cascading Schedule 수정 (덮어쓰기)
+        [IN_CS_DIS_003] Cascading Schedule 수정 (덮어쓰기)
         기존 슬롯을 다르게 선택하여 저장
         """
         scenario = cs_scenario_data["scenario"]
@@ -198,7 +198,7 @@ class TestCascadingScheduleList:
 
     def test_cs_list_001_view(self, auth_client, cs_list_data):
         """
-        [IN_CS_004] Cascading Schedule 목록 조회
+        [IN_CS_DIS_004] Cascading Schedule 목록 조회
         Scenario 선택 시 Lane별 슬롯 선택 현황을 대시보드 형태로 표시
         """
         scenario = cs_list_data["scenario"]

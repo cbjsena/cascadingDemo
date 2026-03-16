@@ -21,7 +21,7 @@ class TestCascadingView:
     # ==========================================================================
     def test_cascading_view_001_page_load(self, auth_client):
         """
-        [IN_CV_001] Cascading Vessel Creation 초기 진입
+        [IN_CV_DIS_001] Cascading Vessel Creation 초기 진입
         생성 화면 초기 진입 시 빈 껍데기로 정상 로드되는지 확인
         """
         url = reverse("input_data:cascading_vessel_create")
@@ -39,7 +39,7 @@ class TestCascadingView:
         self, auth_client, cascading_with_details
     ):
         """
-        [IN_CV_003] Edit 모드 데이터 Load
+        [IN_CV_DIS_003] Edit 모드 데이터 Load
         기존 CascadingVesselPosition 데이터가 정확히 로드되는지 검증
         """
         first_pos = cascading_with_details[0]
@@ -71,7 +71,7 @@ class TestCascadingView:
     # ==========================================================================
     def test_cascading_act_001_save_creation(self, auth_client, cascading_form_data):
         """
-        [IN_CV_004] Save Cascading (생성)
+        [IN_CV_DIS_004] Save Cascading (생성)
         CascadingVesselPosition에 정상 저장되는지 검증
         """
         url = reverse("input_data:cascading_vessel_create")
@@ -101,7 +101,7 @@ class TestCascadingView:
         self, auth_client, cascading_with_details, cascading_form_data
     ):
         """
-        [IN_CV_005] Save Cascading (수정)
+        [IN_CV_DIS_005] Save Cascading (수정)
         기존 CascadingVesselPosition 수정 시 덮어쓰기 로직 검증
         """
         first_pos = cascading_with_details[0]
@@ -148,7 +148,7 @@ class TestCascadingView:
 
     def test_cascading_act_003_create_lrs(self, auth_client, cascading_form_data):
         """
-        [IN_CV_006] Create LRS
+        [IN_CV_DIS_006] Create LRS
         저장 및 LRS 생성 엔진 구동 동시 수행
         """
         url = reverse("input_data:cascading_vessel_create")
@@ -166,7 +166,7 @@ class TestCascadingView:
         self, auth_client, cascading_invalid_form_data
     ):
         """
-        [IN_CV_007] Validation - Own Vessels
+        [IN_CV_DIS_007] Validation - Own Vessels
         서버 측에서 own_vessel_count를 실제 vessel_code[] 개수로 산출하여 저장
         """
         url = reverse("input_data:cascading_vessel_create")
@@ -185,7 +185,7 @@ class TestCascadingView:
         self, auth_client, cascading_form_data
     ):
         """
-        [IN_CV_008] Save 후 Position 데이터 확인
+        [IN_CV_DIS_008] Save 후 Position 데이터 확인
         vessel_position, vessel_position_date가 정확한지 검증
         """
         url = reverse("input_data:cascading_vessel_create")
@@ -206,7 +206,7 @@ class TestCascadingView:
         self, auth_client, cascading_with_details
     ):
         """
-        [IN_CV_009] 에러 시 데이터 복구
+        [IN_CV_DIS_009] 에러 시 데이터 복구
         필수값 누락(vessel_code[]) 시 입력값(own_vessel_count)이 보존되는지 검증
         """
         first_pos = cascading_with_details[0]
@@ -238,7 +238,7 @@ class TestCascadingView:
     # ==========================================================================
     def test_cascading_vessel_info_001_view(self, auth_client, multiple_cascading_data):
         """
-        [IN_CV_010] Cascading Vessel Info 조회
+        [IN_CV_DIS_010] Cascading Vessel Info 조회
         Scenario 선택 시 Lane별 Cascading 결과 대시보드 표시 검증
         """
         url = reverse("input_data:cascading_vessel_info")
@@ -263,7 +263,7 @@ class TestCascadingView:
         self, auth_client, cascading_with_details
     ):
         """
-        [IN_CV_011] Cascading Vessel Detail 조회
+        [IN_CV_DIS_011] Cascading Vessel Detail 조회
         특정 Scenario+Proforma의 CascadingVesselPosition 정보가 정상 출력되는지 검증
         """
         first_pos = cascading_with_details[0]
@@ -291,7 +291,7 @@ class TestCascadingView:
         self, auth_client, cascading_with_details
     ):
         """
-        [IN_CV_012] Edit 모드 전환
+        [IN_CV_DIS_012] Edit 모드 전환
         Detail 화면에서 Edit 버튼 클릭 시 Create 화면으로 이동 검증
         """
         first_pos = cascading_with_details[0]
@@ -327,7 +327,7 @@ class TestCascadingView:
         self, auth_client, cascading_with_details
     ):
         """
-        [IN_CV_013] Detail 화면 Edit 링크의 lane 파라미터 검증
+        [IN_CV_DIS_013] Detail 화면 Edit 링크의 lane 파라미터 검증
         Edit 링크에 lane_id가 올바르게 포함되어 Edit 화면에서 데이터가 유지되는지 확인
         (기존 버그: proforma.lane_code 사용 → AttributeError → 빈 값 전달 → 데이터 초기화)
         """
@@ -374,4 +374,4 @@ class TestCascadingView:
     # 5. API / UI 연동 검증
     # ==========================================================================
     # NOTE: CascadingSchedule(슬롯 선택) 테스트는 test_view_cascading_schedule.py에서 관리
-    #       IN_CS_001~003, IN_CS_004 → test_view_cascading_schedule.py 참조
+    #       IN_CS_DIS_001~003, IN_CS_DIS_004 → test_view_cascading_schedule.py 참조

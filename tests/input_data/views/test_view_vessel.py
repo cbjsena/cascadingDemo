@@ -1,7 +1,7 @@
 """
 Vessel 화면 테스트
-Test Scenarios: IN_VI_001~006, IN_CC_001~003,
-                IN_VC_001~003, IN_VI_009
+Test Scenarios: IN_VI_DIS_001~006, IN_CC_DIS_001~003,
+                IN_VC_DIS_001~003, IN_VI_DIS_009
 """
 
 from django.urls import reverse
@@ -88,7 +88,7 @@ class TestVesselInfoView:
 
     def test_vessel_info_list(self, auth_client, vessel_data):
         """
-        [IN_VI_001] Vessel Info 목록 조회 및 시나리오 드롭다운 검증
+        [IN_VI_DIS_001] Vessel Info 목록 조회 및 시나리오 드롭다운 검증
         """
         url = reverse("input_data:vessel_info_list")
         response = auth_client.get(url)
@@ -100,7 +100,7 @@ class TestVesselInfoView:
 
     def test_vessel_info_scenario_filter(self, auth_client, vessel_data):
         """
-        [IN_VI_002] 시나리오 선택 시 해당 데이터만 표시
+        [IN_VI_DIS_002] 시나리오 선택 시 해당 데이터만 표시
         """
         s1 = vessel_data["s1"]
         url = reverse("input_data:vessel_info_list")
@@ -114,7 +114,7 @@ class TestVesselInfoView:
 
     def test_vessel_info_search(self, auth_client, vessel_data):
         """
-        [IN_VI_003] 코드/이름 검색 필터링
+        [IN_VI_DIS_003] 코드/이름 검색 필터링
         """
         s1 = vessel_data["s1"]
         url = reverse("input_data:vessel_info_list")
@@ -133,7 +133,7 @@ class TestVesselInfoView:
 
     def test_vessel_info_add_row_save(self, auth_client, vessel_data, base_vessel_data):
         """
-        [IN_VI_004] Add Row 저장 (Base Vessel Select 기반)
+        [IN_VI_DIS_004] Add Row 저장 (Base Vessel Select 기반)
         """
         s1 = vessel_data["s1"]
         url = reverse("input_data:vessel_info_list")
@@ -156,7 +156,7 @@ class TestVesselInfoView:
         self, auth_client, vessel_data, base_vessel_data
     ):
         """
-        [IN_VI_007] 동일 scenario+vessel_code 중복 저장 시 skip + 경고 메시지
+        [IN_VI_DIS_007] 동일 scenario+vessel_code 중복 저장 시 skip + 경고 메시지
         """
         from django.contrib.messages import get_messages
 
@@ -185,7 +185,7 @@ class TestVesselInfoView:
         self, auth_client, vessel_data, base_vessel_data
     ):
         """
-        [IN_VI_008] 모달에서 전체 필드(Delivery/Redelivery/Dock) 입력하여 저장
+        [IN_VI_DIS_008] 모달에서 전체 필드(Delivery/Redelivery/Dock) 입력하여 저장
         """
         s1 = vessel_data["s1"]
         url = reverse("input_data:vessel_info_list")
@@ -218,7 +218,7 @@ class TestVesselInfoView:
 
     def test_vessel_info_delete(self, auth_client, vessel_data):
         """
-        [IN_VI_005] 선택 Vessel 삭제
+        [IN_VI_DIS_005] 선택 Vessel 삭제
         """
         v1 = vessel_data["v1"]
         s1 = vessel_data["s1"]
@@ -238,7 +238,7 @@ class TestVesselInfoView:
 
     def test_vessel_info_no_scenario_add_row_blocked(self, auth_client):
         """
-        [IN_VI_006] 시나리오 미선택 시 JS alert (서버측은 빈 scenario_id)
+        [IN_VI_DIS_006] 시나리오 미선택 시 JS alert (서버측은 빈 scenario_id)
         Save 시 scenario_id 없으면 생성 안 됨
         """
         url = reverse("input_data:vessel_info_list")
@@ -260,7 +260,7 @@ class TestVesselInfoView:
 
     def test_vessel_info_onchange_auto_submit(self, auth_client, vessel_data):
         """
-        [IN_VI_009] Scenario select onchange 자동 submit 확인
+        [IN_VI_DIS_009] Scenario select onchange 자동 submit 확인
         (서버 관점: scenario_id 파라미터가 URL에 반영되면 정상)
         """
         s1 = vessel_data["s1"]
@@ -306,7 +306,7 @@ class TestCharterCostView:
 
     def test_charter_cost_list(self, auth_client, charter_data):
         """
-        [IN_CC_001] Charter Cost 목록 조회
+        [IN_CC_DIS_001] Charter Cost 목록 조회
         """
         url = reverse("input_data:charter_cost_list")
         response = auth_client.get(url)
@@ -316,7 +316,7 @@ class TestCharterCostView:
 
     def test_charter_cost_scenario_filter(self, auth_client, charter_data):
         """
-        [IN_CC_002] 시나리오 선택 시 필터링
+        [IN_CC_DIS_002] 시나리오 선택 시 필터링
         """
         s1 = charter_data["s1"]
         url = reverse("input_data:charter_cost_list")
@@ -331,7 +331,7 @@ class TestCharterCostView:
         self, auth_client, charter_data, base_vessel_data
     ):
         """
-        [IN_CC_003] 새 Charter Cost 추가 후 DB 저장
+        [IN_CC_DIS_003] 새 Charter Cost 추가 후 DB 저장
         """
         s1 = charter_data["s1"]
         url = reverse("input_data:charter_cost_list")
@@ -374,7 +374,7 @@ class TestVesselCapacityView:
 
     def test_vessel_capacity_list(self, auth_client, capacity_data):
         """
-        [IN_VC_001] Vessel Capacity 목록 조회
+        [IN_VC_DIS_001] Vessel Capacity 목록 조회
         """
         url = reverse("input_data:vessel_capacity_list")
         response = auth_client.get(url)
@@ -384,7 +384,7 @@ class TestVesselCapacityView:
 
     def test_vessel_capacity_scenario_filter_search(self, auth_client, capacity_data):
         """
-        [IN_VC_002] 시나리오 + vessel/lane 코드 검색
+        [IN_VC_DIS_002] 시나리오 + vessel/lane 코드 검색
         """
         s1 = capacity_data["s1"]
         url = reverse("input_data:vessel_capacity_list")
@@ -402,7 +402,7 @@ class TestVesselCapacityView:
 
     def test_vessel_capacity_add_row_save(self, auth_client, capacity_data):
         """
-        [IN_VC_003] 새 Vessel Capacity 추가 후 DB 저장
+        [IN_VC_DIS_003] 새 Vessel Capacity 추가 후 DB 저장
         """
         s1 = capacity_data["s1"]
         url = reverse("input_data:vessel_capacity_list")
