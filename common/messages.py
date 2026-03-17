@@ -58,6 +58,14 @@ CASCADING_LRS_CREATE_SUCCESS = "Cascading & Long Range Schedule created successf
 PROFORMA_INVALID_DURATION = "Invalid Proforma Duration (0 or None)."
 
 # ==========================================
+# 3-1. 마스터 데이터 관리 (Master)
+# ==========================================
+DELETE_PROTECTED_ERROR = (
+    "Cannot delete: selected {label}(s) are referenced by other data. "
+    "Please remove the referencing data first."
+)
+
+# ==========================================
 # 4. 엑셀, csv 업로드 (Web UI)
 # ==========================================
 UPLOAD_SUCCESS = "Excel file uploaded and parsed successfully."

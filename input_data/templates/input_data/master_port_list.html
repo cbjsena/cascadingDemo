@@ -35,11 +35,17 @@
     </div>
     <div class="mb-3">
         <label class="form-label small fw-bold">Continent Code</label>
-        <input type="text" class="form-control" id="modalContinentCode" name="new_continent_code_0" placeholder="e.g. AS">
+        <select class="form-select" id="modalContinentCode" name="new_continent_code_0">
+            <option value="" selected>-- Select --</option>
+            {% for code, name in continent_codes %}
+            <option value="{{ code }}">{{ code }} - {{ name }}</option>
+            {% endfor %}
+        </select>
     </div>
     <div class="mb-3">
         <label class="form-label small fw-bold">Country Code</label>
-        <input type="text" class="form-control" id="modalCountryCode" name="new_country_code_0" placeholder="e.g. SG">
+        <input type="text" class="form-control bg-light" id="modalCountryCode" name="new_country_code_0" readonly>
+        <small class="text-muted">Auto-generated from Port Code (first 2 characters)</small>
     </div>
 {% endblock %}
 
@@ -61,9 +67,14 @@
     window.resetModalForm = function() {
         document.getElementById('modalPortCode').value = '';
         document.getElementById('modalPortName').value = '';
-        document.getElementById('modalContinentCode').value = '';
+        document.getElementById('modalContinentCode').selectedIndex = 0;
         document.getElementById('modalCountryCode').value = '';
     };
+    // Port Code 입력 시 앞 2글자를 Country Code에 자동 반영
+    document.getElementById('modalPortCode').addEventListener('input', function() {
+        const code = this.value.toUpperCase().replace(/[^A-Z]/g, '');
+        document.getElementById('modalCountryCode').value = code.substring(0, 2);
+    });
 </script>
 {% endblock %}
 

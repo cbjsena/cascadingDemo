@@ -25,7 +25,12 @@
     </div>
     <div class="mb-3">
         <label class="form-label small fw-bold">Service Type</label>
-        <input type="text" class="form-control" id="modalServiceType" name="new_service_type_0" placeholder="e.g. Container">
+        <select class="form-select" id="modalServiceType" name="new_service_type_0">
+            <option value="" selected>-- Select --</option>
+            {% for code, name in vessel_service_type_codes %}
+            <option value="{{ code }}">{{ code }} - {{ name }}</option>
+            {% endfor %}
+        </select>
     </div>
     <div class="mb-3">
         <label class="form-label small fw-bold">Effective From</label>

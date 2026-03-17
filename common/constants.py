@@ -47,3 +47,20 @@ EXCEL_DEFAULT_TIME = "0000"
 SEA_SPEED_MIN = 14.0
 SEA_SPEED_MAX = 20.0
 SEA_SPEED_STEP = 0.5
+
+# ==========================================
+# Continent Codes (Trade From/To)
+# ==========================================
+CONTINENT_CODES = [
+    ("A", "Asia"),
+    ("E", "Europe"),
+    ("F", "Africa"),
+    ("M", "America"),
+    ("-", "Common"),
+]
+VESSEL_SERVICE_TYPE_CODES = [
+    ("I", "Independent Operation"),
+    ("J", "Joint Operation"),
+    ("O", "CCA Feeder"),
+    ("S", "Space Charter"),
+]

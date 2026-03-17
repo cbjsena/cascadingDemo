@@ -14,12 +14,13 @@ import io
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.db.models import Q
+from django.db.models import ProtectedError, Q
 from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
 from common import messages as msg
+from common.constants import CONTINENT_CODES, VESSEL_SERVICE_TYPE_CODES
 from common.csv_configs import (
     MASTER_LANE_CSV_MAP,
     MASTER_PORT_CSV_MAP,
@@ -89,10 +90,18 @@ def master_crud_view(config):
                 pks = request.POST.getlist("selected_pks")
                 if pks:
                     pk_field = config["pk_field"]
-                    deleted_count, _ = model.objects.filter(
-                        **{f"{pk_field}__in": pks}
-                    ).delete()
-                    messages.success(request, f"{deleted_count} {label}(s) deleted.")
+                    try:
+                        deleted_count, _ = model.objects.filter(
+                            **{f"{pk_field}__in": pks}
+                        ).delete()
+                        messages.success(
+                            request, f"{deleted_count} {label}(s) deleted."
+                        )
+                    except ProtectedError:
+                        messages.error(
+                            request,
+                            msg.DELETE_PROTECTED_ERROR.format(label=label),
+                        )
                 return redirect(url_name)
 
             elif action == "save":
@@ -456,18 +465,6 @@ def _save_port(request):
     )
 
 
-def _port_extra_context(request):
-    continent = request.GET.get("continent", "").strip()
-    continent_codes = (
-        MasterPort.objects.exclude(continent_code__isnull=True)
-        .exclude(continent_code="")
-        .values_list("continent_code", flat=True)
-        .distinct()
-        .order_by("continent_code")
-    )
-    return {"continent": continent, "continent_codes": continent_codes}
-
-
 # =========================================================
 # 3. Lane Info
 # =========================================================
@@ -548,6 +545,7 @@ master_trade_list = master_crud_view(
         "save_fn": _save_trade,
         "csv_map": MASTER_TRADE_CSV_MAP,
         "json_config": MASTER_TRADE_JSON,
+        "extra_context_fn": lambda request: {"continent_codes": CONTINENT_CODES},
         "serialize_fn": lambda item: {
             "id": item.trade_code,
             "trade_code": item.trade_code,
@@ -592,7 +590,7 @@ master_port_list = master_crud_view(
         "extra_filters": [
             {"param": "continent", "filter_kwarg": "continent_code__icontains"},
         ],
-        "extra_context_fn": _port_extra_context,
+        "extra_context_fn": lambda request: {"continent_codes": CONTINENT_CODES},
         "dt_columns": [
             "",
             "",
@@ -636,6 +634,9 @@ master_lane_list = master_crud_view(
                 else "-"
             ),
             "feeder_division_code": item.feeder_division_code or "-",
+        },
+        "extra_context_fn": lambda request: {
+            "vessel_service_type_codes": VESSEL_SERVICE_TYPE_CODES
         },
         "dt_columns": [
             "",

@@ -126,17 +126,22 @@ class TestMasterTradeView:
         )
 
         url = reverse("input_data:master_trade_list")
-        # ProtectedError -> Django 500 또는 view에서 catch 하지 않으면 에러
-        from django.db.models import ProtectedError
+        # ProtectedError가 view에서 catch되어 에러 메시지로 표시됨
+        response = auth_client.post(
+            url,
+            {
+                "action": "delete",
+                "selected_pks": ["PROT_TRADE"],
+            },
+            follow=True,
+        )
 
-        with pytest.raises(ProtectedError):
-            auth_client.post(
-                url,
-                {
-                    "action": "delete",
-                    "selected_pks": ["PROT_TRADE"],
-                },
-            )
+        assert response.status_code == 200
+        # 에러 메시지에 삭제 불가 안내가 포함되어야 함
+        msgs = [str(m) for m in response.context["messages"]]
+        assert any("Cannot delete" in m or "referenced" in m for m in msgs)
+        # 데이터가 삭제되지 않고 유지되어야 함
+        assert MasterTrade.objects.filter(trade_code="PROT_TRADE").exists()
 
 
 @pytest.mark.django_db

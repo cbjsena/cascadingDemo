@@ -23,11 +23,21 @@
     </div>
     <div class="mb-3">
         <label class="form-label small fw-bold">From Continent</label>
-        <input type="text" class="form-control" id="modalFromContinent" name="new_from_continent_0" placeholder="e.g. AS">
+        <select class="form-select" id="modalFromContinent" name="new_from_continent_0">
+            <option value="" selected>-- Select --</option>
+            {% for code, name in continent_codes %}
+            <option value="{{ code }}">{{ code }} - {{ name }}</option>
+            {% endfor %}
+        </select>
     </div>
     <div class="mb-3">
         <label class="form-label small fw-bold">To Continent</label>
-        <input type="text" class="form-control" id="modalToContinent" name="new_to_continent_0" placeholder="e.g. EU">
+        <select class="form-select" id="modalToContinent" name="new_to_continent_0">
+            <option value="" selected>-- Select --</option>
+            {% for code, name in continent_codes %}
+            <option value="{{ code }}">{{ code }} - {{ name }}</option>
+            {% endfor %}
+        </select>
     </div>
 {% endblock %}
 
@@ -46,8 +56,8 @@
     window.resetModalForm = function() {
         document.getElementById('modalTradeCode').value = '';
         document.getElementById('modalTradeName').value = '';
-        document.getElementById('modalFromContinent').value = '';
-        document.getElementById('modalToContinent').value = '';
+        document.getElementById('modalFromContinent').selectedIndex = 0;
+        document.getElementById('modalToContinent').selectedIndex = 0;
     };
 </script>
 {% endblock %}
