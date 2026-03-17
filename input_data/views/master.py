@@ -15,7 +15,7 @@ import io
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db.models import Q
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
@@ -25,6 +25,13 @@ from common.csv_configs import (
     MASTER_PORT_CSV_MAP,
     MASTER_TRADE_CSV_MAP,
     MASTER_WEEK_PERIOD_CSV_MAP,
+)
+from common.export_manager import export_csv, export_json, parse_json_upload
+from common.json_configs import (
+    MASTER_LANE_JSON,
+    MASTER_PORT_JSON,
+    MASTER_TRADE_JSON,
+    MASTER_WEEK_PERIOD_JSON,
 )
 from common.menus import (
     CREATION_MENU_STRUCTURE,
@@ -100,6 +107,12 @@ def master_crud_view(config):
             elif action == "csv_upload":
                 return _handle_master_csv_upload(request, config)
 
+            elif action == "json_download":
+                return _handle_master_json_download(config)
+
+            elif action == "json_upload":
+                return _handle_master_json_upload(request, config)
+
         # ── AJAX 처리 (DataTables 서버사이드) ──
         if request.GET.get("draw"):
             return _handle_master_ajax(request, config)
@@ -117,6 +130,7 @@ def master_crud_view(config):
             "search": search,
             "reset_url": reverse(url_name),
             "has_csv": bool(config.get("csv_map")),
+            "has_json": bool(config.get("json_config")),
         }
 
         # 추가 context (예: Port의 continent_codes)
@@ -195,28 +209,24 @@ def _handle_master_csv_download(config):
         return redirect(config["url_name"])
 
     queryset = config["queryset_fn"]()
-
-    output = io.StringIO()
-    output.write("\ufeff")  # BOM (Excel 한글 깨짐 방지)
-    writer = csv.writer(output)
-
-    # 헤더
-    writer.writerow([col[0] for col in csv_map])
-
-    # 데이터
-    for obj in queryset:
-        row = []
-        for _, model_field, _ in csv_map:
-            val = getattr(obj, model_field, None)
-            row.append("" if val is None else str(val))
-        writer.writerow(row)
-
     page_title = config["page_title"].replace(" ", "_").lower()
     filename = f"{page_title}_all.csv"
+    return export_csv(queryset, csv_map, filename=filename)
 
-    response = HttpResponse(output.getvalue(), content_type="text/csv; charset=utf-8")
-    response["Content-Disposition"] = f'attachment; filename="{filename}"'
-    return response
+
+# =========================================================
+# JSON 다운로드 (Master 전용 — 시나리오 없음)
+# =========================================================
+def _handle_master_json_download(config):
+    """Master 테이블 전체 데이터를 JSON 파일로 다운로드한다."""
+    json_config = config.get("json_config")
+    if not json_config:
+        return redirect(config["url_name"])
+
+    queryset = config["queryset_fn"]()
+    page_title = config["page_title"].replace(" ", "_").lower()
+    filename = f"{page_title}_all.json"
+    return export_json(queryset, json_config, filename=filename)
 
 
 # =========================================================
@@ -295,6 +305,56 @@ def _handle_master_csv_upload(request, config):
 
     except Exception as e:
         messages.error(request, msg.LOAD_ERROR.format(target="CSV", error=str(e)))
+
+    return redirect(url_name)
+
+
+# =========================================================
+# JSON 업로드 (Master 전용 — 시나리오 없음)
+# =========================================================
+def _handle_master_json_upload(request, config):
+    """JSON 파일을 업로드하여 Master 테이블에 저장한다."""
+    json_config = config.get("json_config")
+    url_name = config["url_name"]
+    label = config.get("label", config["model"]._meta.verbose_name)
+
+    if not json_config:
+        messages.warning(request, msg.JSON_IMPORT_NOT_CONFIGURED)
+        return redirect(url_name)
+
+    json_file = request.FILES.get("json_file")
+    if not json_file:
+        messages.error(request, msg.FILE_NOT_SELECTED)
+        return redirect(url_name)
+
+    if not json_file.name.endswith(".json"):
+        messages.error(request, msg.INVALID_FILE_EXT.format(ext="json"))
+        return redirect(url_name)
+
+    model = config["model"]
+    rows, error = parse_json_upload(json_file, json_config)
+    if error:
+        messages.error(request, msg.INVALID_JSON_FILE.format(error=error))
+        return redirect(url_name)
+
+    if not rows:
+        messages.warning(request, msg.CSV_FILE_EMPTY)
+        return redirect(url_name)
+
+    # parse_json_upload이 required 검증 완료 — 통과한 rows만 저장
+    objects_to_create = [model(**row) for row in rows]
+
+    created_count = 0
+    if objects_to_create:
+        model.objects.bulk_create(
+            objects_to_create, batch_size=1000, ignore_conflicts=True
+        )
+        created_count = len(objects_to_create)
+
+    messages.success(
+        request,
+        msg.JSON_IMPORT_RESULT.format(created=created_count, label=label, skipped=0),
+    )
 
     return redirect(url_name)
 
@@ -487,6 +547,7 @@ master_trade_list = master_crud_view(
         "search_fields": ["trade_code", "trade_name"],
         "save_fn": _save_trade,
         "csv_map": MASTER_TRADE_CSV_MAP,
+        "json_config": MASTER_TRADE_JSON,
         "serialize_fn": lambda item: {
             "id": item.trade_code,
             "trade_code": item.trade_code,
@@ -520,6 +581,7 @@ master_port_list = master_crud_view(
         "search_fields": ["port_code", "port_name"],
         "save_fn": _save_port,
         "csv_map": MASTER_PORT_CSV_MAP,
+        "json_config": MASTER_PORT_JSON,
         "serialize_fn": lambda item: {
             "id": item.port_code,
             "port_code": item.port_code,
@@ -557,6 +619,7 @@ master_lane_list = master_crud_view(
         "search_fields": ["lane_code", "lane_name"],
         "save_fn": _save_lane,
         "csv_map": MASTER_LANE_CSV_MAP,
+        "json_config": MASTER_LANE_JSON,
         "serialize_fn": lambda item: {
             "id": item.lane_code,
             "lane_code": item.lane_code,
@@ -603,6 +666,7 @@ master_week_period_list = master_crud_view(
         "search_fields": ["base_year", "base_week"],
         "save_fn": _save_week_period,
         "csv_map": MASTER_WEEK_PERIOD_CSV_MAP,
+        "json_config": MASTER_WEEK_PERIOD_JSON,
         "serialize_fn": lambda item: {
             "id": item.id,
             "base_year": item.base_year,

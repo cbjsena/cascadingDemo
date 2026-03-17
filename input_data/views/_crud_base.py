@@ -52,11 +52,12 @@ import io
 
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
-from django.http import HttpResponse, JsonResponse
+from django.http import JsonResponse
 from django.shortcuts import redirect, render
 from django.urls import reverse
 
 from common import messages as msg
+from common.export_manager import export_csv, export_json, parse_json_upload
 from common.menus import (
     CREATION_MENU_STRUCTURE,
     MENU_STRUCTURE,
@@ -200,49 +201,32 @@ def _handle_save(request, *, config, scenario_id):
 # 2-b. CSV 다운로드 (공통)
 # =========================================================
 def _handle_csv_download(request, *, config, scenario_id):
-    """
-    현재 화면에 표시된 데이터(시나리오 필터 적용)를 CSV 파일로 다운로드한다.
-
-    config["csv_map"]: common/csv_configs.py에 정의된 튜플 리스트
-      [(db_column_name, model_field, required), ...]
-      - db_column_name : CSV 헤더로 사용
-      - model_field    : "scenario_code"이면 obj.scenario.code 출력,
-                         그 외에는 getattr(obj, model_field) 출력
-    """
+    """현재 화면 데이터를 CSV 파일로 다운로드한다."""
     csv_map = config.get("csv_map", [])
     if not csv_map:
         messages.warning(request, "CSV export is not configured.")
         return _redirect_with_scenario(config["url_name"], scenario_id)
 
-    # 쿼리셋 구성 (화면과 동일한 필터)
     queryset = _load_queryset(config, scenario_id)
-
-    # CSV 생성
-    output = io.StringIO()
-    output.write("\ufeff")  # BOM (Excel 한글 깨짐 방지)
-    writer = csv.writer(output)
-
-    # 헤더: DB 컬럼명 사용
-    writer.writerow([col[0] for col in csv_map])
-
-    # 데이터
-    for obj in queryset:
-        row = []
-        for _, model_field, _ in csv_map:
-            if model_field == "scenario_code":
-                val = obj.scenario.code
-            else:
-                val = getattr(obj, model_field, None)
-            row.append("" if val is None else str(val))
-        writer.writerow(row)
-
-    # 파일명: {page_title}_{scenario_code 또는 all}.csv
     page_title = config["page_title"].replace(" ", "_").lower()
     filename = f"{page_title}_{scenario_id or 'all'}.csv"
+    return export_csv(queryset, csv_map, filename=filename)
 
-    response = HttpResponse(output.getvalue(), content_type="text/csv; charset=utf-8")
-    response["Content-Disposition"] = f'attachment; filename="{filename}"'
-    return response
+
+# =========================================================
+# 2-b2. JSON 다운로드 (공통)
+# =========================================================
+def _handle_json_download(request, *, config, scenario_id):
+    """현재 화면 데이터를 JSON 파일로 다운로드한다."""
+    json_config = config.get("json_config")
+    if not json_config:
+        messages.warning(request, "JSON export is not configured.")
+        return _redirect_with_scenario(config["url_name"], scenario_id)
+
+    queryset = _load_queryset(config, scenario_id)
+    page_title = config["page_title"].replace(" ", "_").lower()
+    filename = f"{page_title}_{scenario_id or 'all'}.json"
+    return export_json(queryset, json_config, filename=filename)
 
 
 # =========================================================
@@ -346,6 +330,62 @@ def _handle_csv_upload(request, *, config, scenario_id):
 
     except Exception as e:
         messages.error(request, msg.LOAD_ERROR.format(error=str(e)))
+
+    return _redirect_with_scenario(config["url_name"], scenario_id)
+
+
+# =========================================================
+# 2-d. JSON 업로드 (공통)
+# =========================================================
+def _handle_json_upload(request, *, config, scenario_id):
+    """JSON 파일을 업로드하여 DB에 저장한다."""
+    json_config = config.get("json_config")
+    if not json_config:
+        messages.warning(request, msg.JSON_IMPORT_NOT_CONFIGURED)
+        return _redirect_with_scenario(config["url_name"], scenario_id)
+
+    json_file = request.FILES.get("json_file")
+    if not json_file:
+        messages.error(request, msg.FILE_NOT_SELECTED)
+        return _redirect_with_scenario(config["url_name"], scenario_id)
+
+    if not json_file.name.endswith(".json"):
+        messages.error(request, msg.INVALID_FILE_EXT.format(ext="json"))
+        return _redirect_with_scenario(config["url_name"], scenario_id)
+
+    if not scenario_id:
+        messages.error(request, msg.SCENARIO_NOT_SELECTED)
+        return _redirect_with_scenario(config["url_name"], scenario_id)
+
+    model = config["model"]
+    label = config.get("label", model._meta.verbose_name)
+
+    rows, error = parse_json_upload(json_file, json_config)
+    if error:
+        messages.error(request, msg.INVALID_JSON_FILE.format(error=error))
+        return _redirect_with_scenario(config["url_name"], scenario_id)
+
+    if not rows:
+        messages.warning(request, msg.CSV_FILE_EMPTY)
+        return _redirect_with_scenario(config["url_name"], scenario_id)
+
+    # parse_json_upload이 required 검증 완료 — 통과한 rows만 저장
+    objects_to_create = []
+    for row in rows:
+        row["scenario_id"] = scenario_id
+        objects_to_create.append(model(**row))
+
+    created_count = 0
+    if objects_to_create:
+        model.objects.bulk_create(
+            objects_to_create, batch_size=1000, ignore_conflicts=True
+        )
+        created_count = len(objects_to_create)
+
+    messages.success(
+        request,
+        msg.JSON_IMPORT_RESULT.format(created=created_count, label=label, skipped=0),
+    )
 
     return _redirect_with_scenario(config["url_name"], scenario_id)
 
@@ -481,6 +521,7 @@ def _handle_get(request, *, config):
         "search": search,
         "search_params": search_params,
         "has_csv": bool(config.get("csv_map")),
+        "has_json": bool(config.get("json_config")),
         **extra_context,
     }
     return render(request, config["template"], context)
@@ -539,6 +580,8 @@ def scenario_crud_view(config):
       csv_map             : common/csv_configs.py에 정의된 CSV 컬럼 매핑 리스트.
                             [(db_column_name, model_field, required), ...]
                             미지정 시 CSV 버튼이 표시되지 않음
+      json_config         : common/json_configs.py에 정의된 JSON 매핑 딕셔너리.
+                            중첩 구조(children) 지원. 미지정 시 JSON 버튼 미표시
 
     사용 예시:
       from common.csv_configs import CANAL_FEE_CSV_MAP
@@ -574,6 +617,14 @@ def scenario_crud_view(config):
                 )
             elif action == "csv_upload":
                 return _handle_csv_upload(
+                    request, config=config, scenario_id=scenario_id
+                )
+            elif action == "json_download":
+                return _handle_json_download(
+                    request, config=config, scenario_id=scenario_id
+                )
+            elif action == "json_upload":
+                return _handle_json_upload(
                     request, config=config, scenario_id=scenario_id
                 )
 

@@ -73,6 +73,11 @@ CSV_FILE_EMPTY = "The uploaded CSV file is empty."
 CSV_IMPORT_RESULT = (
     "{created} {label}(s) imported successfully. {skipped} row(s) skipped."
 )
+JSON_IMPORT_NOT_CONFIGURED = "JSON import is not configured for this data."
+JSON_IMPORT_RESULT = (
+    "{created} {label}(s) imported from JSON. {skipped} row(s) skipped."
+)
+INVALID_JSON_FILE = "Invalid JSON file: {error}"
 
 
 # ==========================================

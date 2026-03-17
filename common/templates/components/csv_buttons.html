@@ -1,59 +1,94 @@
 {% comment %}
-  CSV 업로드/다운로드 버튼 (공통 컴포넌트)
-  사용 조건: context에 has_csv=True, search_params.scenario_id 가 필요
-  각 목록 화면의 Search Filter 카드 위에 {% include %} 로 삽입한다.
-
-  필요한 form 구조:
-    - CSV Download: POST action="csv_download"
-    - CSV Upload:   POST action="csv_upload" + enctype="multipart/form-data"
+  Data Import / Export 버튼 (공통 컴포넌트)
+  사용 조건: context에 has_csv=True 또는 has_json=True, search_params.scenario_id 가 필요
 {% endcomment %}
 
-{% if has_csv %}
+{% if has_csv or has_json %}
 <div class="card shadow-sm mb-4">
     <div class="card-header bg-light fw-bold">
-        <i class="bi bi-file-earmark-spreadsheet"></i> CSV Import / Export
+        <i class="bi bi-arrow-left-right"></i> Data Import / Export
     </div>
     <div class="card-body">
-        <div class="row g-3 align-items-end">
-            <!-- CSV Download -->
-            <div class="col-md-3">
-                <form method="post" class="d-inline">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="csv_download">
-                    <input type="hidden" name="scenario_id" value="{{ search_params.scenario_id }}">
-                    <button type="submit" class="btn btn-sm btn-outline-primary w-100"
-                        {% if not search_params.scenario_id %}disabled{% endif %}>
-                        <i class="bi bi-download"></i> CSV Download
-                    </button>
-                </form>
+        <div class="row g-3 align-items-center">
+
+            <!-- Export -->
+            <div class="col-auto">
+                <span class="badge bg-secondary me-1">Export</span>
+                <div class="btn-group">
+                    {% if has_csv %}
+                    <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="csv_download">
+                        <input type="hidden" name="scenario_id" value="{{ search_params.scenario_id }}">
+                        <button type="submit" class="btn btn-sm btn-outline-primary"
+                            {% if not search_params.scenario_id %}disabled{% endif %}>
+                            <i class="bi bi-filetype-csv"></i> CSV
+                        </button>
+                    </form>
+                    {% endif %}
+                    {% if has_json %}
+                    <form method="post" class="d-inline">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="json_download">
+                        <input type="hidden" name="scenario_id" value="{{ search_params.scenario_id }}">
+                        <button type="submit" class="btn btn-sm btn-outline-info"
+                            {% if not search_params.scenario_id %}disabled{% endif %}>
+                            <i class="bi bi-filetype-json"></i> JSON
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
             </div>
 
-            <!-- CSV Upload -->
-            <div class="col-md-6">
-                <form method="post" enctype="multipart/form-data" class="d-flex gap-2 align-items-center" id="csvUploadForm">
-                    {% csrf_token %}
-                    <input type="hidden" name="action" value="csv_upload">
-                    <input type="hidden" name="scenario_id" value="{{ search_params.scenario_id }}">
-                    <input type="file" name="csv_file" accept=".csv" class="form-control form-control-sm"
-                        {% if not search_params.scenario_id %}disabled{% endif %}>
-                    <button type="submit" class="btn btn-sm btn-outline-success flex-shrink-0"
-                        {% if not search_params.scenario_id %}disabled{% endif %}>
-                        <i class="bi bi-upload"></i> CSV Upload
-                    </button>
-                </form>
+            <div class="col-auto px-0"><span class="text-muted">|</span></div>
+
+            <!-- Import -->
+            <div class="col-auto">
+                <span class="badge bg-secondary me-1">Import</span>
+                <div class="btn-group">
+                    {% if has_csv %}
+                    <form method="post" enctype="multipart/form-data" class="d-inline" id="csvImportForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="csv_upload">
+                        <input type="hidden" name="scenario_id" value="{{ search_params.scenario_id }}">
+                        <input type="file" name="csv_file" accept=".csv" class="d-none" id="csvFileInput"
+                            onchange="document.getElementById('csvImportForm').submit();">
+                        <button type="button" class="btn btn-sm btn-outline-success"
+                            {% if not search_params.scenario_id %}disabled{% endif %}
+                            onclick="document.getElementById('csvFileInput').click();">
+                            <i class="bi bi-filetype-csv"></i> CSV
+                        </button>
+                    </form>
+                    {% endif %}
+                    {% if has_json %}
+                    <form method="post" enctype="multipart/form-data" class="d-inline" id="jsonImportForm">
+                        {% csrf_token %}
+                        <input type="hidden" name="action" value="json_upload">
+                        <input type="hidden" name="scenario_id" value="{{ search_params.scenario_id }}">
+                        <input type="file" name="json_file" accept=".json" class="d-none" id="jsonFileInput"
+                            onchange="document.getElementById('jsonImportForm').submit();">
+                        <button type="button" class="btn btn-sm btn-outline-warning"
+                            {% if not search_params.scenario_id %}disabled{% endif %}
+                            onclick="document.getElementById('jsonFileInput').click();">
+                            <i class="bi bi-filetype-json"></i> JSON
+                        </button>
+                    </form>
+                    {% endif %}
+                </div>
             </div>
 
-            <div class="col-md-3">
+            <!-- Help -->
+            <div class="col-auto ms-auto">
                 <small class="text-muted">
                     {% if not search_params.scenario_id %}
                         <i class="bi bi-info-circle"></i> Select a scenario first.
                     {% else %}
-                        <i class="bi bi-info-circle"></i> Download CSV → Edit → Upload.
+                        <i class="bi bi-info-circle"></i> Export → Edit → Import
                     {% endif %}
                 </small>
             </div>
+
         </div>
     </div>
 </div>
 {% endif %}
-

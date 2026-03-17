@@ -6,6 +6,7 @@ Test Scenarios: IN_MTR_DIS_001~005, IN_MPT_DIS_001~003, IN_MLN_DIS_001~003,
 """
 
 import io
+import json
 
 from django.urls import reverse
 
@@ -469,11 +470,89 @@ class TestMasterCSV:
 
     def test_csv_buttons_visible(self, auth_client):
         """
-        [IN_MST_DIS_004] CSV 버튼이 화면에 표시되는지 확인
+        [IN_MST_DIS_004] CSV/JSON 다운로드·업로드 버튼이 화면에 표시되는지 확인
         """
         url = reverse("input_data:master_trade_list")
         response = auth_client.get(url)
 
         content = response.content.decode("utf-8")
-        assert "CSV Download" in content
-        assert "CSV Upload" in content
+        # Download 버튼
+        assert "csv_download" in content
+        assert "json_download" in content
+        # Upload 버튼
+        assert "csv_upload" in content
+        assert "json_upload" in content
+
+    def test_json_download_trade(self, auth_client):
+        """
+        [IN_MST_DIS_004] Trade JSON 다운로드 — 구조 및 데이터 검증
+        """
+        MasterTrade.objects.get_or_create(
+            trade_code="JSON_T1", defaults={"trade_name": "JSON Test Trade"}
+        )
+
+        url = reverse("input_data:master_trade_list")
+        response = auth_client.post(url, {"action": "json_download"})
+
+        assert response.status_code == 200
+        assert "application/json" in response["Content-Type"]
+        assert "attachment" in response["Content-Disposition"]
+
+        data = response.json()
+        assert "count" in data
+        assert "trades" in data
+        assert data["count"] >= 1
+
+        # 데이터 필드 확인
+        first = data["trades"][0]
+        assert "trade_code" in first
+        assert "trade_name" in first
+
+    def test_json_upload_trade(self, auth_client):
+        """
+        [IN_MST_DIS_005] Trade JSON 업로드 — DB 저장 검증
+        """
+        payload = {
+            "count": 2,
+            "trades": [
+                {
+                    "trade_code": "JUP_T1",
+                    "trade_name": "JSON Upload Trade 1",
+                    "from_continent_code": "AS",
+                    "to_continent_code": "EU",
+                },
+                {
+                    "trade_code": "JUP_T2",
+                    "trade_name": "JSON Upload Trade 2",
+                    "from_continent_code": None,
+                    "to_continent_code": None,
+                },
+            ],
+        }
+        json_bytes = json.dumps(payload).encode("utf-8")
+        json_file = io.BytesIO(json_bytes)
+        json_file.name = "test_trades.json"
+
+        url = reverse("input_data:master_trade_list")
+        response = auth_client.post(
+            url, {"action": "json_upload", "json_file": json_file}
+        )
+
+        assert response.status_code == 302
+        assert MasterTrade.objects.filter(trade_code="JUP_T1").exists()
+        assert MasterTrade.objects.filter(trade_code="JUP_T2").exists()
+
+        t1 = MasterTrade.objects.get(trade_code="JUP_T1")
+        assert t1.trade_name == "JSON Upload Trade 1"
+        assert t1.from_continent_code == "AS"
+
+    def test_json_upload_no_file(self, auth_client):
+        """
+        [IN_MST_DIS_006] JSON 파일 미선택 시 에러 메시지
+        """
+        url = reverse("input_data:master_trade_list")
+        response = auth_client.post(url, {"action": "json_upload"}, follow=True)
+
+        assert response.status_code == 200
+        msgs = [str(m) for m in response.context["messages"]]
+        assert any("file" in m.lower() or "select" in m.lower() for m in msgs)
