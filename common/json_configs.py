@@ -120,6 +120,33 @@ VESSEL_FULL_JSON = {
     ],
 }
 
+CHARTER_COST_JSON = {
+    "root_key": "charter_costs",
+    "scenario_field": "scenario.code",
+    "fields": [
+        ("scenario_code", "scenario.code", False),
+        ("vessel_code", "vessel_code", True),
+        ("hire_from_date", "hire_from_date", True),
+        ("hire_to_date", "hire_to_date", True),
+        ("hire_rate", "hire_rate", True),
+    ],
+}
+
+VESSEL_CAPACITY_JSON = {
+    "root_key": "vessel_capacities",
+    "scenario_field": "scenario.code",
+    "fields": [
+        ("scenario_code", "scenario.code", False),
+        ("trade_code", "trade_id", True),
+        ("lane_code", "lane_id", True),
+        ("vessel_code", "vessel_code", True),
+        ("voyage_number", "voyage_number", True),
+        ("direction", "direction", True),
+        ("vessel_capacity", "vessel_capacity", True),
+        ("reefer_capacity", "reefer_capacity", True),
+    ],
+}
+
 
 # =========================================================
 # Cost Group — flat 구조

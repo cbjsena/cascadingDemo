@@ -14,6 +14,11 @@ from common.csv_configs import (
     BUNKER_CONSUMPTION_SEA_CSV_MAP,
     BUNKER_PRICE_CSV_MAP,
 )
+from common.json_configs import (
+    BUNKER_CONSUMPTION_PORT_JSON,
+    BUNKER_CONSUMPTION_SEA_JSON,
+    BUNKER_PRICE_JSON,
+)
 from common.menus import MenuGroup, MenuItem
 from common.utils.date_utils import get_scenario_base_year_month_choices
 from input_data.models import (
@@ -85,6 +90,7 @@ bunker_consumption_sea_list = scenario_crud_view(
         ],
         "unique_fields": ["vessel_capacity", "sea_speed"],
         "csv_map": BUNKER_CONSUMPTION_SEA_CSV_MAP,
+        "json_config": BUNKER_CONSUMPTION_SEA_JSON,
         "max_rows": 1000,
         "dt_columns": [
             "",  # 0. Checkbox (정렬 제외)
@@ -153,6 +159,7 @@ bunker_consumption_port_list = scenario_crud_view(
         ],
         "unique_fields": ["vessel_capacity"],
         "csv_map": BUNKER_CONSUMPTION_PORT_CSV_MAP,
+        "json_config": BUNKER_CONSUMPTION_PORT_JSON,
         "dt_columns": [
             "",  # 0. Checkbox (정렬 제외)
             "",  # 1. No (순번, 정렬 제외)
@@ -283,6 +290,7 @@ bunker_price_list = scenario_crud_view(
         ],
         "unique_fields": ["base_year_month", "trade_id", "lane_id", "bunker_type"],
         "csv_map": BUNKER_PRICE_CSV_MAP,
+        "json_config": BUNKER_PRICE_JSON,
         "dt_columns": [
             "",  # 0. Checkbox
             "",  # 1. No

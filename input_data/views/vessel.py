@@ -14,6 +14,11 @@ from common.csv_configs import (
     VESSEL_CAPACITY_CSV_MAP,
     VESSEL_INFO_CSV_MAP,
 )
+from common.json_configs import (
+    CHARTER_COST_JSON,
+    VESSEL_CAPACITY_JSON,
+    VESSEL_FULL_JSON,
+)
 from common.menus import (
     CREATION_MENU_STRUCTURE,
     MENU_STRUCTURE,
@@ -28,7 +33,13 @@ from input_data.models import (
     VesselInfo,
 )
 
-from ._crud_base import _handle_csv_download, _handle_csv_upload, scenario_crud_view
+from ._crud_base import (
+    _handle_csv_download,
+    _handle_csv_upload,
+    _handle_json_download,
+    _handle_json_upload,
+    scenario_crud_view,
+)
 
 # Vessel Info CSV config (커스텀 뷰이므로 별도 정의)
 VESSEL_INFO_CSV_CONFIG = {
@@ -41,6 +52,7 @@ VESSEL_INFO_CSV_CONFIG = {
         .order_by("scenario", "vessel_code")
     ),
     "csv_map": VESSEL_INFO_CSV_MAP,
+    "json_config": VESSEL_FULL_JSON,
     "unique_fields": ["vessel_code"],
     "model": VesselInfo,
 }
@@ -73,6 +85,14 @@ def vessel_info_list(request):
             )
         elif action == "csv_upload":
             return _handle_csv_upload(
+                request, config=VESSEL_INFO_CSV_CONFIG, scenario_id=scenario_id
+            )
+        elif action == "json_download":
+            return _handle_json_download(
+                request, config=VESSEL_INFO_CSV_CONFIG, scenario_id=scenario_id
+            )
+        elif action == "json_upload":
+            return _handle_json_upload(
                 request, config=VESSEL_INFO_CSV_CONFIG, scenario_id=scenario_id
             )
 
@@ -166,6 +186,7 @@ def vessel_info_list(request):
         "scenarios": scenarios,
         "search": search,
         "has_csv": True,
+        "has_json": True,
         "search_params": {
             "scenario_id": scenario_id,
             "search": search,
@@ -202,6 +223,7 @@ charter_cost_list = scenario_crud_view(
         "lookup_fields": ["vessel_code", "hire_from_date"],
         "defaults_fields": ["hire_to_date", "hire_rate"],
         "csv_map": CHARTER_COST_CSV_MAP,
+        "json_config": CHARTER_COST_JSON,
     }
 )
 
@@ -245,5 +267,6 @@ vessel_capacity_list = scenario_crud_view(
         ],
         "defaults_fields": ["vessel_capacity", "reefer_capacity"],
         "csv_map": VESSEL_CAPACITY_CSV_MAP,
+        "json_config": VESSEL_CAPACITY_JSON,
     }
 )

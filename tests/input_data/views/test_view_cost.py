@@ -1,10 +1,11 @@
 """
 Cost 화면 테스트
 Test Scenarios: IN_CF_DIS_001~005, IN_DST_DIS_001~005, IN_TSC_DIS_001~007,
-                IN_CSV_DIS_001~003, IN_CSV_DIS_004~003
+                IN_CSV_DIS_001~006, IN_JSON_DIS_001~004
 """
 
 import io
+import json
 
 from django.urls import reverse
 
@@ -628,3 +629,111 @@ class TestCsvDownloadUpload:
         assert any("scenario" in m.lower() for m in msgs)
         # 데이터가 생성되지 않았는지 확인
         assert not CanalFee.objects.filter(vessel_code="V099").exists()
+
+    def test_json_download(self, auth_client, canal_fee_data):
+        """
+        [IN_JSON_DIS_001] JSON 다운로드 — content-type 및 데이터 구조 검증
+        """
+        s1 = canal_fee_data["s1"]
+        url = reverse("input_data:canal_fee_list")
+        response = auth_client.post(
+            url,
+            {"action": "json_download", "scenario_id": s1.id},
+        )
+
+        assert response.status_code == 200
+        assert "application/json" in response["Content-Type"]
+        assert "attachment" in response["Content-Disposition"]
+
+        data = response.json()
+        assert "count" in data
+        assert "canal_fees" in data
+        assert data["count"] >= 2
+
+        first = data["canal_fees"][0]
+        assert "scenario_code" in first
+        assert "vessel_code" in first
+        assert "port_code" in first
+        assert "canal_fee" in first
+
+    def test_json_download_no_scenario(self, auth_client, canal_fee_data):
+        """
+        [IN_JSON_DIS_002] JSON 다운로드 — 시나리오 미선택 시 빈 데이터
+        """
+        url = reverse("input_data:canal_fee_list")
+        response = auth_client.post(
+            url,
+            {"action": "json_download", "scenario_id": ""},
+        )
+        assert response.status_code == 200
+        assert "application/json" in response["Content-Type"]
+        data = response.json()
+        assert data["count"] == 0
+
+    def test_json_upload(self, auth_client, canal_fee_data):
+        """
+        [IN_JSON_DIS_003] JSON 업로드 — DB 저장 검증
+        """
+        s1 = canal_fee_data["s1"]
+        payload = {
+            "count": 1,
+            "canal_fees": [
+                {
+                    "scenario_code": "SC_COST_01",
+                    "vessel_code": "VJSON",
+                    "direction": "E",
+                    "port_code": "SGSIN",
+                    "canal_fee": "888888.00",
+                }
+            ],
+        }
+        json_bytes = json.dumps(payload).encode("utf-8")
+        json_file = io.BytesIO(json_bytes)
+        json_file.name = "test_upload.json"
+
+        url = reverse("input_data:canal_fee_list")
+        response = auth_client.post(
+            url,
+            {
+                "action": "json_upload",
+                "scenario_id": s1.id,
+                "json_file": json_file,
+            },
+        )
+
+        assert response.status_code == 302
+        assert CanalFee.objects.filter(
+            scenario=s1, vessel_code="VJSON", direction="E", port_id="SGSIN"
+        ).exists()
+
+    def test_json_upload_no_scenario(self, auth_client, canal_fee_data):
+        """
+        [IN_JSON_DIS_004] JSON 업로드 — 시나리오 미선택 시 에러
+        """
+        from django.contrib.messages import get_messages
+
+        payload = {
+            "count": 1,
+            "canal_fees": [
+                {
+                    "vessel_code": "VJSON2",
+                    "direction": "W",
+                    "port_code": "SGSIN",
+                    "canal_fee": "100",
+                }
+            ],
+        }
+        json_bytes = json.dumps(payload).encode("utf-8")
+        json_file = io.BytesIO(json_bytes)
+        json_file.name = "test.json"
+
+        url = reverse("input_data:canal_fee_list")
+        response = auth_client.post(
+            url,
+            {"action": "json_upload", "scenario_id": "", "json_file": json_file},
+            follow=True,
+        )
+
+        msgs = [str(m) for m in get_messages(response.wsgi_request)]
+        assert any("scenario" in m.lower() for m in msgs)
+        assert not CanalFee.objects.filter(vessel_code="VJSON2").exists()
