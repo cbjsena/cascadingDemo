@@ -133,7 +133,7 @@ def master_crud_view(config):
             "menu_structure": MENU_STRUCTURE,
             "creation_menu_structure": CREATION_MENU_STRUCTURE,
             "current_section": MenuSection.INPUT_MANAGEMENT,
-            "current_group": MenuGroup.MASTER,
+            "current_group": config.get("menu_group", MenuGroup.MASTER),
             "current_model": config["menu_item"],
             "page_title": config["page_title"],
             "search": search,

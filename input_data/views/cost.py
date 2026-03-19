@@ -1,6 +1,7 @@
 """
 Cost 관련 뷰 (Config 기반 공통 CRUD).
-Canal Fee, Distance, TS Cost 모두 공통 팩토리 사용.
+Canal Fee, TS Cost: 시나리오 기반 팩토리 사용.
+Distance: 시나리오 독립 (BaseDistance) — master_crud_view 사용.
 """
 
 from common.csv_configs import CANAL_FEE_CSV_MAP, DISTANCE_CSV_MAP, TS_COST_CSV_MAP
@@ -8,14 +9,15 @@ from common.json_configs import CANAL_FEE_JSON, DISTANCE_JSON, TS_COST_JSON
 from common.menus import MenuGroup, MenuItem
 from common.utils.date_utils import get_scenario_base_year_month_choices
 from input_data.models import (
+    BaseDistance,
     CanalFee,
-    Distance,
     MasterLane,
     MasterPort,
     TSCost,
 )
 
 from ._crud_base import scenario_crud_view
+from .master import master_crud_view
 
 
 # =========================================================
@@ -41,22 +43,6 @@ def _get_canal_fee_ports(scenario_id):
         .distinct()
         .order_by("port")
     )
-
-
-def _get_distance_ports(scenario_id):
-    if not scenario_id:
-        return []
-    from_ports = set(
-        Distance.objects.filter(scenario_id=scenario_id)
-        .exclude(from_port__isnull=True)
-        .values_list("from_port__port_code", flat=True)
-    )
-    to_ports = set(
-        Distance.objects.filter(scenario_id=scenario_id)
-        .exclude(to_port__isnull=True)
-        .values_list("to_port__port_code", flat=True)
-    )
-    return sorted(from_ports | to_ports)
 
 
 def _get_ts_cost_lanes(scenario_id):
@@ -147,12 +133,42 @@ canal_fee_list = scenario_crud_view(
     }
 )
 
+
 # =========================================================
-# 2. Distance
+# 2. Distance — 시나리오 독립 (BaseDistance)
 # =========================================================
-distance_list = scenario_crud_view(
+def _save_distance(request):
+    """Distance 모달 저장 (update_or_create)"""
+    prefix_indices = set()
+    for key in request.POST:
+        if key.startswith("new_from_port_"):
+            prefix_indices.add(key.replace("new_from_port_", ""))
+
+    created = 0
+    for idx in sorted(prefix_indices):
+        from_port = request.POST.get(f"new_from_port_{idx}", "").strip()
+        to_port = request.POST.get(f"new_to_port_{idx}", "").strip()
+        distance = request.POST.get(f"new_distance_{idx}", "").strip()
+        eca_distance = request.POST.get(f"new_eca_distance_{idx}", "").strip()
+
+        if not (from_port and to_port and distance and eca_distance):
+            continue
+
+        BaseDistance.objects.update_or_create(
+            from_port_id=from_port,
+            to_port_id=to_port,
+            defaults={
+                "distance": distance,
+                "eca_distance": eca_distance,
+            },
+        )
+        created += 1
+    return created
+
+
+distance_list = master_crud_view(
     {
-        "model": Distance,
+        "model": BaseDistance,
         "url_name": "input_data:distance_list",
         "view_name": "distance_list",
         "template": "input_data/distance_list.html",
@@ -160,35 +176,31 @@ distance_list = scenario_crud_view(
         "label": "distance",
         "menu_group": MenuGroup.COST,
         "menu_item": MenuItem.DISTANCE,
-        "queryset_fn": lambda scenario_id="": (
-            Distance.objects.select_related("scenario", "from_port", "to_port").filter(
-                scenario_id=scenario_id
-            )
-            if scenario_id
-            else Distance.objects.none()
-        ).order_by("from_port__port_code", "to_port__port_code"),
-        "search_filter_fn": lambda qs, s: (
-            qs.filter(from_port__port_code__icontains=s)
-            | qs.filter(to_port__port_code__icontains=s)
+        "pk_field": "id",
+        "queryset_fn": lambda: (
+            BaseDistance.objects.select_related("from_port", "to_port")
+            .all()
+            .order_by("from_port__port_code", "to_port__port_code")
         ),
-        "extra_search_fields": [
-            {
-                "param": "port",
-                "filter_kwarg": "from_port__port_code",
-            },  # 단순히 from_port로 검색 매핑
+        "search_fields": ["from_port__port_code", "to_port__port_code"],
+        "save_fn": _save_distance,
+        "extra_filters": [
+            {"param": "from_port", "filter_kwarg": "from_port__port_code"},
+            {"param": "to_port", "filter_kwarg": "to_port__port_code"},
         ],
-        "extra_context": {
-            "filter_ports": _get_distance_ports,
-            "ports": lambda: MasterPort.objects.all().order_by("port_code"),
+        "extra_context_fn": lambda request: {
+            "filter_from_ports": list(
+                BaseDistance.objects.values_list("from_port__port_code", flat=True)
+                .distinct()
+                .order_by("from_port__port_code")
+            ),
+            "filter_to_ports": list(
+                BaseDistance.objects.values_list("to_port__port_code", flat=True)
+                .distinct()
+                .order_by("to_port__port_code")
+            ),
+            "ports": MasterPort.objects.all().order_by("port_code"),
         },
-        "fields": [
-            {"post_key": "new_from_port", "model_field": "from_port_id"},
-            {"post_key": "new_to_port", "model_field": "to_port_id"},
-            {"post_key": "new_distance", "model_field": "distance"},
-            {"post_key": "new_eca_distance", "model_field": "eca_distance"},
-        ],
-        "lookup_fields": ["from_port_id", "to_port_id"],
-        "defaults_fields": ["distance", "eca_distance"],
         "csv_map": DISTANCE_CSV_MAP,
         "json_config": DISTANCE_JSON,
         "dt_columns": [

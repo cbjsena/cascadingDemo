@@ -166,9 +166,7 @@ CANAL_FEE_JSON = {
 
 DISTANCE_JSON = {
     "root_key": "distances",
-    "scenario_field": "scenario.code",
     "fields": [
-        ("scenario_code", "scenario.code", False),
         ("from_port_code", "from_port_id", True),
         ("to_port_code", "to_port_id", True),
         ("distance", "distance", True),

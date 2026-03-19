@@ -20,15 +20,12 @@ from input_data.services.common_service import get_distance_between_ports
 @login_required
 @require_GET
 def port_distance(request):
-    """[API] 포트 거리 조회"""
+    """[API] 포트 거리 조회 (Base 테이블 — 시나리오 독립)"""
     origin = request.GET.get("origin")
     destination = request.GET.get("destination")
-    scenario_id = request.GET.get("scenario_id")
 
     try:
-        distance, eca_distance = get_distance_between_ports(
-            scenario_id, origin, destination
-        )
+        distance, eca_distance = get_distance_between_ports(origin, destination)
         data = {"status": "success", "distance": distance, "eca_distance": eca_distance}
     except Exception as e:
         data = {"status": "error", "message": str(e)}

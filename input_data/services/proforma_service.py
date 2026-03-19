@@ -124,7 +124,6 @@ class ProformaService:
                 # (항상 검색하여 최신화하려면 조건 제거)
                 if curr.get("port_code") and next_row.get("port_code"):
                     dist, eca_dist = get_distance_between_ports(
-                        scenario_id=header_info["scenario_id"],
                         origin=curr.get("port_code"),
                         destination=next_row.get("port_code"),
                     )

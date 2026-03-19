@@ -9,7 +9,7 @@
             <nav aria-label="breadcrumb">
                 <ol class="breadcrumb mb-1 small">
                     <li class="breadcrumb-item"><a href="{% url 'input_data:input_home' %}" class="text-decoration-none">Home</a></li>
-                    <li class="breadcrumb-item text-muted">Master</li>
+                    <li class="breadcrumb-item text-muted">{% block breadcrumb_group %}Master{% endblock %}</li>
                     <li class="breadcrumb-item active" aria-current="page">{% block page_title_inner %}{{ page_title }}{% endblock %}</li>
                 </ol>
             </nav>

@@ -1,5 +1,5 @@
 ﻿[Base Data Table Definition]
-Generated At,2026-03-13 02:33:30
+Generated At,2026-03-19 06:08:35
 
 Table Name,Column Name,Data Type,Nullable,Description (Comment)
 sce_bunker_consumption_port,created_at,datetime,NO,Created At
@@ -66,15 +66,6 @@ sce_cost_canal_fee,created_by_id,int,YES,Created By
 sce_cost_canal_fee,updated_by_id,int,YES,Updated By
 sce_cost_canal_fee,port_code,string,NO,"Port Code where the canal is located {PAPCA, EGSCA}"
 sce_cost_canal_fee,scenario_id,int,NO,Scenario ID
-sce_cost_distance,created_at,datetime,NO,Created At
-sce_cost_distance,updated_at,datetime,NO,Updated At
-sce_cost_distance,distance,int,NO,Port-to-Port Distance (NM)
-sce_cost_distance,eca_distance,int,NO,Port-to-Port ECA Distance (NM)
-sce_cost_distance,created_by_id,int,YES,Created By
-sce_cost_distance,updated_by_id,int,YES,Updated By
-sce_cost_distance,from_port_code,string,NO,From Port Code
-sce_cost_distance,to_port_code,string,NO,To Port Code
-sce_cost_distance,scenario_id,int,NO,Scenario ID
 sce_cost_ts_cost,created_at,datetime,NO,Created At
 sce_cost_ts_cost,updated_at,datetime,NO,Updated At
 sce_cost_ts_cost,base_year_month,string,NO,Year and month used as the base period / YYYYMM

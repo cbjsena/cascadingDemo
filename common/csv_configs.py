@@ -95,7 +95,6 @@ CANAL_FEE_CSV_MAP = [
 ]
 
 DISTANCE_CSV_MAP = [
-    ("scenario_code", "scenario_code", False),
     ("from_port_code", "from_port_id", True),
     ("to_port_code", "to_port_id", True),
     ("distance", "distance", True),

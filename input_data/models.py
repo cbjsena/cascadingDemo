@@ -1202,20 +1202,20 @@ class BaseDistance(AbsDistance):
         ]
 
 
-class Distance(AbsDistance, ScenarioBaseModel):
-    """[SCE] 시나리오 Distance"""
-
-    class Meta:
-        verbose_name = "Distance and ECA distance between ports"
-        db_table = "sce_cost_distance"
-        constraints = [
-            models.UniqueConstraint(
-                fields=["scenario", "from_port", "to_port"], name="uq_distance"
-            ),
-        ]
-
-    def __str__(self):
-        return f"[{self.scenario.id}] {self.from_port_id} -> {self.to_port_id}"
+# class Distance(AbsDistance, ScenarioBaseModel):
+#     """[SCE] 시나리오 Distance"""
+#
+#     class Meta:
+#         verbose_name = "Distance and ECA distance between ports"
+#         db_table = "sce_cost_distance"
+#         constraints = [
+#             models.UniqueConstraint(
+#                 fields=["scenario", "from_port", "to_port"], name="uq_distance"
+#             ),
+#         ]
+#
+#     def __str__(self):
+#         return f"[{self.scenario.id}] {self.from_port_id} -> {self.to_port_id}"
 
 
 # 4. TS Cost

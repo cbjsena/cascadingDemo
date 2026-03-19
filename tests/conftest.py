@@ -8,9 +8,9 @@ import pytest
 
 from common import constants
 from input_data.models import (
+    BaseDistance,
     BaseWeekPeriod,
     CascadingVesselPosition,
-    Distance,
     LaneProformaMapping,
     LongRangeSchedule,
     MasterLane,
@@ -354,10 +354,9 @@ def lrs_integration_data(db, user):
 
 
 @pytest.fixture
-def distance_data(db, base_scenario):
-    """거리 테이블 기초 데이터"""
-    return Distance.objects.create(
-        scenario=base_scenario,
+def distance_data(db, master_data):
+    """거리 테이블 기초 데이터 (Base 테이블 — 시나리오 독립)"""
+    return BaseDistance.objects.create(
         from_port_id="KRPUS",
         to_port_id="JPTYO",
         distance=500,

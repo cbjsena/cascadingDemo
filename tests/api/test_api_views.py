@@ -5,7 +5,7 @@ import pytest
 
 from common import messages as msg
 from input_data.models import (
-    Distance,
+    BaseDistance,
     LongRangeSchedule,
     ProformaSchedule,
     ProformaScheduleDetail,  # 새로 추가된 Detail 모델 Import
@@ -31,9 +31,8 @@ class TestApiViews:
         assert self.scenario.id is not None
         assert self.scenario.code == "SC_TEST_BASE"
 
-        # 1. Distance (PUS -> TYO : 500)
-        Distance.objects.create(
-            scenario=self.scenario,
+        # 1. Distance (PUS -> TYO : 500) — Base 테이블 (시나리오 독립)
+        BaseDistance.objects.create(
             from_port_id="KRPUS",
             to_port_id="JPTYO",
             distance=500,
@@ -148,7 +147,6 @@ class TestApiViews:
         resp = self.client.get(
             url,
             {
-                "scenario_id": self.scenario.id,
                 "origin": "KRPUS",
                 "destination": "JPTYO",
             },
@@ -166,7 +164,6 @@ class TestApiViews:
         resp = self.client.get(
             url,
             {
-                "scenario_id": self.scenario.id,
                 "origin": "KRPUS",
                 "destination": "DDLAX",  # 없는 경로
             },

@@ -1,17 +1,26 @@
-{% extends "input_data/_datatables_base.html" %}
+{% extends "input_data/master_list_base.html" %}
 
 {% block page_title %}Distance{% endblock %}
 {% block page_heading %}Distance{% endblock %}
-{% block breadcrumb_menu %}Cost{% endblock %}
+{% block breadcrumb_group %}Cost{% endblock %}
+{% block breadcrumb_menu %}Distance{% endblock %}
 
-
-{% block extra_filters %}
+{% block search_filters %}
 <div class="col-md-2">
-    <label class="form-label fw-bold small text-muted">Port Search (From/To)</label>
-    <select class="form-select form-select-sm dt-filter" id="filterPort" name="port">
-        <option value="">All Ports</option>
-        {% for p in filter_ports %}
-        <option value="{{ p }}" {% if search_params.port == p %}selected{% endif %}>{{ p }}</option>
+    <label class="form-label fw-bold small text-muted">From Port</label>
+    <select class="form-select form-select-sm dt-filter" id="filterFromPort" name="from_port">
+        <option value="">All</option>
+        {% for p in filter_from_ports %}
+        <option value="{{ p }}">{{ p }}</option>
+        {% endfor %}
+    </select>
+</div>
+<div class="col-md-2">
+    <label class="form-label fw-bold small text-muted">To Port</label>
+    <select class="form-select form-select-sm dt-filter" id="filterToPort" name="to_port">
+        <option value="">All</option>
+        {% for p in filter_to_ports %}
+        <option value="{{ p }}">{{ p }}</option>
         {% endfor %}
     </select>
 </div>
@@ -68,7 +77,8 @@
 {% block extra_js %}
 <script>
     window.appendDtParams = function(d) {
-        d.port = document.getElementById('filterPort').value;
+        d.from_port = document.getElementById('filterFromPort').value;
+        d.to_port = document.getElementById('filterToPort').value;
     };
     window.resetModalForm = function() {
         document.getElementById('modalFromPort').selectedIndex = 0;

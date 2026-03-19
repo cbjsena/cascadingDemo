@@ -5,7 +5,7 @@ from django.conf import settings
 
 import pytest
 
-from input_data.models import Distance, MasterPort, ProformaScheduleDetail
+from input_data.models import BaseDistance, MasterPort, ProformaScheduleDetail
 from input_data.services.proforma_service import ProformaService
 
 
@@ -218,7 +218,7 @@ class TestProformaFileCalculation:
 
     def setup_distance_data(self, output_rows, base_scenario):
         """
-        Output 데이터를 기반으로 DB에 Distance 정보 생성
+        Output 데이터를 기반으로 DB에 BaseDistance 정보 생성
         (계산 로직이 DB에서 거리를 조회하므로 선행 필요)
         """
         for i in range(len(output_rows) - 1):
@@ -236,8 +236,7 @@ class TestProformaFileCalculation:
                     port_code=next_row["port_code"],
                     defaults={"port_name": next_row["port_code"]},
                 )
-                Distance.objects.get_or_create(
-                    scenario=base_scenario,
+                BaseDistance.objects.get_or_create(
                     from_port_id=curr["port_code"],
                     to_port_id=next_row["port_code"],
                     defaults={

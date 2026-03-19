@@ -13,9 +13,9 @@ import pytest
 
 from common import messages
 from input_data.models import (
+    BaseDistance,
     BaseVesselInfo,
     CanalFee,
-    Distance,
     ScenarioInfo,
     TSCost,
 )
@@ -193,31 +193,24 @@ class TestCanalFeeView:
 
 @pytest.mark.django_db
 class TestDistanceView:
-    """Distance 목록/필터/검색/추가/삭제 테스트"""
+    """Distance 목록/필터/검색/추가/삭제 테스트 (Base 테이블 — 시나리오 독립)"""
 
     @pytest.fixture
-    def distance_data(self, db, cost_scenario, user, master_data):
-        """마스터 데이터(master_data)를 주입하여 Port 참조 무결성 확보"""
-        s1, s2 = cost_scenario
-        d1 = Distance.objects.create(
-            scenario=s1,
+    def distance_data(self, db, master_data):
+        """BaseDistance 테스트 데이터"""
+        d1 = BaseDistance.objects.create(
             from_port_id="KRPUS",
             to_port_id="JPTYO",
             distance=500,
             eca_distance=100,
-            created_by=user,
-            updated_by=user,
         )
-        d2 = Distance.objects.create(
-            scenario=s2,
+        d2 = BaseDistance.objects.create(
             from_port_id="JPTYO",
             to_port_id="USLAX",
             distance=5000,
             eca_distance=200,
-            created_by=user,
-            updated_by=user,
         )
-        return {"s1": s1, "s2": s2, "d1": d1, "d2": d2}
+        return {"d1": d1, "d2": d2}
 
     def test_distance_list(self, auth_client, distance_data):
         """
@@ -227,50 +220,61 @@ class TestDistanceView:
         response = auth_client.get(url)
 
         assert response.status_code == 200
-        assert "scenarios" in response.context
-        assert "filter_ports" in response.context  # 동적 필터용
-        assert "ports" in response.context  # 모달 입력용 전체 포트
-        assert "search_params" in response.context
+        assert "ports" in response.context
+        assert "filter_from_ports" in response.context
+        assert "filter_to_ports" in response.context
 
-    def test_distance_scenario_filter(self, auth_client, distance_data):
+    def test_distance_filter_from_port(self, auth_client, distance_data):
         """
-        [IN_DST_DIS_002] 시나리오 선택 시 해당 데이터만 표시
+        [IN_DST_DIS_002] From Port 드롭다운 필터 — KRPUS 선택 시 해당 데이터만 반환
         """
-        s1 = distance_data["s1"]
         url = reverse("input_data:distance_list")
-        response = auth_client.get(url, {"scenario_id": s1.id})
+        response = auth_client.get(
+            url, {"draw": "1", "start": "0", "length": "50", "from_port": "KRPUS"}
+        )
 
-        items = response.context["items"]
-        from_ports = [item.from_port_id for item in items]
-        assert "KRPUS" in from_ports
-        assert "JPTYO" not in from_ports  # s2 데이터는 안 보여야 함
+        assert response.status_code == 200
+        data = response.json()
+        assert data["recordsFiltered"] >= 1
+        assert all(r["from_port"] == "KRPUS" for r in data["data"])
+
+    def test_distance_filter_to_port(self, auth_client, distance_data):
+        """
+        [IN_DST_DIS_006] To Port 드롭다운 필터 — JPTYO 선택 시 해당 데이터만 반환
+        """
+        url = reverse("input_data:distance_list")
+        response = auth_client.get(
+            url, {"draw": "1", "start": "0", "length": "50", "to_port": "JPTYO"}
+        )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["recordsFiltered"] >= 1
+        assert all(r["to_port"] == "JPTYO" for r in data["data"])
 
     def test_distance_search(self, auth_client, distance_data):
         """
         [IN_DST_DIS_003] Port 코드 검색 필터링
         """
-        s1 = distance_data["s1"]
         url = reverse("input_data:distance_list")
-        # s1 시나리오 내에서 검색 수행
-        response = auth_client.get(url, {"scenario_id": s1.id, "search": "KRPUS"})
-
-        items = response.context["items"]
-        assert len(items) >= 1
-        assert any(
-            item.from_port_id == "KRPUS" or item.to_port_id == "KRPUS" for item in items
+        # DataTables AJAX 요청으로 검색
+        response = auth_client.get(
+            url, {"draw": "1", "start": "0", "length": "50", "search[value]": "KRPUS"}
         )
+
+        assert response.status_code == 200
+        data = response.json()
+        assert data["recordsFiltered"] >= 1
 
     def test_distance_add_row_save(self, auth_client, distance_data):
         """
         [IN_DST_DIS_004] 모달에서 Distance 추가 후 DB 저장
         """
-        s1 = distance_data["s1"]
         url = reverse("input_data:distance_list")
         response = auth_client.post(
             url,
             {
                 "action": "save",
-                "scenario_id": s1.id,
                 "new_from_port_0": "USLAX",
                 "new_to_port_0": "KRPUS",
                 "new_distance_0": "6000",
@@ -279,10 +283,7 @@ class TestDistanceView:
         )
 
         assert response.status_code == 302
-        assert f"scenario_id={s1.id}" in response.url
-        obj = Distance.objects.get(
-            scenario=s1, from_port_id="USLAX", to_port_id="KRPUS"
-        )
+        obj = BaseDistance.objects.get(from_port_id="USLAX", to_port_id="KRPUS")
         assert obj.distance == 6000
         assert obj.eca_distance == 300
 
@@ -291,20 +292,17 @@ class TestDistanceView:
         [IN_DST_DIS_005] 선택 Distance 삭제
         """
         d1 = distance_data["d1"]
-        s1 = distance_data["s1"]
         url = reverse("input_data:distance_list")
         response = auth_client.post(
             url,
             {
                 "action": "delete",
-                "scenario_id": s1.id,
                 "selected_pks": [d1.pk],
             },
         )
 
         assert response.status_code == 302
-        assert f"scenario_id={s1.id}" in response.url
-        assert not Distance.objects.filter(pk=d1.pk).exists()
+        assert not BaseDistance.objects.filter(pk=d1.pk).exists()
 
 
 @pytest.mark.django_db
