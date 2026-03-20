@@ -94,6 +94,13 @@
                                     <i class="bi bi-speedometer2"></i> Dash
                                 </a>
                                 <button type="button"
+                                        class="btn btn-sm btn-outline-success btn-export"
+                                        data-scenario-id="{{ scenario.id }}"
+                                        data-scenario-code="{{ scenario.code }}"
+                                        title="Export JSON (ZIP)">
+                                    <i class="bi bi-file-earmark-zip"></i> Export
+                                </button>
+                                <button type="button"
                                         class="btn btn-sm btn-outline-danger"
                                         data-bs-toggle="modal"
                                         data-bs-target="#deleteModal"
@@ -246,7 +253,158 @@
                 form.action = urlTemplate.replace('PLACEHOLDER', scenarioId);
             });
         }
+
+        // ── Export 기능 ──
+        var POLL_INTERVAL = 2000;
+        var pollTimer = null;
+        var exportUrlTemplate = "{% url 'input_data:scenario_export_request' 0 %}".replace('/0/', '/{id}/');
+        var statusUrlTemplate = "{% url 'input_data:scenario_export_status' 'TASK_PLACEHOLDER' %}".replace('TASK_PLACEHOLDER', '{task_id}');
+        var downloadUrlTemplate = "{% url 'input_data:scenario_export_download' 0 %}".replace('/0/', '/{id}/');
+
+        document.querySelectorAll('.btn-export').forEach(function(btn) {
+            btn.addEventListener('click', function() {
+                startExport(this.dataset.scenarioId, this.dataset.scenarioCode);
+            });
+        });
+
+        function startExport(scenarioId, scenarioCode) {
+            resetExportModal();
+            document.getElementById('exportModalTitle').textContent = 'Export: ' + scenarioCode;
+            var modal = new bootstrap.Modal(document.getElementById('exportModal'));
+            modal.show();
+
+            var url = exportUrlTemplate.replace('{id}', scenarioId);
+            fetch(url, {
+                method: 'POST',
+                headers: {
+                    'X-CSRFToken': '{{ csrf_token }}',
+                    'Content-Type': 'application/json',
+                },
+            })
+            .then(function(r) { return r.json(); })
+            .then(function(data) {
+                if (data.status === 'accepted') {
+                    pollTaskStatus(data.task_id, scenarioId);
+                } else {
+                    showExportError(data.message || 'Export 요청 실패');
+                }
+            })
+            .catch(function(err) {
+                showExportError('네트워크 오류: ' + err.message);
+            });
+        }
+
+        function pollTaskStatus(taskId, scenarioId) {
+            var url = statusUrlTemplate.replace('{task_id}', taskId);
+            pollTimer = setInterval(function() {
+                fetch(url)
+                .then(function(r) { return r.json(); })
+                .then(function(data) {
+                    updateExportProgress(data.progress || 0, data.step || '');
+
+                    if (data.state === 'SUCCESS') {
+                        clearInterval(pollTimer);
+                        showExportSuccess(data, scenarioId);
+                    } else if (data.state === 'FAILURE') {
+                        clearInterval(pollTimer);
+                        showExportError(data.error || 'Export 실패');
+                    }
+                })
+                .catch(function(err) {
+                    clearInterval(pollTimer);
+                    showExportError('상태 조회 오류: ' + err.message);
+                });
+            }, POLL_INTERVAL);
+        }
+
+        function updateExportProgress(percent, stepText) {
+            var bar = document.getElementById('exportProgressBar');
+            bar.style.width = percent + '%';
+            bar.textContent = percent + '%';
+            document.getElementById('exportStepText').textContent = stepText || '처리 중...';
+        }
+
+        function showExportSuccess(data, scenarioId) {
+            document.getElementById('exportProgress').classList.add('d-none');
+            document.getElementById('exportResult').classList.remove('d-none');
+            document.getElementById('exportResultText').textContent =
+                data.scenario_code + ' — 총 ' + data.total_records + '건 Export 완료';
+
+            var fileList = document.getElementById('exportFileList');
+            if (data.files) {
+                var items = Object.entries(data.files)
+                    .map(function(e) { return e[0] + ': ' + e[1] + '건'; })
+                    .join('<br>');
+                fileList.innerHTML = items;
+            }
+
+            var dlBtn = document.getElementById('exportDownloadBtn');
+            dlBtn.href = downloadUrlTemplate.replace('{id}', scenarioId);
+            dlBtn.classList.remove('d-none');
+        }
+
+        function showExportError(message) {
+            document.getElementById('exportProgress').classList.add('d-none');
+            document.getElementById('exportError').classList.remove('d-none');
+            document.getElementById('exportErrorText').textContent = message;
+        }
+
+        function resetExportModal() {
+            document.getElementById('exportProgress').classList.remove('d-none');
+            document.getElementById('exportResult').classList.add('d-none');
+            document.getElementById('exportError').classList.add('d-none');
+            document.getElementById('exportDownloadBtn').classList.add('d-none');
+            updateExportProgress(0, '초기화 중...');
+        }
     });
 </script>
+
+<!-- Export 진행 모달 -->
+<div class="modal fade" id="exportModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="exportModalTitle">
+          <i class="bi bi-file-earmark-zip me-2"></i>시나리오 데이터 Export
+        </h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        <div id="exportProgress" class="text-center">
+          <div class="spinner-border text-primary mb-3" role="status">
+            <span class="visually-hidden">Loading...</span>
+          </div>
+          <p id="exportStepText" class="mb-2">데이터 추출 중입니다...</p>
+          <div class="progress mb-3" style="height: 20px;">
+            <div id="exportProgressBar"
+                 class="progress-bar progress-bar-striped progress-bar-animated"
+                 role="progressbar" style="width: 0%">0%
+            </div>
+          </div>
+        </div>
+        <div id="exportResult" class="d-none">
+          <div class="alert alert-success">
+            <i class="bi bi-check-circle me-2"></i>
+            <span id="exportResultText"></span>
+          </div>
+          <div id="exportFileList" class="small text-muted mb-3" style="max-height:200px;overflow-y:auto;"></div>
+        </div>
+        <div id="exportError" class="d-none">
+          <div class="alert alert-danger">
+            <i class="bi bi-exclamation-circle me-2"></i>
+            <span id="exportErrorText"></span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">닫기</button>
+        <a id="exportDownloadBtn" href="#" class="btn btn-primary d-none">
+          <i class="bi bi-download me-1"></i>ZIP 다운로드
+        </a>
+      </div>
+    </div>
+  </div>
+</div>
+
 {% endblock %}
 

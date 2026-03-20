@@ -1,14 +1,18 @@
 import json
+import os
 
 from django.apps import apps
+from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import models, transaction
 from django.db.models import Count, Min
-from django.http import JsonResponse
+from django.http import FileResponse, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils import timezone
-from django.views.decorators.http import require_POST
+from django.views.decorators.http import require_GET, require_POST
+
+from celery.result import AsyncResult
 
 from common import messages as msg
 from common.menus import (
@@ -18,7 +22,9 @@ from common.menus import (
     MenuSection,
 )
 from input_data.models import ProformaSchedule, ScenarioInfo
+from input_data.services.export_configs import EXPORT_BASE_DIR, ZIP_FILENAME_PATTERN
 from input_data.services.scenario_service import create_scenario_from_base
+from input_data.tasks import export_scenario_task
 
 
 @login_required
@@ -396,3 +402,157 @@ def _clone_relation_data(
             detail_model.objects.bulk_create(new_details, batch_size=1000)
 
     return id_map
+
+
+# =========================================================
+# Export: 시나리오 데이터 일괄 JSON + ZIP 다운로드
+# =========================================================
+
+
+@login_required
+@require_POST
+def scenario_export_request(request, scenario_id):
+    """
+    [POST] Export 요청.
+    - Docker 환경: Celery task 비동기 발행 → task_id 반환
+    - Local EAGER 환경: 서비스 직접 동기 실행 → 즉시 완료
+    """
+    from input_data.services.scenario_export_service import ScenarioExportService
+
+    scenario = get_object_or_404(ScenarioInfo, id=scenario_id)
+
+    if getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
+        # 로컬: Celery 우회, 서비스 직접 호출 (Redis 불필요)
+        try:
+            service = ScenarioExportService(scenario_id)
+            result = service.export_all()
+            # JSON 폴더 정리 (ZIP만 남김)
+            import shutil
+
+            if os.path.exists(service.output_dir):
+                shutil.rmtree(service.output_dir)
+            return JsonResponse(
+                {
+                    "status": "accepted",
+                    "task_id": "eager-sync",
+                    "scenario_id": scenario_id,
+                    "scenario_code": scenario.code,
+                    "message": "Export 완료.",
+                    "eager_result": {
+                        "state": "SUCCESS",
+                        "total_records": result["total_records"],
+                        "files": result["files"],
+                    },
+                }
+            )
+        except Exception as e:
+            return JsonResponse(
+                {"status": "error", "message": str(e)},
+                status=500,
+            )
+    else:
+        # Docker: Celery 비동기 실행
+        task = export_scenario_task.delay(scenario_id)
+        return JsonResponse(
+            {
+                "status": "accepted",
+                "task_id": task.id,
+                "scenario_id": scenario_id,
+                "scenario_code": scenario.code,
+                "message": "데이터 추출을 시작했습니다.",
+            }
+        )
+
+
+@login_required
+@require_GET
+def scenario_export_status(request, task_id):
+    """
+    [GET] Celery task 상태 폴링.
+    - Docker: AsyncResult로 Redis에서 상태 조회
+    - Local EAGER: 동기 실행이므로 항상 SUCCESS (프론트에서 즉시 처리)
+    """
+    if getattr(settings, "CELERY_TASK_ALWAYS_EAGER", False):
+        # EAGER 모드: 동기 실행 완료 상태 반환
+        return JsonResponse(
+            {
+                "state": "SUCCESS",
+                "progress": 100,
+                "step": "완료 (동기 모드)",
+            }
+        )
+
+    result = AsyncResult(task_id)
+
+    if result.state == "PENDING":
+        response = {
+            "state": "PENDING",
+            "progress": 0,
+            "step": "대기 중...",
+        }
+    elif result.state == "PROGRESS":
+        info = result.info or {}
+        response = {
+            "state": "PROGRESS",
+            "progress": info.get("progress", 0),
+            "step": info.get("step", "처리 중..."),
+        }
+    elif result.state == "SUCCESS":
+        info = result.result or {}
+        response = {
+            "state": "SUCCESS",
+            "progress": 100,
+            "step": "완료",
+            "total_records": info.get("total_records", 0),
+            "files": info.get("files", {}),
+            "zip_download_url": info.get("zip_download_url", ""),
+            "scenario_code": info.get("scenario_code", ""),
+        }
+    elif result.state == "FAILURE":
+        info = result.info
+        error_msg = str(info) if isinstance(info, Exception) else "알 수 없는 오류"
+        response = {
+            "state": "FAILURE",
+            "progress": 0,
+            "step": "오류 발생",
+            "error": error_msg,
+        }
+    else:
+        response = {
+            "state": result.state,
+            "progress": 0,
+            "step": result.state,
+        }
+
+    return JsonResponse(response)
+
+
+@login_required
+@require_GET
+def scenario_export_download(request, scenario_id):
+    """
+    [GET] 생성된 ZIP 파일 다운로드.
+    Celery task 완료 후 프론트에서 이 URL로 이동.
+    """
+    scenario = get_object_or_404(ScenarioInfo, id=scenario_id)
+
+    zip_name = ZIP_FILENAME_PATTERN.format(scenario_id=scenario_id)
+    zip_path = os.path.join(settings.MEDIA_ROOT, EXPORT_BASE_DIR, zip_name)
+
+    if not os.path.exists(zip_path):
+        return JsonResponse(
+            {
+                "status": "error",
+                "message": "Export 파일이 존재하지 않습니다. 먼저 Export를 실행해주세요.",
+            },
+            status=404,
+        )
+
+    response = FileResponse(
+        open(zip_path, "rb"),
+        content_type="application/zip",
+    )
+    response["Content-Disposition"] = (
+        f'attachment; filename="scenario_{scenario.code}_data.zip"'
+    )
+    return response

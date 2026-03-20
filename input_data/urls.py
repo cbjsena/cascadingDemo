@@ -26,6 +26,22 @@ urlpatterns = [
         views.scenario_dashboard,
         name="scenario_dashboard",
     ),
+    # Scenario Export (JSON + ZIP)
+    path(
+        "scenario/<int:scenario_id>/export/",
+        views.scenario_export_request,
+        name="scenario_export_request",
+    ),
+    path(
+        "scenario/export/status/<str:task_id>/",
+        views.scenario_export_status,
+        name="scenario_export_status",
+    ),
+    path(
+        "scenario/<int:scenario_id>/export/download/",
+        views.scenario_export_download,
+        name="scenario_export_download",
+    ),
     # Proforma Schedule  - views/proforma.py 에 정의된 함수들
     path("proforma/list/", views.proforma_list, name="proforma_list"),
     path("proforma/detail/", views.proforma_detail, name="proforma_detail"),

@@ -201,9 +201,10 @@ else:
     # [Local 환경] -> 브로커 없이 '즉시 동기' 실행 (디버깅 용이)
     print("[LOCAL] Celery running in EAGER mode (Synchronous)")
     CELERY_TASK_ALWAYS_EAGER = True
-    # 로컬에 Redis가 아예 없어도 에러가 안 나도록 메모리 브로커 사용 (선택 사항)
+    CELERY_TASK_EAGER_PROPAGATES = True
+    # 로컬에 Redis가 아예 없어도 에러가 안 나도록 메모리 브로커/백엔드 사용
     CELERY_BROKER_URL = "memory://"
-    CELERY_RESULT_BACKEND = "django-db"  # 또는 'cache+memory://'
+    CELERY_RESULT_BACKEND = "cache+memory://"
 
 # 작업 결과 유지 시간 (초)
 CELERY_RESULT_EXPIRES = 3600
