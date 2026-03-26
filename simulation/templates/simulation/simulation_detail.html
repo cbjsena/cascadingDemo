@@ -1,0 +1,353 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Simulation Detail - {{ simulation.code }} - Cascading Opt{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Sidebar -->
+        <div class="col-md-2">
+            {% include "common/sidebar.html" %}
+        </div>
+
+        <!-- Main Content -->
+        <div class="col-md-10">
+            <!-- Header -->
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2><i class="bi bi-cpu me-2"></i>{{ simulation.code }}</h2>
+                    <p class="text-muted mb-0">
+                        Scenario: <strong>{{ simulation.scenario.code }}</strong> |
+                        Created: {{ simulation.created_at|date:"Y-m-d H:i:s" }}
+                    </p>
+                </div>
+                <div>
+                    {% if simulation.can_modify %}
+                    <form method="post" action="{% url 'simulation:simulation_delete' simulation.pk %}"
+                          class="d-inline"
+                          onsubmit="return confirm('정말로 이 시뮬레이션을 삭제하시겠습니까?');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-outline-danger me-2">
+                            <i class="bi bi-trash me-1"></i>Delete
+                        </button>
+                    </form>
+                    {% endif %}
+                    <a href="{% url 'simulation:simulation_list' %}" class="btn btn-secondary">
+                        <i class="bi bi-arrow-left me-1"></i>Back to List
+                    </a>
+                </div>
+            </div>
+
+            <!-- Status Overview -->
+            <div class="row mb-4">
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <div class="mb-2">
+                                {% if simulation.is_success %}
+                                    <i class="bi bi-check-circle-fill text-success" style="font-size: 2rem;"></i>
+                                {% elif simulation.is_failure %}
+                                    <i class="bi bi-x-circle-fill text-danger" style="font-size: 2rem;"></i>
+                                {% elif simulation.is_running %}
+                                    <i class="bi bi-play-circle-fill text-primary" style="font-size: 2rem;"></i>
+                                {% elif simulation.is_processing %}
+                                    <i class="bi bi-hourglass-split text-warning" style="font-size: 2rem;"></i>
+                                {% else %}
+                                    <i class="bi bi-pause-circle-fill text-secondary" style="font-size: 2rem;"></i>
+                                {% endif %}
+                            </div>
+                            <h5 class="card-title">
+                                {% if simulation.is_success %}
+                                    <span class="badge bg-success">Success</span>
+                                {% elif simulation.is_failure %}
+                                    <span class="badge bg-danger">Failed</span>
+                                {% elif simulation.is_running %}
+                                    <span class="badge bg-primary">Running</span>
+                                {% elif simulation.is_processing %}
+                                    <span class="badge bg-warning">Processing</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">{{ simulation.get_simulation_status_display }}</span>
+                                {% endif %}
+                            </h5>
+                            <p class="card-text small text-muted">Status</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">{{ simulation.progress }}%</h5>
+                            {% if simulation.is_running %}
+                                <div class="progress mb-2">
+                                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                                         role="progressbar"
+                                         style="width: {{ simulation.progress }}%"
+                                         aria-valuenow="{{ simulation.progress }}"
+                                         aria-valuemin="0"
+                                         aria-valuemax="100">
+                                    </div>
+                                </div>
+                            {% endif %}
+                            <p class="card-text small text-muted">Progress</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                {% if simulation.objective_value %}
+                                    ${{ simulation.objective_value|floatformat:2 }}
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </h5>
+                            <p class="card-text small text-muted">Objective Value</p>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="card text-center">
+                        <div class="card-body">
+                            <h5 class="card-title">
+                                {% if simulation.execution_time %}
+                                    {{ simulation.execution_time|floatformat:1 }}s
+                                {% else %}
+                                    -
+                                {% endif %}
+                            </h5>
+                            <p class="card-text small text-muted">Execution Time</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Details -->
+            <div class="row">
+                <div class="col-md-8">
+                    <!-- Simulation Configuration -->
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-gear me-2"></i>Configuration
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <dl class="row">
+                                        <dt class="col-sm-4">Solver Type</dt>
+                                        <dd class="col-sm-8">{{ simulation.solver_type }}</dd>
+
+                                        <dt class="col-sm-4">Scenario</dt>
+                                        <dd class="col-sm-8">
+                                            <a href="{% url 'input_data:scenario_dashboard' simulation.scenario.pk %}">
+                                                {{ simulation.scenario.code }}
+                                            </a>
+                                        </dd>
+
+                                        <dt class="col-sm-4">Task ID</dt>
+                                        <dd class="col-sm-8">
+                                            {% if simulation.task_id %}
+                                                <code>{{ simulation.task_id|truncatechars:20 }}</code>
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </dd>
+                                    </dl>
+                                </div>
+                                <div class="col-md-6">
+                                    <dl class="row">
+                                        <dt class="col-sm-4">Start Time</dt>
+                                        <dd class="col-sm-8">
+                                            {% if simulation.model_start_time %}
+                                                {{ simulation.model_start_time|date:"Y-m-d H:i:s" }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </dd>
+
+                                        <dt class="col-sm-4">End Time</dt>
+                                        <dd class="col-sm-8">
+                                            {% if simulation.model_end_time %}
+                                                {{ simulation.model_end_time|date:"Y-m-d H:i:s" }}
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </dd>
+
+                                        <dt class="col-sm-4">Model Status</dt>
+                                        <dd class="col-sm-8">
+                                            {% if simulation.model_status %}
+                                                <span class="badge bg-info">{{ simulation.model_status }}</span>
+                                            {% else %}
+                                                -
+                                            {% endif %}
+                                        </dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Description & Tags -->
+                    {% if simulation.description or simulation.tags %}
+                    <div class="card mb-4">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-card-text me-2"></i>Details
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            {% if simulation.description %}
+                            <div class="mb-3">
+                                <h6>Description</h6>
+                                <p class="mb-0">{{ simulation.description }}</p>
+                            </div>
+                            {% endif %}
+
+                            {% if simulation.tags %}
+                            <div>
+                                <h6>Tags</h6>
+                                {% for tag in simulation.tags|split:"," %}
+                                <span class="badge bg-secondary me-1">{{ tag|strip }}</span>
+                                {% endfor %}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endif %}
+
+                    <!-- Results Section (Success 시에만 표시) -->
+                    {% if simulation.is_success %}
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-graph-up me-2"></i>Results
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="alert alert-success">
+                                <h6 class="alert-heading mb-2">
+                                    <i class="bi bi-check-circle-fill me-1"></i>시뮬레이션이 성공적으로 완료되었습니다!
+                                </h6>
+                                <p class="mb-2">
+                                    최적화 목표값: <strong>${{ simulation.objective_value|floatformat:2 }}</strong><br>
+                                    실행 시간: <strong>{{ simulation.execution_time|floatformat:1 }}초</strong>
+                                </p>
+                                <hr>
+                                <p class="mb-0 small">
+                                    이 결과는 데모 데이터입니다. 실제 시뮬레이션 엔진이 구현되면 상세한 최적화 결과가 표시됩니다.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="col-md-4">
+                    <!-- Timeline -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="card-title mb-0">
+                                <i class="bi bi-clock me-2"></i>Timeline
+                            </h5>
+                        </div>
+                        <div class="card-body">
+                            <div class="timeline">
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-secondary"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="timeline-title">Created</h6>
+                                        <p class="timeline-text small text-muted">
+                                            {{ simulation.created_at|date:"M d, Y H:i" }}
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {% if simulation.model_start_time %}
+                                <div class="timeline-item">
+                                    <div class="timeline-marker bg-primary"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="timeline-title">Started</h6>
+                                        <p class="timeline-text small text-muted">
+                                            {{ simulation.model_start_time|date:"M d, Y H:i" }}
+                                        </p>
+                                    </div>
+                                </div>
+                                {% endif %}
+
+                                {% if simulation.model_end_time %}
+                                <div class="timeline-item">
+                                    <div class="timeline-marker {% if simulation.is_success %}bg-success{% elif simulation.is_failure %}bg-danger{% else %}bg-warning{% endif %}"></div>
+                                    <div class="timeline-content">
+                                        <h6 class="timeline-title">
+                                            {% if simulation.is_success %}Completed{% elif simulation.is_failure %}Failed{% else %}Finished{% endif %}
+                                        </h6>
+                                        <p class="timeline-text small text-muted">
+                                            {{ simulation.model_end_time|date:"M d, Y H:i" }}
+                                        </p>
+                                    </div>
+                                </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #e9ecef;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -22px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+}
+
+.timeline-content {
+    background: #f8f9fa;
+    padding: 10px 15px;
+    border-radius: 6px;
+    border-left: 3px solid #dee2e6;
+}
+
+.timeline-title {
+    font-size: 0.9rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+    color: #495057;
+}
+
+.timeline-text {
+    margin-bottom: 0;
+    color: #6c757d;
+}
+</style>
+{% endblock %}

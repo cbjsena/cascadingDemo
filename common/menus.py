@@ -5,6 +5,7 @@
 class MenuSection:
     CREATION = "creation"
     INPUT_MANAGEMENT = "input_management"
+    SIMULATION = "simulation"
 
 
 # 메뉴 그룹 상수
@@ -24,6 +25,10 @@ class MenuItem:
     CASCADING_CREATE = "cascading_create"
     CASCADING_VESSEL_CREATE = "cascading_vessel_create"
     LANE_PROFORMA_MAPPING = "lane_proforma_mapping"
+
+    # Input Management - Dashboard & Scenario
+    DASHBOARD = "input_home"
+    SCENARIO_LIST = "scenario_list"
 
     # Input Management - Schedule
     PROFORMA_SCHEDULE = "proforma_schedule"
@@ -56,9 +61,10 @@ class MenuItem:
     BUNKER_CONSUMPTION_PORT = "bunker_consumption_port"
     BUNKER_PRICE = "bunker_price"
 
-    # Input Management - Dashboard & Scenario
-    DASHBOARD = "input_home"
-    SCENARIO_LIST = "scenario_list"
+    # Simulation
+    SIMULATION_LIST = "simulation_list"
+    SIMULATION_CREATE = "simulation_create"
+    SIMULATION_DETAIL = "simulation_detail"
 
 
 # Creation 메뉴 구조 (별도 관리)
@@ -210,3 +216,16 @@ MENU_STRUCTURE = {
     #     {"name": "Greenhouse Gas Target", "key": "greenhouse_gas_target"},
     # ],
 }
+
+SIMULATION_MENU_STRUCTURE = [
+    {
+        "name": "Simulation List",
+        "key": MenuItem.SIMULATION_LIST,
+        "url_name": "simulation:simulation_list",
+    },
+    {
+        "name": "Create Simulation",
+        "key": MenuItem.SIMULATION_CREATE,
+        "url_name": "simulation:simulation_create",
+    },
+]

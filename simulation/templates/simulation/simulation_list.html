@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% load static %}
+
+{% block title %}Simulation List - Cascading Opt{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <!-- Main Content -->
+        <div class="col-md-10">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="bi bi-cpu me-2"></i>Simulation Runs</h2>
+                <a href="{% url 'simulation:simulation_create' %}" class="btn btn-primary">
+                    <i class="bi bi-play-circle me-2"></i>Run New Simulation
+                </a>
+            </div>
+
+            <!-- Simulation List Table -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped table-hover">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>Code</th>
+                                    <th>Scenario</th>
+                                    <th>Status</th>
+                                    <th>Progress</th>
+                                    <th>Solver</th>
+                                    <th>Objective Value</th>
+                                    <th>Execution Time</th>
+                                    <th>Created</th>
+                                    <th>Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for simulation in simulations %}
+                                <tr>
+                                    <td>
+                                        <a href="{% url 'simulation:simulation_detail' simulation.pk %}" class="text-decoration-none">
+                                            {{ simulation.code }}
+                                        </a>
+                                    </td>
+                                    <td>{{ simulation.scenario.code }}</td>
+                                    <td>
+                                        {% if simulation.is_success %}
+                                            <span class="badge bg-success">Success</span>
+                                        {% elif simulation.is_failure %}
+                                            <span class="badge bg-danger">Failed</span>
+                                        {% elif simulation.is_running %}
+                                            <span class="badge bg-primary">Running</span>
+                                        {% elif simulation.is_processing %}
+                                            <span class="badge bg-warning">Processing</span>
+                                        {% else %}
+                                            <span class="badge bg-secondary">{{ simulation.get_simulation_status_display }}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if simulation.is_running %}
+                                            <div class="progress" style="width: 80px;">
+                                                <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                                     role="progressbar"
+                                                     style="width: {{ simulation.progress }}%"
+                                                     aria-valuenow="{{ simulation.progress }}"
+                                                     aria-valuemin="0"
+                                                     aria-valuemax="100">
+                                                    {{ simulation.progress }}%
+                                                </div>
+                                            </div>
+                                        {% else %}
+                                            {{ simulation.progress }}%
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ simulation.solver_type }}</td>
+                                    <td>
+                                        {% if simulation.objective_value %}
+                                            ${{ simulation.objective_value|floatformat:2 }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        {% if simulation.execution_time %}
+                                            {{ simulation.execution_time|floatformat:1 }}s
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </td>
+                                    <td>{{ simulation.created_at|date:"Y-m-d H:i" }}</td>
+                                    <td>
+                                        <a href="{% url 'simulation:simulation_detail' simulation.pk %}"
+                                           class="btn btn-sm btn-outline-primary me-1">
+                                            <i class="bi bi-eye"></i> View
+                                        </a>
+                                        {% if simulation.can_modify %}
+                                        <form method="post" action="{% url 'simulation:simulation_delete' simulation.pk %}"
+                                              class="d-inline"
+                                              onsubmit="return confirm('정말로 이 시뮬레이션을 삭제하시겠습니까?');">
+                                            {% csrf_token %}
+                                            <button type="submit" class="btn btn-sm btn-outline-danger">
+                                                <i class="bi bi-trash"></i> Delete
+                                            </button>
+                                        </form>
+                                        {% endif %}
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="9" class="text-center text-muted py-4">
+                                        <i class="bi bi-info-circle me-2"></i>
+                                        아직 실행된 시뮬레이션이 없습니다.
+                                        <a href="{% url 'simulation:simulation_create' %}">새 시뮬레이션 실행하기</a>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -66,6 +66,7 @@ INSTALLED_APPS = [
     # Custom Apps
     "common",
     "input_data.apps.InputDataConfig",
+    "simulation",  # 시뮬레이션 앱 추가
     "api",
 ]
 if DEBUG:

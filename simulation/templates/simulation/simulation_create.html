@@ -1,0 +1,83 @@
+{% extends "base.html" %}
+
+{% block title %}Run Simulation - Cascading Opt{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center pt-3 pb-2 mb-3 border-bottom">
+        <h1 class="h2"><i class="bi bi-play-circle text-primary me-2"></i>Run Simulation</h1>
+        <a href="{% url 'simulation:simulation_list' %}" class="btn btn-sm btn-outline-secondary">
+            <i class="bi bi-list"></i> Simulation List
+        </a>
+    </div>
+
+    <div class="row justify-content-center mt-4">
+        <div class="col-md-8">
+            <div class="card shadow-sm">
+                <div class="card-header bg-light fw-bold py-3">
+                    <h5 class="mb-0"><i class="bi bi-sliders me-2"></i>Simulation Configuration</h5>
+                </div>
+                <div class="card-body p-4">
+                    <form method="post" action="{% url 'simulation:simulation_run' %}">
+                        {% csrf_token %}
+
+                        <div class="mb-4">
+                            <label for="scenarioSelect" class="form-label fw-bold">Select Scenario <span class="text-danger">*</span></label>
+                            <select class="form-select form-select-lg" id="scenarioSelect" name="scenario_id" required>
+                                <option value="">-- Choose an active scenario --</option>
+                                {% for scenario in scenarios %}
+                                <option value="{{ scenario.id }}">
+                                    {{ scenario.code }} - {{ scenario.description|truncatechars:50 }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text mt-2">Only <span class="badge bg-success">ACTIVE</span> scenarios can be simulated.</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="solverSelect" class="form-label fw-bold">Optimization Solver</label>
+                            <select class="form-select" id="solverSelect" name="solver">
+                                <option value="DEFAULT" selected>Default Engine (Cascading Opt v1.0)</option>
+                                <option value="HEURISTIC">Fast Heuristic (Quick Results)</option>
+                                <option value="EXACT">Exact Solver (Maximum Accuracy)</option>
+                            </select>
+                        </div>
+
+                        <div class="alert alert-info mt-4">
+                            <h6 class="alert-heading fw-bold"><i class="bi bi-info-circle-fill me-2"></i>Simulation Notice</h6>
+                            <ul class="mb-0 small">
+                                <li>The simulation uses data snapshotted from the selected scenario.</li>
+                                <li>Execution time may vary from a few seconds to several minutes depending on complexity.</li>
+                                <li>You can monitor the progress in the <strong>Simulation List</strong> tab.</li>
+                            </ul>
+                        </div>
+
+                        <div class="d-grid gap-2 mt-5">
+                            <button type="submit" class="btn btn-primary btn-lg" id="btnRun">
+                                <i class="bi bi-lightning-charge-fill me-1"></i> Start Simulation
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('scenarioSelect').addEventListener('change', function() {
+    const btnRun = document.getElementById('btnRun');
+    if (this.value) {
+        btnRun.disabled = false;
+        btnRun.classList.remove('btn-secondary');
+        btnRun.classList.add('btn-primary');
+    } else {
+        btnRun.disabled = true;
+        btnRun.classList.add('btn-secondary');
+        btnRun.classList.remove('btn-primary');
+    }
+});
+// 초기 상태 비활성화
+document.getElementById('scenarioSelect').dispatchEvent(new Event('change'));
+</script>
+{% endblock %}

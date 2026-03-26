@@ -1,5 +1,5 @@
 ﻿[Base Data Table Definition]
-Generated At,2026-03-19 06:08:35
+Generated At,2026-03-26 07:55:04
 
 Table Name,Column Name,Data Type,Nullable,Description (Comment)
 sce_bunker_consumption_port,created_at,datetime,NO,Created At
@@ -75,20 +75,6 @@ sce_cost_ts_cost,lane_code,string,NO,Lane Code / 3 alphanum
 sce_cost_ts_cost,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
 sce_cost_ts_cost,scenario_id,int,NO,Scenario ID
 sce_cost_ts_cost,updated_by_id,int,YES,Updated By
-sce_kpi_snapshot,created_at,datetime,NO,Created At
-sce_kpi_snapshot,updated_at,datetime,NO,Updated At
-sce_kpi_snapshot,snapshot_date,datetime,NO,Snapshot Date
-sce_kpi_snapshot,total_vessels,int,NO,Total Vessels
-sce_kpi_snapshot,total_capacity_teu,numeric,NO,Total Capacity (TEU)
-sce_kpi_snapshot,utilization_rate,numeric,NO,Utilization Rate (%)
-sce_kpi_snapshot,total_voyages,int,NO,Total Voyages
-sce_kpi_snapshot,average_port_time,numeric,NO,Average Port Time (Hours)
-sce_kpi_snapshot,estimated_fuel_cost,numeric,NO,Estimated Fuel Cost
-sce_kpi_snapshot,estimated_charter_cost,numeric,NO,Estimated Charter Cost
-sce_kpi_snapshot,custom_metrics,jsonb,NO,Custom Metrics
-sce_kpi_snapshot,created_by_id,int,YES,Created By
-sce_kpi_snapshot,updated_by_id,int,YES,Updated By
-sce_kpi_snapshot,scenario_id,int,NO,scenario
 sce_lane_proforma_mapping,created_at,datetime,NO,Created At
 sce_lane_proforma_mapping,updated_at,datetime,NO,Updated At
 sce_lane_proforma_mapping,is_active,boolean,NO,Active
@@ -97,16 +83,6 @@ sce_lane_proforma_mapping,updated_by_id,int,YES,Updated By
 sce_lane_proforma_mapping,lane_code,string,NO,Lane Code
 sce_lane_proforma_mapping,proforma_id,bigint,NO,Applied Proforma
 sce_lane_proforma_mapping,scenario_id,int,NO,scenario
-sce_scenario_comparison,created_at,datetime,NO,Created At
-sce_scenario_comparison,updated_at,datetime,NO,Updated At
-sce_scenario_comparison,name,string,NO,Comparison Name
-sce_scenario_comparison,comparison_metrics,jsonb,NO,Comparison Metrics
-sce_scenario_comparison,results,jsonb,NO,Comparison Results
-sce_scenario_comparison,created_by_id,int,YES,Created By
-sce_scenario_comparison,updated_by_id,int,YES,Updated By
-sce_scenario_comparison,base_scenario_id,int,NO,Base Scenario
-sce_scenario_comparison_compare_scenarios,scenariocomparison_id,bigint,NO,
-sce_scenario_comparison_compare_scenarios,scenarioinfo_id,int,NO,
 sce_scenario_info,created_at,datetime,NO,Created At
 sce_scenario_info,updated_at,datetime,NO,Updated At
 sce_scenario_info,code,string,NO,Scenario Code
@@ -194,17 +170,6 @@ sce_schedule_proforma_detail,created_by_id,int,YES,Created By
 sce_schedule_proforma_detail,port_code,string,NO,"Port Code / 2-alpha country code + 3-alpha port code, e.g., KRPUS)"
 sce_schedule_proforma_detail,proforma_id,bigint,NO,Proforma Master ID
 sce_schedule_proforma_detail,updated_by_id,int,YES,Updated By
-sce_simulation_run,created_at,datetime,NO,Created At
-sce_simulation_run,updated_at,datetime,NO,Updated At
-sce_simulation_run,run_name,string,NO,Run Name
-sce_simulation_run,parameters,jsonb,NO,Simulation Parameters
-sce_simulation_run,start_time,datetime,NO,Start Time
-sce_simulation_run,end_time,datetime,YES,End Time
-sce_simulation_run,status,string,NO,status
-sce_simulation_run,results_summary,jsonb,NO,Results Summary
-sce_simulation_run,created_by_id,int,YES,Created By
-sce_simulation_run,scenario_id,int,NO,scenario
-sce_simulation_run,updated_by_id,int,YES,Updated By
 sce_vessel_capacity,created_at,datetime,NO,Created At
 sce_vessel_capacity,updated_at,datetime,NO,Updated At
 sce_vessel_capacity,vessel_code,string,NO,Vessel Code / 4 alphanum

@@ -24,6 +24,7 @@ urlpatterns = [
     path("admin/", admin.site.urls),
     path("accounts/", include("django.contrib.auth.urls")),
     path("input/", include("input_data.urls")),
+    path("simulation/", include("simulation.urls")),
     path(
         "", RedirectView.as_view(url="/input/", permanent=True)
     ),  # 루트 접속 시 input으로 이동
