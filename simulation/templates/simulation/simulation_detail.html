@@ -1,16 +1,12 @@
 {% extends "base.html" %}
 {% load static %}
+{% load common_filters %}
 
 {% block title %}Simulation Detail - {{ simulation.code }} - Cascading Opt{% endblock %}
 
 {% block content %}
 <div class="container-fluid">
     <div class="row">
-        <!-- Sidebar -->
-        <div class="col-md-2">
-            {% include "common/sidebar.html" %}
-        </div>
-
         <!-- Main Content -->
         <div class="col-md-10">
             <!-- Header -->
@@ -140,6 +136,9 @@
                                         <dt class="col-sm-4">Solver Type</dt>
                                         <dd class="col-sm-8">{{ simulation.solver_type }}</dd>
 
+                                        <dt class="col-sm-4">Search Type</dt>
+                                        <dd class="col-sm-8">{{ simulation.get_algorithm_type_display }}</dd>
+
                                         <dt class="col-sm-4">Scenario</dt>
                                         <dd class="col-sm-8">
                                             <a href="{% url 'input_data:scenario_dashboard' simulation.scenario.pk %}">
@@ -192,7 +191,7 @@
                     </div>
 
                     <!-- Description & Tags -->
-                    {% if simulation.description or simulation.tags %}
+                    {% if simulation.description or simulation.scenario.tag_list %}
                     <div class="card mb-4">
                         <div class="card-header">
                             <h5 class="card-title mb-0">
@@ -207,11 +206,11 @@
                             </div>
                             {% endif %}
 
-                            {% if simulation.tags %}
+                            {% if simulation.scenario.tag_list %}
                             <div>
-                                <h6>Tags</h6>
-                                {% for tag in simulation.tags|split:"," %}
-                                <span class="badge bg-secondary me-1">{{ tag|strip }}</span>
+                                <h6>Scenario Tags</h6>
+                                {% for tag in simulation.scenario.tag_list %}
+                                <span class="badge bg-info text-dark me-1">{{ tag }}</span>
                                 {% endfor %}
                             </div>
                             {% endif %}

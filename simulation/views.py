@@ -3,6 +3,7 @@ from django.contrib.auth.decorators import login_required
 from django.shortcuts import get_object_or_404, redirect, render
 from django.views.decorators.http import require_GET, require_POST
 
+from common.constants import SIMULATION_SOLVER_CHOICES
 from common.menus import (
     CREATION_MENU_STRUCTURE,
     MENU_STRUCTURE,
@@ -11,6 +12,7 @@ from common.menus import (
 )
 from input_data.models import ScenarioInfo
 from simulation.models import SimulationRun, SimulationStatus
+from simulation.tasks import run_simulation_task
 
 
 @login_required
@@ -43,6 +45,12 @@ def simulation_create(request):
         "current_section": MenuSection.SIMULATION,
         "current_model": MenuItem.SIMULATION_CREATE,
         "scenarios": scenarios,
+        "solver_choices": SIMULATION_SOLVER_CHOICES,
+        "default_solver_group": SIMULATION_SOLVER_CHOICES.get("EXACT", []),
+        "default_solver_value": SimulationRun._meta.get_field("solver_type").default,
+        "default_algorithm_type": SimulationRun._meta.get_field(
+            "algorithm_type"
+        ).default,
     }
     return render(request, "simulation/simulation_create.html", context)
 
@@ -53,8 +61,12 @@ def simulation_run(request):
     """시뮬레이션 실행 시작"""
     scenario_id = request.POST.get("scenario_id")
     description = request.POST.get("description", "")
-    tags = request.POST.get("tags", "")
-    solver_type = request.POST.get("solver_type", "OR-Tools")
+    solver_type = request.POST.get(
+        "solver_type", SimulationRun._meta.get_field("solver_type").default
+    )
+    algorithm_type = request.POST.get(
+        "algorithm_type", SimulationRun._meta.get_field("algorithm_type").default
+    )
 
     if not scenario_id:
         messages.error(request, "시나리오를 선택해주세요.")
@@ -67,22 +79,16 @@ def simulation_run(request):
         simulation = SimulationRun.objects.create(
             scenario=scenario,
             description=description,
-            tags=tags,
             solver_type=solver_type,
+            algorithm_type=algorithm_type,
             created_by=request.user,
             updated_by=request.user,
         )
-
-        # TODO: 실제 시뮬레이션 실행 로직 구현
-        # 현재는 즉시 성공으로 설정 (데모용)
-        simulation.simulation_status = SimulationStatus.SUCCESS
-        simulation.progress = 100
-        simulation.objective_value = 12345.67  # 샘플 값
-        simulation.execution_time = 45.2  # 샘플 값
-        simulation.save()
+        run_simulation_task.delay(simulation.id)
 
         messages.success(
-            request, f"시뮬레이션 {simulation.code}이(가) 성공적으로 실행되었습니다."
+            request,
+            f"시뮬레이션 {simulation.code} 실행이 예약되었습니다. 실행 현황은 목록에서 확인하세요.",
         )
         return redirect("simulation:simulation_detail", pk=simulation.pk)
 

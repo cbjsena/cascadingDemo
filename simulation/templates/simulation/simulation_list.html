@@ -26,6 +26,7 @@
                                     <th>Scenario</th>
                                     <th>Status</th>
                                     <th>Progress</th>
+                                    <th>Search</th>
                                     <th>Solver</th>
                                     <th>Objective Value</th>
                                     <th>Execution Time</th>
@@ -71,6 +72,7 @@
                                             {{ simulation.progress }}%
                                         {% endif %}
                                     </td>
+                                    <td>{{ simulation.get_algorithm_type_display }}</td>
                                     <td>{{ simulation.solver_type }}</td>
                                     <td>
                                         {% if simulation.objective_value %}
@@ -106,7 +108,7 @@
                                 </tr>
                                 {% empty %}
                                 <tr>
-                                    <td colspan="9" class="text-center text-muted py-4">
+                                    <td colspan="10" class="text-center text-muted py-4">
                                         <i class="bi bi-info-circle me-2"></i>
                                         아직 실행된 시뮬레이션이 없습니다.
                                         <a href="{% url 'simulation:simulation_create' %}">새 시뮬레이션 실행하기</a>

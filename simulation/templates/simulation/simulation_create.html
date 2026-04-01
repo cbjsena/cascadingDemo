@@ -35,12 +35,28 @@
                         </div>
 
                         <div class="mb-4">
-                            <label for="solverSelect" class="form-label fw-bold">Optimization Solver</label>
-                            <select class="form-select" id="solverSelect" name="solver">
-                                <option value="DEFAULT" selected>Default Engine (Cascading Opt v1.0)</option>
-                                <option value="HEURISTIC">Fast Heuristic (Quick Results)</option>
-                                <option value="EXACT">Exact Solver (Maximum Accuracy)</option>
+                            <label for="algorithmSelect" class="form-label fw-bold">Search Algorithm</label>
+                            <select class="form-select" id="algorithmSelect" name="algorithm_type" data-initial-strategy="{{ default_algorithm_type }}">
+                                <option value="EXACT" {% if default_algorithm_type == "EXACT" %}selected{% endif %}>MIP (Highest accuracy)</option>
+                                <option value="EFFICIENT" {% if default_algorithm_type == "EFFICIENT" %}selected{% endif %}>Metaheuristic (Balanced)</option>
+                                <option value="FAST" {% if default_algorithm_type == "FAST" %}selected{% endif %}>Greedy / Rule-based (Fastest)</option>
                             </select>
+                            <div class="form-text">Choose how thoroughly the engine explores the solution space.</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="solverSelect" class="form-label fw-bold">Optimization Solver</label>
+                            <select class="form-select" id="solverSelect" name="solver_type" data-default="{{ default_solver_value }}">
+                                {% for option in default_solver_group %}
+                                <option value="{{ option.value }}" {% if option.value == default_solver_value %}selected{% endif %}>{{ option.label }}</option>
+                                {% endfor %}
+                            </select>
+                            <div class="form-text">Available options automatically follow the selected search algorithm.</div>
+                        </div>
+
+                        <div class="mb-4">
+                            <label for="descriptionField" class="form-label fw-bold">Description</label>
+                            <textarea class="form-control" id="descriptionField" name="description" rows="3" placeholder="Describe the purpose or scenario focus"></textarea>
                         </div>
 
                         <div class="alert alert-info mt-4">
@@ -64,6 +80,8 @@
     </div>
 </div>
 
+{{ solver_choices|json_script:"solverChoicesData" }}
+
 <script>
 document.getElementById('scenarioSelect').addEventListener('change', function() {
     const btnRun = document.getElementById('btnRun');
@@ -79,5 +97,46 @@ document.getElementById('scenarioSelect').addEventListener('change', function() 
 });
 // 초기 상태 비활성화
 document.getElementById('scenarioSelect').dispatchEvent(new Event('change'));
+
+const solverChoices = JSON.parse(document.getElementById('solverChoicesData').textContent);
+const algorithmSelect = document.getElementById('algorithmSelect');
+const solverSelect = document.getElementById('solverSelect');
+const defaultSolverValue = solverSelect.dataset.default;
+const initialStrategy = algorithmSelect.dataset.initialStrategy || 'EXACT';
+
+function refreshSolverOptions(strategy) {
+    const options = solverChoices[strategy] || [];
+    const currentValue = solverSelect.value;
+    solverSelect.innerHTML = '';
+
+    options.forEach((item) => {
+        const optionEl = document.createElement('option');
+        optionEl.value = item.value;
+        optionEl.textContent = item.label;
+        solverSelect.appendChild(optionEl);
+    });
+
+    if (options.length === 0) {
+        return;
+    }
+
+    let targetValue = currentValue;
+    const hasCurrent = options.some((item) => item.value === currentValue);
+    if (!hasCurrent) {
+        if (strategy === initialStrategy && defaultSolverValue) {
+            targetValue = defaultSolverValue;
+        } else {
+            targetValue = options[0].value;
+        }
+    }
+
+    solverSelect.value = targetValue;
+}
+
+algorithmSelect.addEventListener('change', (event) => {
+    refreshSolverOptions(event.target.value);
+});
+
+refreshSolverOptions(algorithmSelect.value || initialStrategy);
 </script>
 {% endblock %}

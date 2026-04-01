@@ -18,6 +18,13 @@ class SimulationStatus(models.TextChoices):
     CANCELED = "CANCELED", "Canceled - Simulation Canceled by User"
 
 
+SEARCH_TYPE_CHOICES = (
+    ("EXACT", "MIP"),
+    ("EFFICIENT", "Metaheuristic"),
+    ("FAST", "Greedy / Rule-based"),
+)
+
+
 class SimulationRun(CommonModel):
     # Auto-incrementing ID (Django standard)
     id = models.AutoField(primary_key=True, verbose_name="Simulation ID")
@@ -32,6 +39,17 @@ class SimulationRun(CommonModel):
     )
 
     scenario = models.ForeignKey(ScenarioInfo, on_delete=models.CASCADE)
+    algorithm_type = models.CharField(
+        max_length=20,
+        choices=SEARCH_TYPE_CHOICES,
+        default="EXACT",
+        verbose_name="Search Type",
+    )
+    solver_type = models.CharField(
+        max_length=20,
+        default="cplex",
+        verbose_name="Solver Type",
+    )
     simulation_status = models.CharField(
         max_length=20, default=SimulationStatus.SNAPSHOTTING
     )
@@ -41,11 +59,6 @@ class SimulationRun(CommonModel):
         blank=True,
         null=True,
         help_text="Celery Task ID (비동기 작업 추적용)",
-    )
-    solver_type = models.CharField(
-        max_length=50,
-        help_text="Solver 유형",
-        default="OR-Tools",
     )
     model_start_time = models.DateTimeField(blank=True, null=True)
     model_end_time = models.DateTimeField(blank=True, null=True)
@@ -63,12 +76,6 @@ class SimulationRun(CommonModel):
         blank=True,
         verbose_name="Description",
         help_text="Detailed description of what this Simulation tests",
-    )
-    tags = models.CharField(
-        max_length=200,
-        blank=True,
-        verbose_name="Tags",
-        help_text="Comma-separated tags for categorization (e.g., capacity-test, route-optimization)",
     )
 
     def __str__(self):

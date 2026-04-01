@@ -20,6 +20,26 @@ DEFAULT_STAY_HOURS = 24.0  # 행 추가 시 ETB -> ETD 간격
 DEFAULT_BASE_YEAR_WEEK = "202605"
 
 # ==========================================
+# Simulation Engine Choices
+# ==========================================
+SIMULATION_SOLVER_CHOICES = {
+    "EXACT": [
+        {"value": "cplex", "label": "IBM ILOG CPLEX"},
+        {"value": "gurobi", "label": "Gurobi Optimizer"},
+        {"value": "xpress", "label": "FICO Xpress"},
+        {"value": "ortools", "label": "Google OR-Tools"},
+    ],
+    "EFFICIENT": [
+        {"value": "meta_default", "label": "Metaheuristic Engine"},
+        {"value": "meta_fast", "label": "Metaheuristic (Fast Track)"},
+    ],
+    "FAST": [
+        {"value": "greedy_rules", "label": "Rule-based Greedy Engine"},
+        {"value": "greedy_fast", "label": "Greedy (Fast Results)"},
+    ],
+}
+
+# ==========================================
 # Excel Manager
 # ==========================================
 # Template 기본값
