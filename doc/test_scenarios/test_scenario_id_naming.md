@@ -27,7 +27,7 @@
 | `IN` | `input_data` | 데이터 입력/관리 | 현재 |
 | `AP` | `api` | 내부 데이터 통신 API | 현재 |
 | `CM` | `common` | 공통 인프라 (DB Doc, Auth 등) | 현재 |
-| `SIM` | (미정) | 시뮬레이션 실행 (Phase 4) | 예정 |
+| `SIM` | `simulation` | 시뮬레이션 실행 | 현재 |
 | `RPT` | (미정) | 결과 분석/리포트 (Phase 5) | 예정 |
 
 ---
@@ -41,6 +41,12 @@
 | `PF` | Proforma API | Lane/PF 목록, 상세 조회 |
 | `VSL` | Vessel API | 선박 목록, 점유 확인, 옵션 |
 | `BVL` | Base Vessel API | BaseVesselInfo 마스터 목록 |
+
+### SIM (simulation) — 시뮬레이션 실행
+| MENU | 대상 | 비고 |
+|------|------|------|
+| `RUN` | Simulation Run | 목록 / 생성 / 실행 / 상세 / 삭제 |
+| `TSK` | Simulation Task | Celery 비동기 실행 로직 (엔진 호출) |
 
 ### CM (common) — 공통 인프라
 | MENU | 대상 | 비고 |

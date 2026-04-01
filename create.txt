@@ -222,13 +222,14 @@
         - collectstatic 테스트
 
 12. podman
-    # podman-compose up -d --build: 컨테이너 빌드 및 실행 (백그라운드)
-    # podman ps: 실행 중인 컨테이너 목록 확인
-    # podman logs -f berthdemo_web_1: berthdemo_web_1 컨테이너의 로그 실시간 확인
-    # podman logs -f berthdemo_worker_1: berthdemo_worker_1 컨테이너의 로그 실시간 확인
-    # podman logs -f berthdemo_redis_1: berthdemo_redis_1 컨테이너의 로그 실시간 확인
+    # 1) podman machine start: Podman 머신 시작 (WSL2 기반의 가상 머신)
+    # 2) podman-compose up -d --build: 컨테이너 빌드 및 실행 (백그라운드)
+    # 2) podman-compose -f docker-compose.local.yml up: 로컬 개발용 컨테이너 실행 (docker-compose.local.yml 파일 사용)
+    # 3) podman-compose down: 컨테이너 중지 및 삭제
+    # podman logs -f cascading_web_1: cascading_web_1 컨테이너의 로그 실시간 확인
+    # podman-compose ps: 실행 중인 컨테이너 목록 확인
     # podman-compose exec web python manage.py migrate: web 컨테이너에서 마이그레이션 명령 실행
-    # podman-compose restart  berthdemo_worker_1 Celery코드 수정 시 worker 재시작 필요
+    # podman-compose restart cascading_worker_1 Celery코드 수정 시 worker 재시작 필요
 
     주의: Podman Desktop과 Podman CLI(podman.exe)는 별개의 구성 요소
     12.1 설치
@@ -243,9 +244,8 @@
         3) 확인
             - 터미널(PowerShell)을 반드시 껐다가 다시 켜야 합니다 (환경 변수 적용 때문)
             - 명령창에서 podman --version 입력하여 버전 정보 확인
-        4) 머신 초기화 및 시작 (처음 한 번만 필요)
+        4) 머신 초기화 (처음 한 번만 필요)
             - podman machine init
-            - podman machine start
     12.2 Dockerfile 생성
         1) 프로젝트 루트에 Dockerfile 생성
         2) 내용 예시

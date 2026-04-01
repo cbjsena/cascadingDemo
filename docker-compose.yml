@@ -4,13 +4,14 @@ services:
   # 1. Database
   db:
     image: postgres:14
+    container_name: cascading_db
     restart: always
     environment:
       POSTGRES_DB: ${DB_NAME}
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASSWORD}
     ports:
-      - "5433:5432" # localhost:5433 포트를 컨테이너의 5432 포트로 연결
+      - "5433:5432" # 서버 배포: 호스트 5433 → 컨테이너 5432 (로컬 DB와 충돌 방지)
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
@@ -24,6 +25,7 @@ services:
   # 3. Web Server (Django + Gunicorn)
   web:
     build: .
+    container_name: cascading_web
     command: /app/scripts/entrypoint.sh
     # local -> command: python manage.py runserver 0.0.0.0:8000
     environment:
@@ -48,6 +50,7 @@ services:
   # 4. Celery Worker (신규 추가) - 비동기 작업 처리
   worker:
     build: .  # Web과 동일한 이미지를 사용 (코드 공유)
+    container_name: cascading_worker
     # 리눅스 컨테이너 내부이므로 --pool 옵션 없이 실행해도 됩니다.
     #command: celery -A config worker -l info
     command: celery -A config worker -l info --concurrency=${CELERY_WORKER_CONCURRENCY:-2}

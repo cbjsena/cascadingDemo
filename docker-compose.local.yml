@@ -1,0 +1,77 @@
+# ==============================================================================
+# 로컬 개발 전용 Docker Compose
+# DB, Redis, Web(Django), Celery Worker를 컨테이너로 실행합니다.
+#
+# 실행:  podman compose -f docker-compose.local.yml up -d
+# 중지:  podman compose -f docker-compose.local.yml down
+# 데이터 초기화: podman compose -f docker-compose.local.yml down -v
+# ==============================================================================
+version: "3.9"
+
+services:
+  # 1. Database (PostgreSQL)
+  db:
+    image: postgres:14
+    container_name: cascading_db
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${DB_NAME:-cascading_db}
+      POSTGRES_USER: ${DB_USER:-cascading_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-cascading_password}
+    ports:
+      - "5432:5432"       # 호스트 5432 → 컨테이너 5432
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  # 2. Redis (Celery 브로커 + 결과 백엔드)
+  redis:
+    image: redis:7-alpine
+    container_name: cascading_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"       # 호스트 6379 → 컨테이너 6379
+
+  # 3. Web Server (Django runserver — 로컬 개발용)
+  web:
+    build: .
+    container_name: cascading_web
+    command: >
+      sh -c "python manage.py migrate --noinput &&
+             python manage.py runserver 0.0.0.0:8000"
+    environment:
+      - APP_ENV=local
+      # DB는 컨테이너 서비스명으로 연결
+      - DB_HOST=db
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    env_file:
+      - .env.local
+    ports:
+      - "8000:8000"       # 호스트 8000 → 컨테이너 8000
+    volumes:
+      - .:/app             # 소스 코드 실시간 반영 (hot-reload)
+    depends_on:
+      - db
+      - redis
+
+  # 4. Celery Worker (비동기 작업 처리)
+  worker:
+    build: .
+    container_name: cascading_worker
+    command: celery -A config worker -l info --concurrency=${CELERY_WORKER_CONCURRENCY:-2}
+    environment:
+      - APP_ENV=local
+      - DB_HOST=db
+      - CELERY_BROKER_URL=redis://redis:6379/0
+      - CELERY_RESULT_BACKEND=redis://redis:6379/0
+    env_file:
+      - .env.local
+    volumes:
+      - .:/app
+    depends_on:
+      - db
+      - redis
+
+volumes:
+  postgres_data:
+

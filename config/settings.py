@@ -184,6 +184,19 @@ DATA_SOURCE_TYPE = os.environ.get("DATA_SOURCE_TYPE", "DB").upper()
 API_URL = os.environ.get("API_URL", "")
 API_KEY = os.environ.get("API_KEY", "")
 
+SIMULATION_ENGINE_API_URL = os.environ.get("SIMULATION_ENGINE_API_URL", API_URL)
+SIMULATION_ENGINE_API_KEY = os.environ.get("SIMULATION_ENGINE_API_KEY", API_KEY)
+SIMULATION_ENGINE_TIMEOUT = int(os.environ.get("SIMULATION_ENGINE_TIMEOUT", 30))
+
+SCENARIO_DATA_API_URL = os.environ.get(
+    "SCENARIO_DATA_API_URL",
+    f"{API_URL}/scenario-data" if API_URL else "",
+)
+SCENARIO_DATA_API_KEY = os.environ.get("SCENARIO_DATA_API_KEY", API_KEY)
+SCENARIO_DATA_API_TIMEOUT = int(
+    os.environ.get("SCENARIO_DATA_API_TIMEOUT", SIMULATION_ENGINE_TIMEOUT)
+)
+
 # Simple validation warning
 if DATA_SOURCE_TYPE == "API" and not API_URL:
     print("WARNING: DATA_SOURCE_TYPE is set to 'API', but API_URL is missing.")
@@ -192,18 +205,23 @@ if DATA_SOURCE_TYPE == "API" and not API_URL:
 # Celery Configuration
 # ==============================================================================
 # [환경별 Celery 동작 모드 설정]
-if APP_ENV == "docker":
-    # [Docker 환경] -> Redis를 이용한 '진짜 비동기' 실행
-    CELERY_TASK_ALWAYS_EAGER = False
-    CELERY_BROKER_URL = os.getenv("CELERY_BROKER_URL", "redis://redis:6379/0")
-    CELERY_RESULT_BACKEND = os.getenv("CELERY_RESULT_BACKEND", "redis://redis:6379/0")
+CELERY_BROKER_URL = os.getenv(
+    "CELERY_BROKER_URL",
+    "redis://redis:6379/0" if APP_ENV == "docker" else "",
+)
+CELERY_RESULT_BACKEND = os.getenv(
+    "CELERY_RESULT_BACKEND",
+    "redis://redis:6379/0" if APP_ENV == "docker" else "",
+)
 
+if CELERY_BROKER_URL and CELERY_RESULT_BACKEND:
+    # 브로커/백엔드가 명시되면 실제 비동기 실행
+    CELERY_TASK_ALWAYS_EAGER = False
 else:
-    # [Local 환경] -> 브로커 없이 '즉시 동기' 실행 (디버깅 용이)
+    # 미설정 시에는 eager 모드로 동작해 로컬 디버깅 편의 유지
     print("[LOCAL] Celery running in EAGER mode (Synchronous)")
     CELERY_TASK_ALWAYS_EAGER = True
     CELERY_TASK_EAGER_PROPAGATES = True
-    # 로컬에 Redis가 아예 없어도 에러가 안 나도록 메모리 브로커/백엔드 사용
     CELERY_BROKER_URL = "memory://"
     CELERY_RESULT_BACKEND = "cache+memory://"
 
@@ -220,22 +238,31 @@ CELERY_TIMEZONE = TIME_ZONE
 
 # =========================================================
 # [HTTPS 환경 설정]
-# 이제 SSL을 사용하므로 보안 기능을 활성화합니다.
+# Docker(Nginx+SSL) 환경에서만 보안 쿠키·리다이렉트를 활성화합니다.
+# 로컬 개발(http://localhost)에서는 비활성화해야 로그인이 정상 동작합니다.
 # =========================================================
-# 1. 쿠키 보안 활성화
-SESSION_COOKIE_SECURE = True
-CSRF_COOKIE_SECURE = True
-
-# 2. SSL 리다이렉트 (Django 레벨에서는 끄고 Nginx에서 처리하는 게 보통이지만, 켜도 무방)
-SECURE_SSL_REDIRECT = False  # Nginx가 이미 301 리다이렉트를 하므로 False 권장
-
-# 3. CSRF 신뢰할 수 있는 출처 (https 프로토콜로 수정)
-CSRF_TRUSTED_ORIGINS = [
-    "https://localhost",
-    "https://127.0.0.1",
-    "https://opusopt-demo.com",
-    "https://192.168.0.15",
-]
+if APP_ENV == "docker":
+    # 1. 쿠키 보안 활성화
+    SESSION_COOKIE_SECURE = True
+    CSRF_COOKIE_SECURE = True
+    # 2. SSL 리다이렉트 (Nginx가 이미 301 리다이렉트를 하므로 False 권장)
+    SECURE_SSL_REDIRECT = False
+    # 3. CSRF 신뢰할 수 있는 출처
+    CSRF_TRUSTED_ORIGINS = [
+        "https://localhost",
+        "https://127.0.0.1",
+        "https://opusopt-demo.com",
+        "https://192.168.0.15",
+    ]
+else:
+    # 로컬 개발: HTTP 전용
+    SESSION_COOKIE_SECURE = False
+    CSRF_COOKIE_SECURE = False
+    SECURE_SSL_REDIRECT = False
+    CSRF_TRUSTED_ORIGINS = [
+        "http://localhost",
+        "http://127.0.0.1",
+    ]
 
 # 가장 빠른 비밀번호 해시 알고리즘 사용 (테스트 속도 대폭 향상)
 PASSWORD_HASHERS = [
