@@ -7,6 +7,7 @@ from django.utils import timezone
 import requests
 from celery import shared_task
 
+from simulation.engine import run_mock_engine
 from simulation.models import SimulationRun, SimulationStatus
 
 logger = logging.getLogger(__name__)
@@ -89,6 +90,11 @@ def _call_engine_api(payload: dict[str, Any]) -> dict[str, Any]:
     return response.json()
 
 
+def _use_mock_engine() -> bool:
+    """외부 엔진 URL이 설정되지 않으면 가짜 엔진을 사용합니다."""
+    return not getattr(settings, "SIMULATION_ENGINE_API_URL", None)
+
+
 @shared_task(
     bind=True,
     autoretry_for=(requests.RequestException,),
@@ -105,7 +111,7 @@ def run_simulation_task(self, simulation_id: int) -> None:
         return
 
     simulation.simulation_status = SimulationStatus.RUNNING
-    simulation.progress = 10
+    simulation.progress = 0
     simulation.model_start_time = timezone.now()
     simulation.model_status = "RUNNING"
     simulation.save(
@@ -119,8 +125,17 @@ def run_simulation_task(self, simulation_id: int) -> None:
     )
 
     try:
-        payload = _build_engine_payload(simulation)
-        result = _call_engine_api(payload)
+        if _use_mock_engine():
+            # ── 가짜 엔진: 시나리오 데이터 수량 표시 + 6초×10단계 = 60초 완료 ──
+            logger.info(
+                "Using mock engine for simulation %s (no SIMULATION_ENGINE_API_URL)",
+                simulation_id,
+            )
+            result = run_mock_engine(simulation)
+        else:
+            # ── 실제 외부 엔진 API 호출 ──
+            payload = _build_engine_payload(simulation)
+            result = _call_engine_api(payload)
 
         simulation.simulation_status = SimulationStatus.SUCCESS
         simulation.progress = result.get("progress", 100)
@@ -141,9 +156,10 @@ def run_simulation_task(self, simulation_id: int) -> None:
         )
     except Exception as exc:
         logger.exception("Simulation %s failed during engine execution", simulation_id)
+        max_status_len = SimulationRun._meta.get_field("model_status").max_length or 50
         simulation.simulation_status = SimulationStatus.FAILED
         simulation.model_end_time = timezone.now()
-        simulation.model_status = str(exc)[:200]
+        simulation.model_status = str(exc)[:max_status_len]
         simulation.progress = 0
         simulation.save(
             update_fields=[
