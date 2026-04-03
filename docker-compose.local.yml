@@ -18,6 +18,8 @@ services:
       POSTGRES_DB: ${DB_NAME:-cascading_db}
       POSTGRES_USER: ${DB_USER:-cascading_user}
       POSTGRES_PASSWORD: ${DB_PASSWORD:-cascading_password}
+    ports:
+      - "5433:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
 

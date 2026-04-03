@@ -28,9 +28,14 @@ from input_data.models import (
     VesselCapacity,
     VesselInfo,
 )
-from simulation.models import SimulationRun
+from simulation.models import SimulationRun, SimulationStatus
 
 logger = logging.getLogger(__name__)
+
+
+class MockEngineCanceledError(Exception):
+    """모니터링 화면에서 중단 요청이 들어온 경우 발생"""
+
 
 # 시나리오 FK를 갖는 데이터 모델 목록 (표시 이름, 모델)
 SCENARIO_DATA_MODELS: list[tuple[str, Any]] = [
@@ -69,6 +74,16 @@ def _collect_scenario_data_counts(scenario_id: int) -> dict[str, int]:
     return counts
 
 
+def _ensure_not_canceled(simulation_id: int) -> None:
+    current_status = (
+        SimulationRun.objects.filter(pk=simulation_id)
+        .values_list("simulation_status", flat=True)
+        .first()
+    )
+    if current_status == SimulationStatus.CANCELED:
+        raise MockEngineCanceledError("Canceled by user")
+
+
 def run_mock_engine(simulation: SimulationRun) -> dict[str, Any]:
     """
     가짜 엔진 실행.
@@ -85,6 +100,7 @@ def run_mock_engine(simulation: SimulationRun) -> dict[str, Any]:
     """
     scenario = simulation.scenario
     start_time = time.time()
+    _ensure_not_canceled(simulation.id)
 
     # ── 1단계: 시나리오 데이터 수량 집계 ──
     logger.info(
@@ -112,9 +128,11 @@ def run_mock_engine(simulation: SimulationRun) -> dict[str, Any]:
 
     # ── 2단계: 6초 간격으로 progress 10%씩 증가 (10% → 100%) ──
     for step in range(1, TOTAL_STEPS + 1):
+        _ensure_not_canceled(simulation.id)
         progress = step * STEP_INCREMENT
 
         time.sleep(STEP_INTERVAL_SEC)
+        _ensure_not_canceled(simulation.id)
 
         simulation.progress = progress
         if step < TOTAL_STEPS:

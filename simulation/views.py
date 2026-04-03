@@ -1,7 +1,12 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
+from django.http import JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
+from django.utils import timezone
 from django.views.decorators.http import require_GET, require_POST
+
+from celery.result import AsyncResult
 
 from common.constants import SIMULATION_SOLVER_CHOICES
 from common.menus import (
@@ -13,6 +18,13 @@ from common.menus import (
 from input_data.models import ScenarioInfo
 from simulation.models import SimulationRun, SimulationStatus
 from simulation.tasks import run_simulation_task
+
+MONITORING_STATUSES = [
+    SimulationStatus.SNAPSHOTTING,
+    SimulationStatus.SNAPSHOT_DONE,
+    SimulationStatus.PENDING,
+    SimulationStatus.RUNNING,
+]
 
 
 @login_required
@@ -31,6 +43,97 @@ def simulation_list(request):
         "simulation_status": SimulationStatus,
     }
     return render(request, "simulation/simulation_list.html", context)
+
+
+@login_required
+@require_GET
+def simulation_monitoring(request):
+    """진행 중 시뮬레이션 모니터링 화면"""
+    running_simulations = (
+        SimulationRun.objects.select_related("scenario")
+        .filter(simulation_status__in=MONITORING_STATUSES)
+        .order_by("-created_at")
+    )
+
+    context = {
+        "menu_structure": MENU_STRUCTURE,
+        "creation_menu_structure": CREATION_MENU_STRUCTURE,
+        "current_section": MenuSection.SIMULATION,
+        "current_model": MenuItem.SIMULATION_MONITORING,
+        "simulations": running_simulations,
+        "simulation_status": SimulationStatus,
+    }
+    return render(request, "simulation/simulation_monitoring.html", context)
+
+
+@login_required
+@require_GET
+def simulation_monitoring_data(request):
+    """진행 중 시뮬레이션 목록 JSON (프론트 polling용)"""
+    rows = (
+        SimulationRun.objects.select_related("scenario")
+        .filter(simulation_status__in=MONITORING_STATUSES)
+        .order_by("-created_at")
+    )
+
+    status_label_map = dict(SimulationStatus.choices)
+
+    payload = [
+        {
+            "id": sim.pk,
+            "code": sim.code,
+            "scenario_code": sim.scenario.code,
+            "simulation_status": sim.simulation_status,
+            "status_label": status_label_map.get(
+                sim.simulation_status, sim.simulation_status
+            ),
+            "progress": sim.progress,
+            "model_status": sim.model_status or "",
+            "updated_at": sim.updated_at.isoformat() if sim.updated_at else None,
+            "detail_url": reverse("simulation:simulation_detail", args=[sim.pk]),
+            "cancel_url": reverse("simulation:simulation_cancel", args=[sim.pk]),
+        }
+        for sim in rows
+    ]
+
+    return JsonResponse({"items": payload, "count": len(payload)})
+
+
+@login_required
+@require_POST
+def simulation_cancel(request, pk):
+    """진행 중 시뮬레이션 중단 요청"""
+    simulation = get_object_or_404(SimulationRun, pk=pk)
+
+    if simulation.simulation_status not in MONITORING_STATUSES:
+        return JsonResponse(
+            {
+                "status": "rejected",
+                "message": "이미 종료된 시뮬레이션은 중단할 수 없습니다.",
+            },
+            status=400,
+        )
+
+    simulation.simulation_status = SimulationStatus.CANCELED
+    simulation.model_end_time = timezone.now()
+    simulation.model_status = "Canceled by user"
+    simulation.save(
+        update_fields=[
+            "simulation_status",
+            "model_end_time",
+            "model_status",
+            "updated_at",
+        ]
+    )
+
+    if simulation.task_id:
+        try:
+            AsyncResult(simulation.task_id).revoke(terminate=True)
+        except Exception:
+            # revoke 실패 시에도 상태는 CANCELED로 유지
+            pass
+
+    return JsonResponse({"status": "ok", "simulation_id": simulation.pk})
 
 
 @login_required
@@ -84,7 +187,9 @@ def simulation_run(request):
             created_by=request.user,
             updated_by=request.user,
         )
-        run_simulation_task.delay(simulation.id)
+        async_result = run_simulation_task.delay(simulation.id)
+        simulation.task_id = async_result.id
+        simulation.save(update_fields=["task_id", "updated_at"])
 
         messages.success(
             request,

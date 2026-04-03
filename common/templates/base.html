@@ -192,6 +192,11 @@
                         </a>
                     </li>
                     <li class="nav-item">
+                        <a href="{% url 'simulation:simulation_monitoring' %}" class="nav-link {% if current_model == 'simulation_monitoring' %}active{% else %}text-white-50{% endif %}">
+                            <i class="bi bi-broadcast-pin me-2"></i> Monitoring
+                        </a>
+                    </li>
+                    <li class="nav-item">
                         <a href="{% url 'simulation:simulation_create' %}" class="nav-link {% if current_model == 'simulation_create' %}active{% else %}text-white-50{% endif %}">
                             <i class="bi bi-play-circle me-2"></i> Simulation Create
                         </a>

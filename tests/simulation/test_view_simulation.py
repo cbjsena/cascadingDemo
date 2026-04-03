@@ -4,7 +4,7 @@ Simulation View Tests
 시뮬레이션 목록(List) / 생성(Create) / 실행(Run) / 상세(Detail) / 삭제(Delete) 화면 테스트
 
 시나리오 ID 매핑:
-  SIM_RUN_DIS_001 ~ SIM_RUN_DIS_015  화면 CRUD
+  SIM_RUN_DIS_001 ~ SIM_RUN_DIS_026  화면/모니터링 CRUD
   CM_AUTH_DIS_002                      비로그인 접근 차단
 
 Fixtures: tests/simulation/conftest.py 참조
@@ -144,6 +144,69 @@ class TestSimulationListView:
         # 핵심: 두 건 모두 표시되는지 확인
         assert sim1 in simulations
         assert sim2 in simulations
+
+    def test_list_status_badge_canceled(self, auth_client, active_scenario, user):
+        """CANCELED 상태가 리스트에서 명시적으로 표시되는지 검증"""
+        SimulationRun.objects.create(
+            scenario=active_scenario,
+            code="SM20260401_099",
+            simulation_status=SimulationStatus.CANCELED,
+            created_by=user,
+            updated_by=user,
+        )
+
+        response = auth_client.get(reverse("simulation:simulation_list"))
+        content = response.content.decode("utf-8")
+
+        assert response.status_code == 200
+        assert "Canceled" in content
+        assert "bg-dark" in content
+
+
+@pytest.mark.django_db
+class TestSimulationMonitoringView:
+    """진행 중 시뮬레이션 모니터링 화면/API 테스트"""
+
+    def test_monitoring_page_only_processing(
+        self,
+        auth_client,
+        simulation_success,
+        simulation_running,
+        simulation_failed,
+    ):
+        """모니터링 화면에는 진행 중 상태만 노출된다."""
+        url = reverse("simulation:simulation_monitoring")
+        response = auth_client.get(url)
+
+        assert response.status_code == 200
+        assert "simulation/simulation_monitoring.html" in [
+            t.name for t in response.templates
+        ]
+
+        simulations = list(response.context["simulations"])
+        assert simulation_running in simulations
+        assert simulation_success not in simulations
+        assert simulation_failed not in simulations
+
+        content = response.content.decode("utf-8")
+        assert simulation_running.code in content
+        assert simulation_success.code not in content
+
+    def test_monitoring_data_api(self, auth_client, simulation_running):
+        """모니터링 API는 진행 중 시뮬레이션의 실시간 렌더링용 JSON을 반환한다."""
+        url = reverse("simulation:simulation_monitoring_data")
+        response = auth_client.get(url)
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert "items" in payload
+        assert payload["count"] >= 1
+
+        item = payload["items"][0]
+        assert "code" in item
+        assert "scenario_code" in item
+        assert "progress" in item
+        assert "detail_url" in item
 
 
 # =========================================================================
@@ -469,6 +532,44 @@ class TestSimulationDeleteView:
 
 
 # =========================================================================
+# Cancel View Tests
+# =========================================================================
+@pytest.mark.django_db
+class TestSimulationCancelView:
+    """시뮬레이션 중단 테스트"""
+
+    def test_cancel_running_success(self, auth_client, simulation_running):
+        """
+        [SIM_RUN_DIS_025] RUNNING 상태 중단 요청 시 CANCELED로 전환
+        """
+        url = reverse("simulation:simulation_cancel", args=[simulation_running.pk])
+        response = auth_client.post(url)
+
+        assert response.status_code == 200
+        payload = response.json()
+        assert payload["status"] == "ok"
+
+        simulation_running.refresh_from_db()
+        assert simulation_running.simulation_status == SimulationStatus.CANCELED
+        assert simulation_running.model_status == "Canceled by user"
+        assert simulation_running.model_end_time is not None
+
+    def test_cancel_finished_rejected(self, auth_client, simulation_success):
+        """
+        [SIM_RUN_DIS_026] 종료된 상태는 중단 요청 거부
+        """
+        url = reverse("simulation:simulation_cancel", args=[simulation_success.pk])
+        response = auth_client.post(url)
+
+        assert response.status_code == 400
+        payload = response.json()
+        assert payload["status"] == "rejected"
+
+        simulation_success.refresh_from_db()
+        assert simulation_success.simulation_status == SimulationStatus.SUCCESS
+
+
+# =========================================================================
 # Access Control Tests
 # =========================================================================
 @pytest.mark.django_db
@@ -514,6 +615,7 @@ class TestSimulationAccessControl:
         post_urls = [
             reverse("simulation:simulation_run"),
             reverse("simulation:simulation_delete", args=[sim.pk]),
+            reverse("simulation:simulation_cancel", args=[sim.pk]),
         ]
 
         for url in post_urls:

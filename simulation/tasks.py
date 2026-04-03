@@ -7,7 +7,7 @@ from django.utils import timezone
 import requests
 from celery import shared_task
 
-from simulation.engine import run_mock_engine
+from simulation.engine import MockEngineCanceledError, run_mock_engine
 from simulation.models import SimulationRun, SimulationStatus
 
 logger = logging.getLogger(__name__)
@@ -110,6 +110,11 @@ def run_simulation_task(self, simulation_id: int) -> None:
         logger.warning("SimulationRun %s not found when starting task", simulation_id)
         return
 
+    simulation.refresh_from_db(fields=["simulation_status"])
+    if simulation.simulation_status == SimulationStatus.CANCELED:
+        logger.info("Simulation %s already canceled before start", simulation_id)
+        return
+
     simulation.simulation_status = SimulationStatus.RUNNING
     simulation.progress = 0
     simulation.model_start_time = timezone.now()
@@ -137,6 +142,11 @@ def run_simulation_task(self, simulation_id: int) -> None:
             payload = _build_engine_payload(simulation)
             result = _call_engine_api(payload)
 
+        simulation.refresh_from_db(fields=["simulation_status"])
+        if simulation.simulation_status == SimulationStatus.CANCELED:
+            logger.info("Simulation %s canceled before completion write", simulation_id)
+            return
+
         simulation.simulation_status = SimulationStatus.SUCCESS
         simulation.progress = result.get("progress", 100)
         simulation.model_end_time = timezone.now()
@@ -154,8 +164,28 @@ def run_simulation_task(self, simulation_id: int) -> None:
                 "updated_at",
             ]
         )
+    except MockEngineCanceledError:
+        logger.info("Simulation %s canceled during mock engine run", simulation_id)
+        simulation.refresh_from_db()
+        simulation.simulation_status = SimulationStatus.CANCELED
+        simulation.model_end_time = simulation.model_end_time or timezone.now()
+        simulation.model_status = "Canceled by user"
+        simulation.save(
+            update_fields=[
+                "simulation_status",
+                "model_end_time",
+                "model_status",
+                "updated_at",
+            ]
+        )
+        return
     except Exception as exc:
         logger.exception("Simulation %s failed during engine execution", simulation_id)
+        simulation.refresh_from_db(fields=["simulation_status"])
+        if simulation.simulation_status == SimulationStatus.CANCELED:
+            logger.info("Simulation %s canceled after exception path", simulation_id)
+            return
+
         max_status_len = SimulationRun._meta.get_field("model_status").max_length or 50
         simulation.simulation_status = SimulationStatus.FAILED
         simulation.model_end_time = timezone.now()

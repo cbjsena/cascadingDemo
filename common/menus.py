@@ -63,6 +63,7 @@ class MenuItem:
 
     # Simulation
     SIMULATION_LIST = "simulation_list"
+    SIMULATION_MONITORING = "simulation_monitoring"
     SIMULATION_CREATE = "simulation_create"
     SIMULATION_DETAIL = "simulation_detail"
 
